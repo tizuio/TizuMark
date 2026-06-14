@@ -328,7 +328,7 @@ body {
 .editor-container.preview-mode .resizer { display: none; }
 .editor-container.preview-mode .preview-pane { flex: 1; }
 .editor-container.preview-mode .preview-pane .pane-header { display: none; }
-.editor-container.preview-mode .preview-content { max-width: 900px; margin: 0 auto; padding: 32px 48px; }
+.editor-container.preview-mode .preview-content { margin: 0 auto; padding: 16px 24px; }
 
 .editor-container.editor-collapsed .editor-pane { display: none; }
 .editor-container.editor-collapsed .resizer { display: none; }
