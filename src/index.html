@@ -15,21 +15,21 @@
       <div class="toolbar">
         <div class="toolbar-left">
           <button id="btn-new" class="toolbar-btn" title="新建 (Ctrl+N)">
-            <span>&#128196;</span>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M12 18v-6"/></svg>
             <span>新建</span>
           </button>
           <button id="btn-open" class="toolbar-btn" title="打开 (Ctrl+O)">
-            <span>&#128194;</span>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg>
             <span>打开</span>
           </button>
           <button id="btn-save" class="toolbar-btn" title="保存 (Ctrl+S)">
-            <span>&#128190;</span>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
             <span>保存</span>
           </button>
           <div class="toolbar-separator"></div>
           <div class="dropdown">
             <button id="btn-export" class="toolbar-btn" title="导出文件">
-              <span>&#128229;</span>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
               <span>导出</span>
               <span class="dropdown-arrow">&#9660;</span>
             </button>
@@ -39,29 +39,30 @@
               <div class="dropdown-item" id="btn-export-pdf">PDF</div>
             </div>
           </div>
-          <div class="toolbar-separator"></div>
+        </div>
+        <div class="toolbar-center">
           <div class="view-mode-tabs">
             <button id="btn-view-preview" class="view-mode-tab active" title="预览模式">
-              <span>&#128065;</span>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
               <span>预览</span>
             </button>
             <button id="btn-view-edit" class="view-mode-tab" title="编辑模式">
-              <span>&#9998;</span>
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
               <span>编辑</span>
             </button>
           </div>
         </div>
         <div class="toolbar-right">
           <button id="btn-find" class="toolbar-btn" title="查找替换 (Ctrl+F)">
-            <span>&#128269;</span>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             <span>查找</span>
           </button>
           <button id="btn-theme" class="toolbar-btn" title="切换主题">
-            <span>&#127769;</span>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
             <span>主题</span>
           </button>
           <button id="btn-about" class="toolbar-btn" title="关于">
-            <span>&#9432;</span>
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
             <span>关于</span>
           </button>
         </div>
@@ -106,8 +107,8 @@
         </div>
         <div id="preview" class="preview-content"></div>
         <button id="scroll-top-btn" class="scroll-top-btn hidden" title="回到顶部">
-          <svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 8L7 3L12 8"/>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m18 15-6-6-6 6"/>
           </svg>
           <span class="scroll-top-label">TOP</span>
         </button>
