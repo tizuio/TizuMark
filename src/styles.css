@@ -66,6 +66,12 @@ body {
   gap: 2px;
 }
 
+.toolbar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .tab-bar-wrapper {
   display: flex;
   padding: 4px 8px 0 8px;
@@ -86,6 +92,12 @@ body {
   gap: 4px;
 }
 
+.icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
 .toolbar-btn:hover { background-color: var(--bg-secondary); }
 
 .toolbar-btn-active {
@@ -95,30 +107,30 @@ body {
 
 .view-mode-tabs {
   display: flex;
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 20px;
-  padding: 2px;
+  padding: 3px;
+  gap: 0;
 }
 
 .view-mode-tab {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 12px;
+  padding: 4px 14px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
-  transition: background-color 0.15s, color 0.15s;
+  transition: all 0.2s ease;
+  border-radius: 16px;
 }
 
-.view-mode-tab:first-child {
-  border-radius: 18px 0 0 18px;
-}
-
-.view-mode-tab:last-child {
-  border-radius: 0 18px 18px 0;
+.view-mode-tab .icon {
+  width: 14px;
+  height: 14px;
 }
 
 .view-mode-tab:hover {
@@ -128,10 +140,11 @@ body {
 .view-mode-tab.active {
   background-color: var(--accent-color);
   color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 120, 212, 0.3);
 }
 
 .view-mode-tab + .view-mode-tab {
-  border-left: 1px solid var(--border-color);
+  margin-left: 2px;
 }
 
 .toolbar-separator {
