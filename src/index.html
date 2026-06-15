@@ -37,6 +37,7 @@
       <div class="toolbar-right">
         <button id="btn-find" class="toolbar-btn" title="查找替换 (Ctrl+F)">查找</button>
         <button id="btn-theme" class="toolbar-btn" title="切换主题">主题</button>
+        <button id="btn-about" class="toolbar-btn" title="关于">关于</button>
       </div>
     </header>
 
@@ -60,7 +61,6 @@
       <div class="editor-pane" id="editor-pane">
         <div class="pane-header">
           <span>编辑</span>
-          <button class="pane-collapse-btn" id="btn-collapse-editor" title="折叠编辑器">&#9664;</button>
         </div>
         <div id="editor-wrapper"></div>
       </div>
@@ -68,10 +68,11 @@
       <div class="preview-pane" id="preview-pane">
         <div class="pane-header">
           <span>预览</span>
-          <button class="pane-collapse-btn" id="btn-collapse-preview" title="折叠预览">&#9654;</button>
         </div>
         <div id="preview" class="preview-content"></div>
       </div>
+      <div class="side-btn" id="btn-side-left" title="折叠编辑器">&#9664;</div>
+      <div class="side-btn" id="btn-side-right" title="折叠预览">&#9654;</div>
     </main>
 
     <footer class="statusbar">
@@ -100,6 +101,68 @@
   <script src="lib/codemirror/addon/search/jump-to-line.js"></script>
   <script src="lib/codemirror/addon/dialog/dialog.js"></script>
   <script src="lib/codemirror/addon/selection/active-line.js"></script>
+  <!-- 关于对话框 -->
+  <div id="about-dialog" class="dialog-overlay hidden">
+    <div class="dialog">
+      <div class="dialog-header">
+        <h2>关于 Markdown Editor</h2>
+        <button class="dialog-close" id="about-close">&times;</button>
+      </div>
+      <div class="dialog-content">
+        <div class="about-section">
+          <h3>版本信息</h3>
+          <p>Markdown Editor v0.1.0</p>
+          <p>轻量级跨平台 Markdown 编辑器</p>
+          <p>基于 Tauri + Rust 构建</p>
+        </div>
+        
+        <div class="about-section">
+          <h3>开源许可</h3>
+          <p>本软件使用 MIT 许可证</p>
+          <p>Copyright (c) 2024</p>
+        </div>
+        
+        <div class="about-section">
+          <h3>第三方组件</h3>
+          <div class="dependency-list">
+            <div class="dependency-item">
+              <strong>CodeMirror</strong>
+              <span class="license-badge">MIT</span>
+              <p>代码编辑器组件</p>
+            </div>
+            <div class="dependency-item">
+              <strong>highlight.js</strong>
+              <span class="license-badge">BSD-3-Clause</span>
+              <p>语法高亮库</p>
+            </div>
+            <div class="dependency-item">
+              <strong>markdown-it</strong>
+              <span class="license-badge">MIT</span>
+              <p>Markdown 解析器</p>
+            </div>
+            <div class="dependency-item">
+              <strong>Tauri</strong>
+              <span class="license-badge">MIT/Apache 2.0</span>
+              <p>桌面应用框架</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="about-section">
+          <h3>版权声明</h3>
+          <p class="copyright-text">本软件包含以下开源组件，使用其各自的许可证：</p>
+          <ul class="copyright-list">
+            <li>CodeMirror - MIT License</li>
+            <li>highlight.js - BSD-3-Clause License</li>
+            <li>markdown-it - MIT License</li>
+            <li>Tauri - MIT OR Apache-2.0 License</li>
+          </ul>
+          <p class="copyright-text">上述组件的完整许可证文本可在各组件的官方仓库中找到。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <script src="app.js"></script>
 </body>
 </html>

@@ -200,10 +200,21 @@ class MarkdownEditor {
     document.getElementById('btn-theme').addEventListener('click', () => this.toggleTheme());
     document.getElementById('btn-find').addEventListener('click', () => this.toggleFindPanel());
     document.getElementById('btn-view-mode').addEventListener('click', () => this.toggleViewMode());
-    document.getElementById('btn-collapse-editor').addEventListener('click', () => this.toggleCollapse('editor'));
-    document.getElementById('btn-collapse-preview').addEventListener('click', () => this.toggleCollapse('preview'));
+    document.getElementById('btn-side-left').addEventListener('click', () => this.toggleCollapse('editor'));
+    document.getElementById('btn-side-right').addEventListener('click', () => this.toggleCollapse('preview'));
+    document.getElementById('btn-about').addEventListener('click', () => this.showAbout());
+    document.getElementById('about-close').addEventListener('click', () => this.hideAbout());
 
     document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        // 如果关于对话框打开，关闭它
+        const aboutDialog = document.getElementById('about-dialog');
+        if (!aboutDialog.classList.contains('hidden')) {
+          this.hideAbout();
+          return;
+        }
+      }
+      
       if (e.ctrlKey || e.metaKey) {
         switch (e.key.toLowerCase()) {
           case 's':
@@ -239,32 +250,38 @@ class MarkdownEditor {
 
   initResizer() {
     const resizer = document.getElementById('resizer');
+    const container = document.querySelector('.editor-container');
     const editorPane = document.getElementById('editor-pane');
     const previewPane = document.getElementById('preview-pane');
     let isResizing = false;
 
-    resizer.addEventListener('mousedown', () => {
-      isResizing = true;
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    });
-
-    document.addEventListener('mousemove', (e) => {
+    const onMouseMove = (e) => {
       if (!isResizing) return;
-      const containerRect = document.querySelector('.editor-container').getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
       const percentage = ((e.clientX - containerRect.left) / containerRect.width) * 100;
       if (percentage > 20 && percentage < 80) {
-        editorPane.style.flex = `0 0 ${percentage}%`;
-        previewPane.style.flex = `0 0 ${100 - percentage}%`;
+        editorPane.style.width = percentage + '%';
+        previewPane.style.width = (100 - percentage) + '%';
+        editorPane.style.flex = 'none';
+        previewPane.style.flex = 'none';
         this.cm.refresh();
       }
+    };
+
+    const onMouseUp = () => {
+      if (!isResizing) return;
+      isResizing = false;
+      document.body.classList.remove('is-resizing');
+    };
+
+    resizer.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      isResizing = true;
+      document.body.classList.add('is-resizing');
     });
 
-    document.addEventListener('mouseup', () => {
-      isResizing = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    });
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   }
 
   initFindReplace() {
@@ -620,8 +637,8 @@ ${htmlContent}
     const icon = document.getElementById('view-mode-icon');
     const label = document.getElementById('view-mode-label');
     const btn = document.getElementById('btn-view-mode');
-    const editorBtn = document.getElementById('btn-collapse-editor');
-    const previewBtn = document.getElementById('btn-collapse-preview');
+    const sideLeft = document.getElementById('btn-side-left');
+    const sideRight = document.getElementById('btn-side-right');
 
     container.classList.remove('preview-mode', 'editor-collapsed', 'preview-collapsed');
 
@@ -630,12 +647,18 @@ ${htmlContent}
       icon.innerHTML = '&#128065;';
       label.textContent = '预览';
       btn.title = '切换到编辑模式';
+      sideLeft.classList.add('side-hidden');
+      sideRight.classList.add('side-hidden');
     } else {
       icon.innerHTML = '&#9998;';
       label.textContent = '编辑';
       btn.title = '切换到预览模式';
-      editorBtn.innerHTML = '&#9664;';
-      previewBtn.innerHTML = '&#9654;';
+      sideLeft.classList.remove('side-hidden', 'side-active');
+      sideLeft.innerHTML = '&#9664;';
+      sideLeft.title = '折叠编辑器';
+      sideRight.classList.remove('side-hidden', 'side-active');
+      sideRight.innerHTML = '&#9654;';
+      sideRight.title = '折叠预览';
     }
 
     setTimeout(() => this.cm.refresh(), 50);
@@ -645,17 +668,53 @@ ${htmlContent}
     const container = document.querySelector('.editor-container');
     if (this.viewMode === 'preview') return;
 
+    const sideLeft = document.getElementById('btn-side-left');
+    const sideRight = document.getElementById('btn-side-right');
+    const editorPane = document.getElementById('editor-pane');
+    const previewPane = document.getElementById('preview-pane');
+
+    editorPane.style.flex = '';
+    editorPane.style.width = '';
+    previewPane.style.flex = '';
+    previewPane.style.width = '';
+
     if (pane === 'editor') {
       container.classList.toggle('editor-collapsed');
       const isCollapsed = container.classList.contains('editor-collapsed');
-      document.getElementById('btn-collapse-editor').innerHTML = isCollapsed ? '&#9654;' : '&#9664;';
+      sideLeft.innerHTML = isCollapsed ? '&#9654;' : '&#9664;';
+      sideLeft.title = isCollapsed ? '恢复编辑器' : '折叠编辑器';
+      sideLeft.classList.toggle('side-active', isCollapsed);
+      sideRight.classList.toggle('side-hidden', isCollapsed);
     } else {
       container.classList.toggle('preview-collapsed');
       const isCollapsed = container.classList.contains('preview-collapsed');
-      document.getElementById('btn-collapse-preview').innerHTML = isCollapsed ? '&#9664;' : '&#9654;';
+      sideRight.innerHTML = isCollapsed ? '&#9664;' : '&#9654;';
+      sideRight.title = isCollapsed ? '恢复预览' : '折叠预览';
+      sideRight.classList.toggle('side-active', isCollapsed);
+      sideLeft.classList.toggle('side-hidden', isCollapsed);
     }
 
-    setTimeout(() => this.cm.refresh(), 50);
+    const refresh = () => this.cm.refresh();
+    requestAnimationFrame(() => {
+      refresh();
+      requestAnimationFrame(refresh);
+    });
+  }
+
+  showAbout() {
+    const dialog = document.getElementById('about-dialog');
+    dialog.classList.remove('hidden');
+    
+    // 点击对话框外部关闭
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) {
+        this.hideAbout();
+      }
+    });
+  }
+
+  hideAbout() {
+    document.getElementById('about-dialog').classList.add('hidden');
   }
 }
 
