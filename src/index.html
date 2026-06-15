@@ -26,6 +26,10 @@
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
             <span>保存</span>
           </button>
+          <button id="btn-save-as" class="toolbar-btn" title="另存为">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span>另存为</span>
+          </button>
           <div class="toolbar-separator"></div>
           <div class="dropdown">
             <button id="btn-export" class="toolbar-btn" title="导出文件">
@@ -35,7 +39,6 @@
             </button>
             <div class="dropdown-menu hidden" id="export-menu">
               <div class="dropdown-item" id="btn-export-html">HTML</div>
-              <div class="dropdown-item" id="btn-export-md">Markdown</div>
               <div class="dropdown-item" id="btn-export-pdf">PDF</div>
             </div>
           </div>
@@ -58,7 +61,17 @@
             <span>查找</span>
           </button>
           <button id="btn-theme" class="toolbar-btn" title="切换主题">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            <svg id="theme-icon" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2"/>
+              <path d="M12 20v2"/>
+              <path d="m4.93 4.93 1.41 1.41"/>
+              <path d="m17.66 17.66 1.41 1.41"/>
+              <path d="M2 12h2"/>
+              <path d="M20 12h2"/>
+              <path d="m6.34 17.66-1.41 1.41"/>
+              <path d="m19.07 4.93-1.41 1.41"/>
+            </svg>
             <span>主题</span>
           </button>
           <button id="btn-about" class="toolbar-btn" title="关于">

@@ -216,12 +216,12 @@ class MarkdownEditor {
     document.getElementById('btn-new').addEventListener('click', () => this.newFile());
     document.getElementById('btn-open').addEventListener('click', () => this.openFile());
     document.getElementById('btn-save').addEventListener('click', () => this.saveFile());
+    document.getElementById('btn-save-as').addEventListener('click', () => this.saveAsFile());
     document.getElementById('btn-export').addEventListener('click', (e) => {
       e.stopPropagation();
       document.getElementById('export-menu').classList.toggle('hidden');
     });
     document.getElementById('btn-export-html').addEventListener('click', () => this.exportHTML());
-    document.getElementById('btn-export-md').addEventListener('click', () => this.exportMarkdown());
     document.getElementById('btn-export-pdf').addEventListener('click', () => this.exportPDF());
     document.addEventListener('click', () => {
       document.getElementById('export-menu').classList.add('hidden');
@@ -571,6 +571,28 @@ class MarkdownEditor {
     }
   }
 
+  async saveAsFile() {
+    try {
+      const path = await dialogSave({
+        defaultPath: this.activeTab.filePath || `${this.activeTab.name}`,
+        filters: [
+          { name: 'Markdown', extensions: ['md'] },
+          { name: '所有文件', extensions: ['*'] }
+        ]
+      });
+      if (!path) return;
+
+      await invoke('write_file', { path, content: this.activeTab.content });
+      this.activeTab.filePath = path;
+      this.activeTab.name = path.split(/[/\\]/).pop();
+      this.activeTab.savedContent = this.activeTab.content;
+      this.updateTabBar();
+      this.setStatus(`已另存为: ${path}`);
+    } catch (error) {
+      this.setStatus(`保存失败: ${error}`);
+    }
+  }
+
   async exportHTML() {
     try {
       const path = await dialogSave({
@@ -616,31 +638,8 @@ ${htmlContent}
     }
   }
 
-  async exportMarkdown() {
-    try {
-      const path = await dialogSave({
-        defaultPath: this.activeTab.filePath || 'export.md',
-        filters: [{ name: 'Markdown', extensions: ['md'] }]
-      });
-      if (!path) return;
-
-      await invoke('write_file', { path, content: this.activeTab.content });
-      this.setStatus(`已导出 Markdown: ${path}`);
-    } catch (error) {
-      this.setStatus(`导出失败: ${error}`);
-    }
-  }
-
   async exportPDF() {
     try {
-      const path = await dialogSave({
-        defaultPath: this.activeTab.filePath
-          ? this.activeTab.filePath.replace(/\.md$/, '.pdf')
-          : 'export.pdf',
-        filters: [{ name: 'PDF', extensions: ['pdf'] }]
-      });
-      if (!path) return;
-
       const htmlContent = await invoke('render_markdown', { content: this.activeTab.content });
       const printHTML = `<!DOCTYPE html>
 <html><head>
@@ -664,8 +663,14 @@ ${htmlContent}
 </style>
 </head><body>${htmlContent}</body></html>`;
 
-      await invoke('write_file', { path: path + '.tmp.html', content: printHTML });
-      this.setStatus(`PDF 导出: 请在打开的页面中按 Ctrl+P 打印为 PDF`);
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printHTML);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+      
+      this.setStatus('PDF 导出: 请在打印对话框中选择"另存为 PDF"');
     } catch (error) {
       this.setStatus(`导出失败: ${error}`);
     }
@@ -698,12 +703,32 @@ ${htmlContent}
     this.isDark = !this.isDark;
     document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
     this.cm.setOption('theme', this.isDark ? 'material-darker' : 'default');
+    this.updateThemeIcon();
     this.setStatus(`已切换到${this.isDark ? '深色' : '浅色'}主题`);
   }
 
+  updateThemeIcon() {
+    const icon = document.getElementById('theme-icon');
+    if (this.isDark) {
+      icon.innerHTML = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>';
+    } else {
+      icon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
+    }
+  }
+
   loadTheme() {
-    this.isDark = false;
-    document.documentElement.setAttribute('data-theme', 'light');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    this.isDark = prefersDark;
+    document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+    this.cm.setOption('theme', this.isDark ? 'material-darker' : 'default');
+    this.updateThemeIcon();
+    
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      this.isDark = e.matches;
+      document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+      this.cm.setOption('theme', this.isDark ? 'material-darker' : 'default');
+      this.updateThemeIcon();
+    });
   }
 
   setViewMode(mode) {
