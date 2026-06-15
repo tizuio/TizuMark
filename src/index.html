@@ -106,6 +106,18 @@
       </div>
     </div>
 
+    <div id="preview-find-panel" class="find-panel hidden">
+      <div class="find-row">
+        <input type="text" id="preview-find-input" placeholder="在预览中查找..." class="find-input">
+        <label class="find-option"><input type="checkbox" id="preview-find-case"> 区分大小写</label>
+        <label class="find-option"><input type="checkbox" id="preview-find-regex"> 正则</label>
+        <button id="preview-find-prev" class="find-btn">上一个</button>
+        <button id="preview-find-next" class="find-btn">下一个</button>
+        <span id="preview-find-count" class="find-count"></span>
+        <button id="preview-find-close" class="find-btn find-close-btn">&times;</button>
+      </div>
+    </div>
+
     <main class="editor-container">
       <div class="editor-pane" id="editor-pane">
         <div class="pane-header">

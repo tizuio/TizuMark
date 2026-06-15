@@ -101,6 +101,21 @@ class MarkdownEditor {
     this.cm.on('scroll', () => {
       const info = this.cm.getScrollInfo();
       this.activeTab.scrollPos = { top: info.top, left: info.left };
+      
+      if (this.viewMode === 'edit') {
+        const scrollPercent = info.top / (info.height - info.clientHeight || 1);
+        const previewScrollTop = scrollPercent * (this.preview.scrollHeight - this.preview.clientHeight);
+        this.preview.scrollTop = previewScrollTop;
+      }
+    });
+
+    this.preview.addEventListener('scroll', () => {
+      if (this.viewMode === 'edit') {
+        const scrollPercent = this.preview.scrollTop / (this.preview.scrollHeight - this.preview.clientHeight || 1);
+        const info = this.cm.getScrollInfo();
+        const editorScrollTop = scrollPercent * (info.height - info.clientHeight);
+        this.cm.scrollTo(0, editorScrollTop);
+      }
     });
   }
 
@@ -263,6 +278,14 @@ class MarkdownEditor {
             e.preventDefault();
             await this.closeTab(this.activeTabIndex);
             break;
+          case 'f':
+            e.preventDefault();
+            this.toggleFindPanel();
+            break;
+          case 'h':
+            e.preventDefault();
+            this.toggleFindPanel(true);
+            break;
           case 'tab':
             e.preventDefault();
             if (e.shiftKey) {
@@ -384,10 +407,50 @@ class MarkdownEditor {
     });
 
     document.getElementById('find-prev').addEventListener('click', () => {
-      const cursor = getSearchCursor();
-      if (cursor && cursor.findPrevious()) {
-        this.cm.setSelection(cursor.from(), cursor.to());
-        this.cm.scrollIntoView({ from: cursor.from(), to: cursor.to() }, 100);
+      const query = findInput.value;
+      if (!query) return;
+      const caseSensitive = document.getElementById('find-case').checked;
+      const useRegex = document.getElementById('find-regex').checked;
+      const cursor = this.cm.getCursor();
+      const text = this.cm.getValue();
+      
+      const posToOffset = (pos) => {
+        const lines = text.split('\n');
+        let offset = 0;
+        for (let i = 0; i < pos.line; i++) offset += lines[i].length + 1;
+        return offset + pos.ch;
+      };
+      
+      const offsetToPos = (offset) => {
+        const lines = text.split('\n');
+        let remaining = offset;
+        for (let i = 0; i < lines.length; i++) {
+          if (remaining <= lines[i].length) {
+            return { line: i, ch: remaining };
+          }
+          remaining -= lines[i].length + 1;
+        }
+        return { line: lines.length - 1, ch: 0 };
+      };
+      
+      const currentOffset = posToOffset(cursor);
+      const flags = caseSensitive ? 'g' : 'gi';
+      const regex = useRegex 
+        ? new RegExp(query, flags)
+        : new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+      
+      let lastMatch = null;
+      let m;
+      while ((m = regex.exec(text)) !== null) {
+        if (m.index + m[0].length < currentOffset) {
+          lastMatch = { from: offsetToPos(m.index), to: offsetToPos(m.index + m[0].length) };
+        }
+        if (regex.lastIndex === m.index) { regex.lastIndex++; }
+      }
+      
+      if (lastMatch) {
+        this.cm.setSelection(lastMatch.from, lastMatch.to);
+        this.cm.scrollIntoView({ from: lastMatch.from, to: lastMatch.to }, 100);
       }
     });
 
@@ -436,26 +499,183 @@ class MarkdownEditor {
       }
       if (e.key === 'Escape') this.closeFindPanel();
     });
+
+    this.initPreviewFind();
+  }
+
+  initPreviewFind() {
+    const previewFindInput = document.getElementById('preview-find-input');
+    const previewFindCount = document.getElementById('preview-find-count');
+    this.previewSelections = [];
+    this.previewSelectionIndex = -1;
+
+    const updatePreviewCount = () => {
+      const query = previewFindInput.value;
+      if (!query) { previewFindCount.textContent = ''; this.clearPreviewHighlight(); return; }
+      const caseSensitive = document.getElementById('preview-find-case').checked;
+      const useRegex = document.getElementById('preview-find-regex').checked;
+      const text = this.preview.textContent;
+      let count = 0;
+      if (useRegex) {
+        try {
+          const re = new RegExp(query, caseSensitive ? 'g' : 'gi');
+          count = (text.match(re) || []).length;
+        } catch { count = 0; }
+      } else {
+        const lower = caseSensitive ? text : text.toLowerCase();
+        const q = caseSensitive ? query : query.toLowerCase();
+        let pos = 0;
+        while ((pos = lower.indexOf(q, pos)) !== -1) { count++; pos += q.length; }
+      }
+      previewFindCount.textContent = count > 0 ? `${count} 个结果` : '无结果';
+    };
+
+    const doPreviewFind = (reverse = false) => {
+      const query = previewFindInput.value;
+      if (!query) return;
+      const caseSensitive = document.getElementById('preview-find-case').checked;
+      const useRegex = document.getElementById('preview-find-regex').checked;
+
+      const text = this.preview.textContent;
+      let matches = [];
+      
+      if (useRegex) {
+        try {
+          const regex = new RegExp(query, caseSensitive ? 'g' : 'gi');
+          let m;
+          while ((m = regex.exec(text)) !== null) {
+            matches.push({ start: m.index, end: m.index + m[0].length });
+            if (matches.length > 10000) break;
+          }
+        } catch { return; }
+      } else {
+        const flags = caseSensitive ? 'g' : 'gi';
+        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(escapedQuery, flags);
+        let m;
+        while ((m = regex.exec(text)) !== null) {
+          matches.push({ start: m.index, end: m.index + m[0].length });
+          if (matches.length > 10000) break;
+        }
+      }
+
+      if (matches.length === 0) return;
+
+      let currentPos = 0;
+      const selection = window.getSelection();
+      if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const preRange = document.createRange();
+        preRange.selectNodeContents(this.preview);
+        preRange.setEnd(range.endContainer, range.endOffset);
+        currentPos = preRange.toString().length;
+      }
+
+      let targetMatch;
+      if (reverse) {
+        let found = false;
+        for (let i = matches.length - 1; i >= 0; i--) {
+          if (matches[i].end < currentPos) { targetMatch = matches[i]; found = true; break; }
+        }
+        if (!found) targetMatch = matches[matches.length - 1];
+      } else {
+        let found = false;
+        for (let i = 0; i < matches.length; i++) {
+          if (matches[i].start >= currentPos) { targetMatch = matches[i]; found = true; break; }
+        }
+        if (!found) targetMatch = matches[0];
+      }
+
+      this.highlightPreviewMatch(targetMatch);
+    };
+
+    this.highlightPreviewMatch = (target) => {
+      const walker = document.createTreeWalker(this.preview, NodeFilter.SHOW_TEXT, null, false);
+      let node;
+      let charCount = 0;
+      while (node = walker.nextNode()) {
+        const nodeLen = node.nodeValue.length;
+        if (charCount + nodeLen > target.start) {
+          const startOffset = target.start - charCount;
+          const endOffset = target.end - charCount;
+          const range = document.createRange();
+          range.setStart(node, startOffset);
+          range.setEnd(node, endOffset);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+          range.startContainer.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+        charCount += nodeLen;
+      }
+    };
+
+    this.clearPreviewHighlight = () => {
+      window.getSelection().removeAllRanges();
+    };
+
+    previewFindInput.addEventListener('input', updatePreviewCount);
+    document.getElementById('preview-find-case').addEventListener('change', updatePreviewCount);
+    document.getElementById('preview-find-regex').addEventListener('change', updatePreviewCount);
+
+    document.getElementById('preview-find-next').addEventListener('click', () => doPreviewFind(false));
+    document.getElementById('preview-find-prev').addEventListener('click', () => doPreviewFind(true));
+    document.getElementById('preview-find-close').addEventListener('click', () => {
+      document.getElementById('preview-find-panel').classList.add('hidden');
+      this.clearPreviewHighlight();
+    });
+
+    previewFindInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        doPreviewFind(e.shiftKey);
+      }
+      if (e.key === 'Escape') {
+        document.getElementById('preview-find-panel').classList.add('hidden');
+        this.clearPreviewHighlight();
+      }
+    });
   }
 
   toggleFindPanel(replaceMode = false) {
-    const panel = document.getElementById('find-panel');
-    const isHidden = panel.classList.contains('hidden');
-    panel.classList.toggle('hidden');
-
-    if (isHidden) {
-      const input = document.getElementById('find-input');
-      if (this.cm.somethingSelected()) {
-        input.value = this.cm.getSelection();
+    if (this.viewMode === 'preview') {
+      const panel = document.getElementById('preview-find-panel');
+      const isHidden = panel.classList.contains('hidden');
+      document.getElementById('find-panel').classList.add('hidden');
+      panel.classList.toggle('hidden');
+      if (isHidden) {
+        const input = document.getElementById('preview-find-input');
+        const selection = window.getSelection();
+        if (selection.toString()) {
+          input.value = selection.toString();
+        }
+        input.focus();
+        input.select();
       }
-      input.focus();
-      input.select();
+    } else {
+      const panel = document.getElementById('find-panel');
+      const isHidden = panel.classList.contains('hidden');
+      document.getElementById('preview-find-panel').classList.add('hidden');
+      panel.classList.toggle('hidden');
+      if (isHidden) {
+        const input = document.getElementById('find-input');
+        if (this.cm.somethingSelected()) {
+          input.value = this.cm.getSelection();
+        }
+        input.focus();
+        input.select();
+      }
     }
   }
 
   closeFindPanel() {
     document.getElementById('find-panel').classList.add('hidden');
-    this.cm.focus();
+    document.getElementById('preview-find-panel').classList.add('hidden');
+    this.clearPreviewHighlight();
+    if (this.viewMode === 'edit') {
+      this.cm.focus();
+    }
   }
 
   initScrollTopBtn() {
@@ -733,16 +953,31 @@ ${htmlContent}
 
   setViewMode(mode) {
     if (this.viewMode === mode) return;
+    
+    if (mode === 'preview') {
+      document.getElementById('find-panel').classList.add('hidden');
+    } else {
+      document.getElementById('preview-find-panel').classList.add('hidden');
+      this.clearPreviewHighlight();
+    }
+    
     this.viewMode = mode;
     this.applyViewMode();
   }
 
   applyViewMode() {
     const container = document.querySelector('.editor-container');
+    const editorPane = document.getElementById('editor-pane');
+    const previewPane = document.getElementById('preview-pane');
     const btnPreview = document.getElementById('btn-view-preview');
     const btnEdit = document.getElementById('btn-view-edit');
     const sideLeft = document.getElementById('btn-side-left');
     const sideRight = document.getElementById('btn-side-right');
+
+    editorPane.style.flex = '';
+    editorPane.style.width = '';
+    previewPane.style.flex = '';
+    previewPane.style.width = '';
 
     container.classList.remove('preview-mode', 'editor-collapsed', 'preview-collapsed');
 
