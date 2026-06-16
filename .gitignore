@@ -31,3 +31,6 @@ src-tauri/*.app
 # OS
 .DS_Store
 Thumbs.db
+
+# Test files
+test.md

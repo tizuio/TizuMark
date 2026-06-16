@@ -41,6 +41,8 @@ class MarkdownEditor {
     this.initResizer();
     this.initFindReplace();
     this.initScrollTopBtn();
+    this.initExternalLinks();
+    this.initDragDrop();
     this.loadTheme();
     this.updatePreview();
     this.applyViewMode();
@@ -98,24 +100,34 @@ class MarkdownEditor {
       this.cursorPosition.textContent = `行 ${cursor.line + 1}, 列 ${cursor.ch + 1}`;
     });
 
+    this.syncingScroll = false;
+
     this.cm.on('scroll', () => {
       const info = this.cm.getScrollInfo();
       this.activeTab.scrollPos = { top: info.top, left: info.left };
-      
-      if (this.viewMode === 'edit') {
-        const scrollPercent = info.top / (info.height - info.clientHeight || 1);
-        const previewScrollTop = scrollPercent * (this.preview.scrollHeight - this.preview.clientHeight);
-        this.preview.scrollTop = previewScrollTop;
-      }
+
+      if (this.syncingScroll) return;
+      this.syncingScroll = true;
+
+      const editorMax = info.height - info.clientHeight || 1;
+      const scrollPercent = Math.min(info.top / editorMax, 1);
+      const previewMax = this.preview.scrollHeight - this.preview.clientHeight;
+      this.preview.scrollTop = scrollPercent * previewMax;
+
+      requestAnimationFrame(() => { this.syncingScroll = false; });
     });
 
     this.preview.addEventListener('scroll', () => {
-      if (this.viewMode === 'edit') {
-        const scrollPercent = this.preview.scrollTop / (this.preview.scrollHeight - this.preview.clientHeight || 1);
-        const info = this.cm.getScrollInfo();
-        const editorScrollTop = scrollPercent * (info.height - info.clientHeight);
-        this.cm.scrollTo(0, editorScrollTop);
-      }
+      if (this.syncingScroll) return;
+      this.syncingScroll = true;
+
+      const previewMax = this.preview.scrollHeight - this.preview.clientHeight || 1;
+      const scrollPercent = Math.min(this.preview.scrollTop / previewMax, 1);
+      const info = this.cm.getScrollInfo();
+      const editorMax = info.height - info.clientHeight;
+      this.cm.scrollTo(0, scrollPercent * editorMax);
+
+      requestAnimationFrame(() => { this.syncingScroll = false; });
     });
   }
 
@@ -692,6 +704,113 @@ class MarkdownEditor {
     });
   }
 
+  initExternalLinks() {
+    this.preview.addEventListener('click', async (e) => {
+      const link = e.target.closest('a');
+      if (!link) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const href = link.getAttribute('href');
+      if (!href) return;
+
+      if (href.startsWith('#')) {
+        const target = this.preview.querySelector(href);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
+      }
+
+      if (href.startsWith('mailto:') || href.startsWith('tel:')) {
+        window.location.href = href;
+        return;
+      }
+
+      try {
+        if (window.__TAURI__ && window.__TAURI__.shell) {
+          await window.__TAURI__.shell.open(href);
+        } else {
+          window.open(href, '_blank', 'noopener,noreferrer');
+        }
+      } catch (err) {
+        window.open(href, '_blank', 'noopener,noreferrer');
+      }
+    }, true);
+  }
+
+  initDragDrop() {
+    const app = document.getElementById('app');
+
+    if (window.__TAURI__ && window.__TAURI__.event) {
+      window.__TAURI__.event.listen('tauri://drag-enter', () => {
+        app.classList.add('drag-over');
+      });
+
+      window.__TAURI__.event.listen('tauri://drag-over', (e) => {
+        app.classList.add('drag-over');
+      });
+
+      window.__TAURI__.event.listen('tauri://drag-drop', async (event) => {
+        app.classList.remove('drag-over');
+        const paths = event.payload.paths || [];
+        for (const filePath of paths) {
+          try {
+            const content = await invoke('read_file', { path: filePath });
+            const name = filePath.split(/[/\\]/).pop();
+            const existingIndex = this.tabs.findIndex(t => t.filePath === filePath);
+            if (existingIndex !== -1) {
+              this.switchTab(existingIndex);
+              continue;
+            }
+            this.addTab(name, content, filePath);
+            this.setStatus(`已打开: ${name}`);
+          } catch (err) {
+            this.setStatus(`打开失败: ${err}`);
+          }
+        }
+      });
+
+      window.__TAURI__.event.listen('tauri://drag-leave', () => {
+        app.classList.remove('drag-over');
+      });
+    } else {
+      app.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        app.classList.add('drag-over');
+      });
+
+      app.addEventListener('dragleave', (e) => {
+        if (!app.contains(e.relatedTarget)) {
+          app.classList.remove('drag-over');
+        }
+      });
+
+      app.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        app.classList.remove('drag-over');
+        const files = e.dataTransfer.files;
+        if (!files || files.length === 0) return;
+
+        for (const file of files) {
+          try {
+            const content = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = () => reject(reader.error);
+              reader.readAsText(file);
+            });
+            this.addTab(file.name, content, null);
+            this.setStatus(`已打开: ${file.name}`);
+          } catch (err) {
+            this.setStatus(`打开失败: ${err}`);
+          }
+        }
+      });
+    }
+  }
+
   showSaveDialog(title, message) {
     return new Promise((resolve) => {
       const dialog = document.getElementById('save-dialog');
@@ -903,11 +1022,196 @@ ${htmlContent}
 
   async updatePreview() {
     try {
-      const html = await invoke('render_markdown', { content: this.activeTab.content });
-      this.preview.innerHTML = html;
+      const content = this.activeTab.content;
+
+      const hasToc = content.includes('[TOC]') || content.includes('[toc]');
+      let tocHtml = '';
+      if (hasToc) {
+        tocHtml = await invoke('generate_toc', { content });
+      }
+
+      const html = await invoke('render_markdown', { content });
+
+      let finalHtml = html;
+      if (tocHtml) {
+        finalHtml = finalHtml.replace(/<p>\[TOC\]<\/p>|<p>\[toc\]<\/p>/gi, tocHtml);
+      }
+
+      this.preview.innerHTML = finalHtml;
+
+      this.processEmojiShortcodes();
+      this.processMathFormulas();
+      this.processAlertBoxes();
+      this.processHeadings();
+      this.processMermaid();
+      this.addCopyButtons();
+
+      if (typeof hljs !== 'undefined') {
+        this.preview.querySelectorAll('pre code').forEach((block) => {
+          hljs.highlightElement(block);
+        });
+      }
     } catch (error) {
       this.preview.innerHTML = `<p style="color: red;">预览错误: ${error}</p>`;
     }
+  }
+
+  processEmojiShortcodes() {
+    const emojiMap = {
+      ':smile:': '😄', ':joy:': '😂', ':heart:': '❤️', ':thumbsup:': '👍',
+      ':thumbsdown:': '👎', ':clap:': '👏', ':wave:': '👋', ':fire:': '🔥',
+      ':star:': '⭐', ':check:': '✅', ':x:': '❌', ':warning:': '⚠️',
+      ':memo:': '📝', ':bulb:': '💡', ':info:': 'ℹ️', ':question:': '❓',
+      ':exclamation:': '❗', ':ok:': '👌', ':cool:': '😎', ':sad:': '😢',
+      ':angry:': '😠', ':love:': '😍', ':laughing:': '😆', ':wink:': '😉',
+      ':thinking:': '🤔', ':rocket:': '🚀', ':100:': '💯', ':tada:': '🎉',
+      ':trophy:': '🏆', ':eyes:': '👀', ':pray:': '🙏', ':muscle:': '💪',
+      ':sparkles:': '✨', ':zap:': '⚡', ':sunny:': '☀️', ':cloud:': '☁️',
+      ':rain:': '🌧️', ':snow:': '🌨️', ':coffee:': '☕', ':book:': '📖',
+      ':pencil:': '✏️', ':computer:': '💻', ':phone:': '📱', ':email:': '📧',
+      ':calendar:': '📅', ':clock:': '⏰', ':gift:': '🎁', ':balloon:': '🎈',
+      ':party:': '🎉', ':crown:': '👑', ':gem:': '💎', ':key:': '🔑',
+      ':lock:': '🔒', ':bell:': '🔔', ':mag:': '🔍', ':package:': '📦',
+      ':earth:': '🌍', ':moon:': '🌙', ':rainbow:': '🌈', ':umbrella:': '☂️',
+      ':cyclone:': '🌀', ':ocean:': '🌊', ':seedling:': '🌱', ':tree:': '🌳',
+      ':flower:': '🌼', ':rose:': '🌹', ':dog:': '🐕', ':cat:': '🐈',
+      ':bear:': '🐻', ':bird:': '🐦', ':fish:': '🐟', ':turtle:': '🐢',
+      ':octopus:': '🐙', ':penguin:': '🐧', ':butterfly:': '🦋', ':bee:': '🐝',
+      ':art:': '🎨', ':music:': '🎵', ':film:': '🎬', ':camera:': '📷',
+      ':lock:': '🔓', ':link:': '🔗', ':scissors:': '✂️', ':pushpin:': '📌'
+    };
+
+    const walker = document.createTreeWalker(this.preview, NodeFilter.SHOW_TEXT, null, false);
+    const textNodes = [];
+    let node;
+    while (node = walker.nextNode()) textNodes.push(node);
+
+    textNodes.forEach(textNode => {
+      const text = textNode.textContent;
+      if (!text.includes(':')) return;
+      let newText = text;
+      for (const [code, emoji] of Object.entries(emojiMap)) {
+        if (newText.includes(code)) newText = newText.split(code).join(emoji);
+      }
+      if (newText !== text) textNode.textContent = newText;
+    });
+  }
+
+  processMathFormulas() {
+    if (typeof renderMathInElement === 'undefined') return;
+
+    try {
+      renderMathInElement(this.preview, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false },
+          { left: '\\(', right: '\\)', display: false },
+          { left: '\\[', right: '\\]', display: true },
+          { left: '\\begin{equation}', right: '\\end{equation}', display: true },
+          { left: '\\begin{align}', right: '\\end{align}', display: true },
+          { left: '\\begin{aligned}', right: '\\end{aligned}', display: true }
+        ],
+        throwOnError: false
+      });
+    } catch (e) {
+      console.warn('KaTeX rendering error:', e);
+    }
+  }
+
+  processAlertBoxes() {
+    this.preview.querySelectorAll('.alert').forEach(alert => {
+      const type = alert.className.match(/alert-(\w+)/);
+      if (type) {
+        alert.classList.add('alert-' + type[1]);
+      }
+    });
+  }
+
+  processHeadings() {
+    this.preview.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(heading => {
+      if (heading.id) return;
+      const text = heading.textContent;
+      let id = '';
+      for (const ch of text) {
+        if (ch >= '\u4e00' && ch <= '\u9fa5') {
+          id += ch;
+        } else if (/[a-zA-Z0-9]/.test(ch)) {
+          id += ch.toLowerCase();
+        } else if (ch === ' ' || ch === '-' || ch === '_') {
+          id += '-';
+        }
+      }
+      id = id.replace(/-+/g, '-').replace(/^-|-$/g, '');
+      heading.id = id;
+    });
+  }
+
+  processMermaid() {
+    if (typeof mermaid === 'undefined') return;
+
+    this.preview.querySelectorAll('code.language-mermaid').forEach((block, index) => {
+      const pre = block.parentElement;
+      const container = document.createElement('div');
+      container.className = 'mermaid-container';
+      const id = 'mermaid-' + Date.now() + '-' + index;
+      container.id = id;
+      container.textContent = block.textContent;
+      pre.replaceWith(container);
+    });
+
+    try {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: this.isDark ? 'dark' : 'default',
+        securityLevel: 'loose',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+      });
+      mermaid.run({ nodes: this.preview.querySelectorAll('.mermaid-container') });
+    } catch (e) {
+      console.warn('Mermaid rendering error:', e);
+    }
+  }
+
+  addCopyButtons() {
+    this.preview.querySelectorAll('pre').forEach(pre => {
+      if (pre.querySelector('.copy-btn')) return;
+      if (pre.querySelector('code.language-mermaid')) return;
+
+      const btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.textContent = '复制';
+      btn.title = '复制代码';
+
+      btn.addEventListener('click', async () => {
+        const code = pre.querySelector('code');
+        const text = code ? code.textContent : pre.textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = '已复制';
+          btn.classList.add('copied');
+          setTimeout(() => {
+            btn.textContent = '复制';
+            btn.classList.remove('copied');
+          }, 2000);
+        } catch (err) {
+          const textarea = document.createElement('textarea');
+          textarea.value = text;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+          btn.textContent = '已复制';
+          btn.classList.add('copied');
+          setTimeout(() => {
+            btn.textContent = '复制';
+            btn.classList.remove('copied');
+          }, 2000);
+        }
+      });
+
+      pre.style.position = 'relative';
+      pre.appendChild(btn);
+    });
   }
 
   setStatus(text) {
@@ -924,6 +1228,15 @@ ${htmlContent}
     document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
     this.cm.setOption('theme', this.isDark ? 'material-darker' : 'default');
     this.updateThemeIcon();
+    
+    // 切换 highlight.js 主题
+    const highlightTheme = document.getElementById('highlight-theme');
+    if (highlightTheme) {
+      highlightTheme.href = this.isDark 
+        ? 'lib/highlight.js/github-dark.min.css' 
+        : 'lib/highlight.js/github.min.css';
+    }
+    
     this.setStatus(`已切换到${this.isDark ? '深色' : '浅色'}主题`);
   }
 
@@ -943,11 +1256,26 @@ ${htmlContent}
     this.cm.setOption('theme', this.isDark ? 'material-darker' : 'default');
     this.updateThemeIcon();
     
+    // 设置 highlight.js 主题
+    const highlightTheme = document.getElementById('highlight-theme');
+    if (highlightTheme) {
+      highlightTheme.href = this.isDark 
+        ? 'lib/highlight.js/github-dark.min.css' 
+        : 'lib/highlight.js/github.min.css';
+    }
+    
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
       this.isDark = e.matches;
       document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
       this.cm.setOption('theme', this.isDark ? 'material-darker' : 'default');
       this.updateThemeIcon();
+      
+      // 切换 highlight.js 主题
+      if (highlightTheme) {
+        highlightTheme.href = this.isDark 
+          ? 'lib/highlight.js/github-dark.min.css' 
+          : 'lib/highlight.js/github.min.css';
+      }
     });
   }
 
