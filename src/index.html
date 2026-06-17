@@ -72,6 +72,10 @@
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             <span>查找</span>
           </button>
+          <button id="btn-settings" class="toolbar-btn" title="设置">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>设置</span>
+          </button>
           <div class="dropdown">
             <button id="btn-more" class="toolbar-btn" title="更多">
               <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
@@ -276,6 +280,103 @@
         <button id="save-dialog-save" class="dialog-btn dialog-btn-primary">保存</button>
         <button id="save-dialog-discard" class="dialog-btn">不保存</button>
         <button id="save-dialog-cancel" class="dialog-btn">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-dialog" class="dialog-overlay hidden">
+    <div class="dialog settings-dialog">
+      <div class="dialog-header">
+        <h2>设置</h2>
+        <button class="dialog-close" id="settings-close">&times;</button>
+      </div>
+      <div class="dialog-content settings-content">
+        <div class="settings-section">
+          <h3>编辑器</h3>
+          <div class="settings-row">
+            <label>字体大小</label>
+            <select id="set-font-size">
+              <option value="12">12px</option>
+              <option value="13">13px</option>
+              <option value="14" selected>14px</option>
+              <option value="15">15px</option>
+              <option value="16">16px</option>
+              <option value="18">18px</option>
+              <option value="20">20px</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <label>Tab 宽度</label>
+            <select id="set-tab-size">
+              <option value="2" selected>2 空格</option>
+              <option value="4">4 空格</option>
+              <option value="8">8 空格</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <label>自动换行</label>
+            <label class="toggle"><input type="checkbox" id="set-line-wrap" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <label>显示行号</label>
+            <label class="toggle"><input type="checkbox" id="set-line-numbers" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>预览</h3>
+          <div class="settings-row">
+            <label>正文字号</label>
+            <select id="set-preview-font-size">
+              <option value="14">14px</option>
+              <option value="15">15px</option>
+              <option value="16" selected>16px</option>
+              <option value="18">18px</option>
+              <option value="20">20px</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <label>行高</label>
+            <select id="set-line-height">
+              <option value="1.4">1.4</option>
+              <option value="1.6">1.6</option>
+              <option value="1.7" selected>1.7</option>
+              <option value="1.8">1.8</option>
+              <option value="2.0">2.0</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <label>最大宽度</label>
+            <select id="set-max-width">
+              <option value="0" selected>无限制</option>
+              <option value="800">800px</option>
+              <option value="1000">1000px</option>
+              <option value="1200">1200px</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>行为</h3>
+          <div class="settings-row">
+            <label>主题模式</label>
+            <select id="set-theme-mode">
+              <option value="system" selected>跟随系统</option>
+              <option value="light">浅色</option>
+              <option value="dark">深色</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <label>默认视图</label>
+            <select id="set-default-view">
+              <option value="preview" selected>预览</option>
+              <option value="edit">编辑</option>
+              <option value="split">分栏</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <label>滚动同步</label>
+            <label class="toggle"><input type="checkbox" id="set-scroll-sync" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
       </div>
     </div>
   </div>

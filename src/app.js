@@ -32,6 +32,8 @@ class MarkdownEditor {
     this.isDark = false;
     this.viewMode = 'preview';
 
+    this.settings = this.loadSettings();
+
     this.preview = document.getElementById('preview');
     this.statusText = document.getElementById('status-text');
     this.cursorPosition = document.getElementById('cursor-position');
@@ -43,10 +45,152 @@ class MarkdownEditor {
     this.initScrollTopBtn();
     this.initExternalLinks();
     this.initDragDrop();
+    this.initSettings();
     this.loadTheme();
     this.updatePreview();
     this.applyViewMode();
     this.updateMaximizeIcon();
+  }
+
+  loadSettings() {
+    const defaults = {
+      fontSize: 14,
+      tabSize: 2,
+      lineWrap: true,
+      lineNumbers: true,
+      previewFontSize: 16,
+      lineHeight: 1.7,
+      maxWidth: 0,
+      themeMode: 'system',
+      defaultView: 'preview',
+      scrollSync: true,
+    };
+    try {
+      const saved = JSON.parse(localStorage.getItem('markflow-settings'));
+      return { ...defaults, ...saved };
+    } catch {
+      return defaults;
+    }
+  }
+
+  saveSettings() {
+    localStorage.setItem('markflow-settings', JSON.stringify(this.settings));
+  }
+
+  initSettings() {
+    document.getElementById('btn-settings').addEventListener('click', () => this.showSettings());
+    document.getElementById('settings-close').addEventListener('click', () => this.hideSettings());
+    document.getElementById('settings-dialog').addEventListener('click', (e) => {
+      if (e.target.id === 'settings-dialog') this.hideSettings();
+    });
+
+    const s = this.settings;
+    document.getElementById('set-font-size').value = s.fontSize;
+    document.getElementById('set-tab-size').value = s.tabSize;
+    document.getElementById('set-line-wrap').checked = s.lineWrap;
+    document.getElementById('set-line-numbers').checked = s.lineNumbers;
+    document.getElementById('set-preview-font-size').value = s.previewFontSize;
+    document.getElementById('set-line-height').value = s.lineHeight;
+    document.getElementById('set-max-width').value = s.maxWidth;
+    document.getElementById('set-theme-mode').value = s.themeMode;
+    document.getElementById('set-default-view').value = s.defaultView;
+    document.getElementById('set-scroll-sync').checked = s.scrollSync;
+
+    document.getElementById('set-font-size').addEventListener('change', (e) => {
+      this.settings.fontSize = Number(e.target.value);
+      this.cm.getWrapperElement().style.fontSize = e.target.value + 'px';
+      this.cm.refresh();
+      this.saveSettings();
+    });
+    document.getElementById('set-tab-size').addEventListener('change', (e) => {
+      this.settings.tabSize = Number(e.target.value);
+      this.cm.setOption('tabSize', this.settings.tabSize);
+      this.saveSettings();
+    });
+    document.getElementById('set-line-wrap').addEventListener('change', (e) => {
+      this.settings.lineWrap = e.target.checked;
+      this.cm.setOption('lineWrapping', this.settings.lineWrap);
+      this.saveSettings();
+    });
+    document.getElementById('set-line-numbers').addEventListener('change', (e) => {
+      this.settings.lineNumbers = e.target.checked;
+      this.cm.setOption('lineNumbers', this.settings.lineNumbers);
+      this.saveSettings();
+    });
+    document.getElementById('set-preview-font-size').addEventListener('change', (e) => {
+      this.settings.previewFontSize = Number(e.target.value);
+      this.preview.style.fontSize = e.target.value + 'px';
+      this.saveSettings();
+    });
+    document.getElementById('set-line-height').addEventListener('change', (e) => {
+      this.settings.lineHeight = Number(e.target.value);
+      this.preview.style.lineHeight = e.target.value;
+      this.saveSettings();
+    });
+    document.getElementById('set-max-width').addEventListener('change', (e) => {
+      this.settings.maxWidth = Number(e.target.value);
+      this.preview.style.maxWidth = this.settings.maxWidth ? this.settings.maxWidth + 'px' : 'none';
+      this.preview.style.margin = this.settings.maxWidth ? '0 auto' : '';
+      this.saveSettings();
+    });
+    document.getElementById('set-theme-mode').addEventListener('change', (e) => {
+      this.settings.themeMode = e.target.value;
+      this.applyThemeMode();
+      this.saveSettings();
+    });
+    document.getElementById('set-default-view').addEventListener('change', (e) => {
+      this.settings.defaultView = e.target.value;
+      this.saveSettings();
+    });
+    document.getElementById('set-scroll-sync').addEventListener('change', (e) => {
+      this.settings.scrollSync = e.target.checked;
+      this.saveSettings();
+    });
+
+    this.applySettings();
+  }
+
+  applySettings() {
+    const s = this.settings;
+    this.cm.getWrapperElement().style.fontSize = s.fontSize + 'px';
+    this.cm.setOption('tabSize', s.tabSize);
+    this.cm.setOption('lineWrapping', s.lineWrap);
+    this.cm.setOption('lineNumbers', s.lineNumbers);
+    this.preview.style.fontSize = s.previewFontSize + 'px';
+    this.preview.style.lineHeight = String(s.lineHeight);
+    if (s.maxWidth) {
+      this.preview.style.maxWidth = s.maxWidth + 'px';
+      this.preview.style.margin = '0 auto';
+    }
+    this.applyThemeMode();
+  }
+
+  applyThemeMode() {
+    const mode = this.settings.themeMode;
+    if (mode === 'light') {
+      this.isDark = false;
+    } else if (mode === 'dark') {
+      this.isDark = true;
+    } else {
+      this.isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+    this.cm.setOption('theme', this.isDark ? 'material-darker' : 'default');
+    this.updateThemeIcon();
+    const highlightTheme = document.getElementById('highlight-theme');
+    if (highlightTheme) {
+      highlightTheme.href = this.isDark
+        ? 'lib/highlight.js/github-dark.min.css'
+        : 'lib/highlight.js/github.min.css';
+    }
+  }
+
+  showSettings() {
+    document.getElementById('settings-dialog').classList.remove('hidden');
+  }
+
+  hideSettings() {
+    document.getElementById('settings-dialog').classList.add('hidden');
   }
 
   get activeTab() {
@@ -107,7 +251,7 @@ class MarkdownEditor {
       const info = this.cm.getScrollInfo();
       this.activeTab.scrollPos = { top: info.top, left: info.left };
 
-      if (this.syncingScroll) return;
+      if (!this.settings.scrollSync || this.syncingScroll) return;
       this.syncingScroll = true;
 
       const editorMax = info.height - info.clientHeight || 1;
@@ -119,7 +263,7 @@ class MarkdownEditor {
     });
 
     this.preview.addEventListener('scroll', () => {
-      if (this.syncingScroll) return;
+      if (!this.settings.scrollSync || this.syncingScroll) return;
       this.syncingScroll = true;
 
       const previewMax = this.preview.scrollHeight - this.preview.clientHeight || 1;
@@ -1319,12 +1463,15 @@ ${htmlContent}
   }
 
   toggleTheme() {
+    if (this.settings.themeMode !== 'system') {
+      this.settings.themeMode = 'system';
+      document.getElementById('set-theme-mode').value = 'system';
+    }
     this.isDark = !this.isDark;
     document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
     this.cm.setOption('theme', this.isDark ? 'material-darker' : 'default');
     this.updateThemeIcon();
     
-    // 切换 highlight.js 主题
     const highlightTheme = document.getElementById('highlight-theme');
     if (highlightTheme) {
       highlightTheme.href = this.isDark 
@@ -1348,31 +1495,11 @@ ${htmlContent}
   }
 
   loadTheme() {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    this.isDark = prefersDark;
-    document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
-    this.cm.setOption('theme', this.isDark ? 'material-darker' : 'default');
-    this.updateThemeIcon();
+    this.applyThemeMode();
     
-    // 设置 highlight.js 主题
-    const highlightTheme = document.getElementById('highlight-theme');
-    if (highlightTheme) {
-      highlightTheme.href = this.isDark 
-        ? 'lib/highlight.js/github-dark.min.css' 
-        : 'lib/highlight.js/github.min.css';
-    }
-    
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-      this.isDark = e.matches;
-      document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
-      this.cm.setOption('theme', this.isDark ? 'material-darker' : 'default');
-      this.updateThemeIcon();
-      
-      // 切换 highlight.js 主题
-      if (highlightTheme) {
-        highlightTheme.href = this.isDark 
-          ? 'lib/highlight.js/github-dark.min.css' 
-          : 'lib/highlight.js/github.min.css';
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (this.settings.themeMode === 'system') {
+        this.applyThemeMode();
       }
     });
   }
