@@ -1229,7 +1229,6 @@ body.is-resizing .preview-pane {
 
 .settings-content {
   padding: 0;
-  overflow: visible !important;
 }
 
 .settings-section {
@@ -1325,30 +1324,9 @@ body.is-resizing .preview-pane {
   color: var(--text-secondary);
   font-size: 10px;
   font-weight: 600;
-  cursor: help;
   margin-left: 4px;
-  position: relative;
   vertical-align: middle;
-}
-
-.info-tip:hover {
-  background-color: var(--accent-color);
-  color: #fff;
-}
-
-.settings-tooltip {
-  position: fixed;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 400;
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 200;
-  pointer-events: none;
+  opacity: 0.6;
 }
 
 .info-tip:hover {

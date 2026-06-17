@@ -46,7 +46,6 @@ class MarkdownEditor {
     this.initExternalLinks();
     this.initDragDrop();
     this.initSettings();
-    this.initTooltips();
     this.loadTheme();
     this.updatePreview();
     this.applyViewMode();
@@ -157,32 +156,6 @@ class MarkdownEditor {
     });
 
     this.applySettings();
-  }
-
-  initTooltips() {
-    document.querySelectorAll('.info-tip').forEach(tip => {
-      tip.addEventListener('mouseenter', () => {
-        const tooltip = document.createElement('div');
-        tooltip.className = 'settings-tooltip';
-        tooltip.textContent = tip.getAttribute('title');
-        tip.setAttribute('title', '');
-        tip._savedTitle = tooltip.textContent;
-        document.body.appendChild(tooltip);
-        const rect = tip.getBoundingClientRect();
-        tooltip.style.left = rect.left + 'px';
-        tooltip.style.top = (rect.bottom + 6) + 'px';
-        tip._tooltipEl = tooltip;
-      });
-      tip.addEventListener('mouseleave', () => {
-        if (tip._tooltipEl) {
-          tip._tooltipEl.remove();
-          tip._tooltipEl = null;
-        }
-        if (tip._savedTitle) {
-          tip.setAttribute('title', tip._savedTitle);
-        }
-      });
-    });
   }
 
   applySettings() {
