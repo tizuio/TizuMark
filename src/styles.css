@@ -1313,22 +1313,6 @@ body.is-resizing .preview-pane {
   transform: translateX(16px);
 }
 
-.info-tip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background-color: var(--border-color);
-  color: var(--text-secondary);
-  font-size: 10px;
-  font-weight: 600;
-  margin-left: 4px;
-  vertical-align: middle;
-  opacity: 0.6;
-}
-
 .info-tip:hover {
   background-color: var(--accent-color);
   color: #fff;
