@@ -983,12 +983,16 @@ class MarkdownEditor {
     const app = document.getElementById('app');
 
     if (window.__TAURI__ && window.__TAURI__.event) {
-      window.__TAURI__.event.listen('tauri://drag-enter', () => {
-        app.classList.add('drag-over');
+      window.__TAURI__.event.listen('tauri://drag-enter', (e) => {
+        if (e.payload && e.payload.paths && e.payload.paths.length > 0) {
+          app.classList.add('drag-over');
+        }
       });
 
       window.__TAURI__.event.listen('tauri://drag-over', (e) => {
-        app.classList.add('drag-over');
+        if (e.payload && e.payload.paths && e.payload.paths.length > 0) {
+          app.classList.add('drag-over');
+        }
       });
 
       window.__TAURI__.event.listen('tauri://drag-drop', async (event) => {
