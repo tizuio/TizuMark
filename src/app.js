@@ -292,8 +292,8 @@ class MarkdownEditor {
       this.showAbout();
     });
     document.getElementById('btn-add-tab').addEventListener('click', () => this.newFile());
-    document.getElementById('tab-bar').addEventListener('dblclick', (e) => {
-      if (e.target === document.getElementById('tab-bar') || e.target.classList.contains('tab-bar')) {
+    document.querySelector('.tab-bar-wrapper').addEventListener('dblclick', (e) => {
+      if (!e.target.closest('.tab') && !e.target.closest('.tab-add')) {
         this.newFile();
       }
     });
