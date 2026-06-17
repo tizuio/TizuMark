@@ -445,7 +445,7 @@ class MarkdownEditor {
     });
     document.addEventListener('click', () => {
       document.getElementById('file-menu').classList.add('hidden');
-      document.getElementById('more-menu').classList.add('hidden');
+      document.getElementById('help-menu').classList.add('hidden');
     });
     document.getElementById('btn-new').addEventListener('click', () => {
       document.getElementById('file-menu').classList.add('hidden');
@@ -471,13 +471,15 @@ class MarkdownEditor {
       document.getElementById('file-menu').classList.add('hidden');
       this.exportImage();
     });
-    document.getElementById('btn-theme').addEventListener('click', () => {
-      document.getElementById('more-menu').classList.add('hidden');
-      this.toggleTheme();
-    });
+    document.getElementById('btn-theme').addEventListener('click', () => this.toggleTheme());
     document.getElementById('btn-about').addEventListener('click', () => {
-      document.getElementById('more-menu').classList.add('hidden');
+      document.getElementById('help-menu').classList.add('hidden');
       this.showAbout();
+    });
+    document.getElementById('btn-help').addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('help-menu').classList.toggle('hidden');
+      document.getElementById('file-menu').classList.add('hidden');
     });
     document.getElementById('btn-add-tab').addEventListener('click', () => this.newFile());
     document.querySelector('.tab-bar-wrapper').addEventListener('dblclick', (e) => {
@@ -1527,14 +1529,15 @@ ${htmlContent}
   }
 
   updateThemeIcon() {
-    const btn = document.getElementById('btn-theme');
-    if (!btn) return;
-    const svg = btn.querySelector('svg');
+    const svg = document.getElementById('theme-icon');
+    const text = document.getElementById('theme-text');
     if (!svg) return;
     if (this.isDark) {
       svg.innerHTML = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>';
+      if (text) text.textContent = '暗黑';
     } else {
       svg.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
+      if (text) text.textContent = '明亮';
     }
   }
 
