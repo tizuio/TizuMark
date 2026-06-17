@@ -1,5 +1,102 @@
 use std::fs;
 
+fn escape_html(s: &str) -> String {
+    s.replace('&', "&amp;")
+     .replace('<', "&lt;")
+     .replace('>', "&gt;")
+     .replace('"', "&quot;")
+     .replace('\'', "&#x27;")
+}
+
+fn sanitize_html(html: &str) -> String {
+    let dangerous_tags = ["script", "style", "iframe", "object", "embed", "form", "input", "textarea", "select", "button", "link", "meta", "base"];
+    let mut result = String::with_capacity(html.len());
+    let chars: Vec<char> = html.chars().collect();
+    let len = chars.len();
+    let mut i = 0;
+
+    while i < len {
+        if chars[i] == '<' && i + 1 < len {
+            if chars[i + 1] == '/' {
+                let end = find_char(&chars, i, '>');
+                let inner: String = chars[i + 2..end - 1].iter().collect();
+                let tag_name = inner.split_whitespace().next().unwrap_or("").to_ascii_lowercase();
+                if dangerous_tags.contains(&tag_name.as_str()) {
+                    i = end;
+                    continue;
+                }
+                for c in &chars[i..end] {
+                    result.push(*c);
+                }
+                i = end;
+            } else if chars[i + 1] == '!' {
+                let end = find_str(&chars, i, "->");
+                i = end;
+            } else {
+                let end = find_char(&chars, i, '>');
+                let inner: String = chars[i + 1..end - 1].iter().collect();
+                let tag_name = inner.split_whitespace().next().unwrap_or("").to_ascii_lowercase();
+                if dangerous_tags.contains(&tag_name.as_str()) {
+                    i = end;
+                    continue;
+                }
+                let sanitized = sanitize_tag_attributes(&inner);
+                result.push('<');
+                result.push_str(&sanitized);
+                result.push('>');
+                i = end;
+            }
+        } else {
+            result.push(chars[i]);
+            i += 1;
+        }
+    }
+    result
+}
+
+fn find_char(chars: &[char], start: usize, target: char) -> usize {
+    for i in start..chars.len() {
+        if chars[i] == target {
+            return i + 1;
+        }
+    }
+    chars.len()
+}
+
+fn find_str(chars: &[char], start: usize, pattern: &str) -> usize {
+    let pat: Vec<char> = pattern.chars().collect();
+    for i in start..chars.len() {
+        if i + pat.len() <= chars.len() && chars[i..i + pat.len()] == pat[..] {
+            return i + pat.len();
+        }
+    }
+    chars.len()
+}
+
+fn sanitize_tag_attributes(tag_content: &str) -> String {
+    let mut parts = tag_content.splitn(2, |c: char| c.is_whitespace());
+    let tag_name = parts.next().unwrap_or("");
+    let rest = parts.next().unwrap_or("");
+
+    if rest.is_empty() {
+        return tag_content.to_string();
+    }
+
+    let mut result = tag_name.to_string();
+    for attr in rest.split_whitespace() {
+        let attr_lower = attr.to_lowercase();
+        if attr_lower.starts_with("on") {
+            continue;
+        }
+        if attr_lower.contains("javascript:") {
+            continue;
+        }
+        result.push(' ');
+        result.push_str(attr);
+    }
+    result
+}
+
 #[tauri::command]
 fn read_file(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| e.to_string())
@@ -8,6 +105,20 @@ fn read_file(path: String) -> Result<String, String> {
 #[tauri::command]
 fn write_file(path: String, content: String) -> Result<(), String> {
     fs::write(&path, &content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn write_binary_file(path: String, contents: Vec<u8>) -> Result<(), String> {
+    fs::write(&path, &contents).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn fetch_image_as_base64(url: String) -> Result<String, String> {
+    let resp = reqwest::get(&url).await.map_err(|e| e.to_string())?;
+    let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
+    use base64::Engine;
+    let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    Ok(encoded)
 }
 
 #[tauri::command]
@@ -63,7 +174,7 @@ fn generate_toc(content: String) -> String {
             }
         }
         let href = format!("#{}", id);
-        let item = format!(r#"<li><a href="{}">{}</a></li>"#, href, text);
+        let item = format!(r#"<li><a href="{}">{}</a></li>"#, escape_html(&href), escape_html(text));
         html.push_str(&item);
         prev_level = *level;
     }
@@ -107,7 +218,7 @@ fn render_markdown(content: String) -> String {
     let parser = Parser::new_ext(&preprocessed, options);
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
-    html_output
+    sanitize_html(&html_output)
 }
 
 fn preprocess_markdown(content: String) -> String {
@@ -133,7 +244,7 @@ fn preprocess_markdown(content: String) -> String {
             line_types.push(LineType::Def);
         } else if idx + 1 < len {
             let next = lines[idx + 1];
-            if next.starts_with(": ") || next == ":"
+            if (next.starts_with(": ") || next == ":")
                 && !line.is_empty()
                 && !line.starts_with('#')
                 && !line.starts_with('-')
@@ -174,7 +285,7 @@ fn preprocess_markdown(content: String) -> String {
                 i += 1;
                 while i < len && (lines[i].starts_with("> ") || lines[i] == ">") {
                     let content_line = if lines[i] == "> " { "" } else { &lines[i][2..] };
-                    result.push_str(content_line);
+                    result.push_str(&escape_html(content_line));
                     result.push('\n');
                     i += 1;
                 }
@@ -187,12 +298,12 @@ fn preprocess_markdown(content: String) -> String {
             result.push_str("<dl>\n");
             while i < len && line_types[i] == LineType::DefTerm {
                 let processed = process_inline_markdown(lines[i]);
-                result.push_str(&format!("<dt>{}</dt>\n", processed));
+                result.push_str(&format!("<dt>{}</dt>\n", escape_html(&processed)));
                 i += 1;
                 while i < len && line_types[i] == LineType::Def {
                     let def_text = lines[i].strip_prefix(": ").unwrap_or("");
                     let processed_def = process_inline_markdown(def_text);
-                    result.push_str(&format!("<dd>{}</dd>\n", processed_def));
+                    result.push_str(&format!("<dd>{}</dd>\n", escape_html(&processed_def)));
                     i += 1;
                 }
             }
@@ -246,7 +357,7 @@ fn process_inline_markdown(line: &str) -> String {
             }
             if j + 1 < len {
                 let inner: String = chars[i + 2..j].iter().collect();
-                result.push_str(&format!("<mark>{}</mark>", inner));
+                result.push_str(&format!("<mark>{}</mark>", escape_html(&inner)));
                 i = j + 2;
                 continue;
             }
@@ -277,7 +388,7 @@ fn process_inline_markdown(line: &str) -> String {
                     clean_url = clean_url.trim_end_matches(')');
                     let clean_len = clean_url.len();
                     let actual_url: String = chars[i..i+clean_len].iter().collect();
-                    result.push_str(&format!("<a href=\"{}\" target=\"_blank\">{}</a>", actual_url, actual_url));
+                    result.push_str(&format!("<a href=\"{}\" target=\"_blank\">{}</a>", escape_html(&actual_url), escape_html(&actual_url)));
                     i += clean_len;
                     continue;
                 }
@@ -316,9 +427,147 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             read_file,
             write_file,
+            write_binary_file,
+            fetch_image_as_base64,
             render_markdown,
             generate_toc
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_escape_html() {
+        assert_eq!(escape_html("hello"), "hello");
+        assert_eq!(escape_html("<script>alert(1)</script>"), "&lt;script&gt;alert(1)&lt;/script&gt;");
+        assert_eq!(escape_html("a & b"), "a &amp; b");
+        assert_eq!(escape_html("\"quoted\""), "&quot;quoted&quot;");
+        assert_eq!(escape_html("it's"), "it&#x27;s");
+        assert_eq!(escape_html("<img src=x onerror=alert(1)>"), "&lt;img src=x onerror=alert(1)&gt;");
+    }
+
+    #[test]
+    fn test_render_markdown_xss_in_heading() {
+        let input = "# <script>alert(1)</script>".to_string();
+        let html = render_markdown(input);
+        assert!(!html.contains("<script>"));
+        assert!(html.contains("alert(1)"));
+    }
+
+    #[test]
+    fn test_render_markdown_xss_in_text() {
+        let input = "Hello <img src=x onerror=alert(1)>".to_string();
+        let html = render_markdown(input);
+        assert!(!html.contains("onerror"));
+        assert!(html.contains("<img"));
+    }
+
+    #[test]
+    fn test_render_markdown_script_tag_stripped() {
+        let input = "Text <script>document.cookie</script> more".to_string();
+        let html = render_markdown(input);
+        eprintln!("script output: {:?}", html);
+        assert!(!html.contains("<script>"));
+        assert!(!html.contains("</script>"));
+        assert!(html.contains("Text"));
+        assert!(html.contains("more"));
+    }
+
+    #[test]
+    fn test_render_markdown_iframe_stripped() {
+        let input = "Text <iframe src=\"evil.com\"></iframe> more".to_string();
+        let html = render_markdown(input);
+        eprintln!("iframe output: {:?}", html);
+        assert!(!html.contains("<iframe"));
+        assert!(!html.contains("</iframe>"));
+    }
+
+    #[test]
+    fn test_render_markdown_img_preserved() {
+        let input = "![alt](https://example.com/img.png)".to_string();
+        let html = render_markdown(input);
+        assert!(html.contains("<img"));
+        assert!(html.contains("src="));
+    }
+
+    #[test]
+    fn test_render_markdown_normal() {
+        let input = "# Hello\n\nThis is **bold** and *italic*.".to_string();
+        let html = render_markdown(input);
+        assert!(html.contains("<h1>"));
+        assert!(html.contains("<strong>bold</strong>"));
+        assert!(html.contains("<em>italic</em>"));
+    }
+
+    #[test]
+    fn test_generate_toc_xss() {
+        let input = "# <script>alert(1)</script>\n## Normal Heading".to_string();
+        let toc = generate_toc(input);
+        assert!(!toc.contains("<script>"));
+        assert!(toc.contains("&lt;script&gt;"));
+        assert!(toc.contains("Normal Heading"));
+    }
+
+    #[test]
+    fn test_generate_toc_normal() {
+        let input = "# First\n## Second\n### Third".to_string();
+        let toc = generate_toc(input);
+        assert!(toc.contains("First"));
+        assert!(toc.contains("Second"));
+        assert!(toc.contains("Third"));
+    }
+
+    #[test]
+    fn test_preprocess_alert_xss() {
+        let input = "> [!NOTE]\n> <script>alert(1)</script>".to_string();
+        let result = preprocess_markdown(input);
+        assert!(!result.contains("<script>"));
+        assert!(result.contains("&lt;script&gt;"));
+    }
+
+    #[test]
+    fn test_preprocess_alert_normal() {
+        let input = "> [!TIP]\n> This is a tip".to_string();
+        let result = preprocess_markdown(input);
+        assert!(result.contains("This is a tip"));
+        assert!(result.contains("alert-tip"));
+    }
+
+    #[test]
+    fn test_render_markdown_table() {
+        let input = "| A | B |\n|---|---|\n| 1 | 2 |".to_string();
+        let html = render_markdown(input);
+        assert!(html.contains("<table>"));
+        assert!(html.contains("<td>1</td>"));
+    }
+
+    #[test]
+    fn test_render_markdown_code_block() {
+        let input = "```javascript\nconsole.log('hello');\n```".to_string();
+        let html = render_markdown(input);
+        assert!(html.contains("<code"));
+        assert!(html.contains("console.log"));
+    }
+
+    #[test]
+    fn test_sanitize_preserves_chinese() {
+        let input = "# 你好世界\n\n这是**中文**测试。".to_string();
+        let html = render_markdown(input);
+        assert!(html.contains("你好世界"));
+        assert!(html.contains("中文"));
+        assert!(html.contains("<strong>中文</strong>"));
+    }
+
+    #[test]
+    fn test_sanitize_chinese_with_html() {
+        let input = "# 标题\n\n<bold>加粗</bold>文字".to_string();
+        let html = render_markdown(input);
+        assert!(html.contains("标题"));
+        assert!(html.contains("加粗"));
+        assert!(html.contains("文字"));
+    }
 }

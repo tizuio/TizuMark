@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Markdown Editor</title>
+  <title>MarkFlow</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="lib/codemirror/codemirror.css">
   <link rel="stylesheet" href="lib/codemirror/theme/material-darker.css">
@@ -16,6 +16,7 @@
     <header class="header">
       <div class="toolbar">
         <div class="toolbar-left">
+          <img id="app-icon" class="app-icon" src="app-icon.png" alt="MarkFlow" draggable="false">
           <button id="btn-new" class="toolbar-btn" title="新建 (Ctrl+N)">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M12 18v-6"/></svg>
             <span>新建</span>
@@ -41,7 +42,7 @@
             </button>
             <div class="dropdown-menu hidden" id="export-menu">
               <div class="dropdown-item" id="btn-export-html">HTML</div>
-              <div class="dropdown-item" id="btn-export-pdf">PDF</div>
+              <div class="dropdown-item" id="btn-export-img">长图</div>
             </div>
           </div>
         </div>
@@ -80,6 +81,17 @@
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
             <span>关于</span>
           </button>
+          <div class="window-controls">
+            <button id="btn-minimize" class="window-btn" title="最小化">
+              <svg width="10" height="10" viewBox="0 0 10 10"><line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" stroke-width="1.2"/></svg>
+            </button>
+            <button id="btn-maximize" class="window-btn" title="最大化">
+              <svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+            </button>
+            <button id="btn-close" class="window-btn window-btn-close" title="关闭">
+              <svg width="10" height="10" viewBox="0 0 10 10"><line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.2"/><line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" stroke-width="1.2"/></svg>
+            </button>
+          </div>
         </div>
       </div>
       <div class="tab-bar-wrapper">
@@ -176,17 +188,18 @@
   <script src="lib/katex/katex.min.js"></script>
   <script src="lib/katex/auto-render.min.js"></script>
   <script src="lib/mermaid/mermaid.min.js"></script>
+  <script src="lib/html2canvas.min.js"></script>
   <!-- 关于对话框 -->
   <div id="about-dialog" class="dialog-overlay hidden">
     <div class="dialog">
       <div class="dialog-header">
-        <h2>关于 Markdown Editor</h2>
+        <h2>关于 MarkFlow</h2>
         <button class="dialog-close" id="about-close">&times;</button>
       </div>
       <div class="dialog-content">
         <div class="about-section">
           <h3>版本信息</h3>
-          <p>Markdown Editor v0.1.0</p>
+          <p>MarkFlow v0.1.0</p>
           <p>轻量级跨平台 Markdown 编辑器</p>
           <p>基于 Tauri + Rust 构建</p>
         </div>

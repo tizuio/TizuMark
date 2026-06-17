@@ -46,6 +46,7 @@ class MarkdownEditor {
     this.loadTheme();
     this.updatePreview();
     this.applyViewMode();
+    this.updateMaximizeIcon();
   }
 
   get activeTab() {
@@ -234,6 +235,7 @@ class MarkdownEditor {
   updateTabDisplay() {
     const tabs = document.querySelectorAll('.tab');
     tabs.forEach((tab, i) => {
+      if (i >= this.tabs.length) return;
       tab.className = `tab${i === this.activeTabIndex ? ' active' : ''}${this.tabs[i].isModified ? ' modified' : ''}`;
       tab.querySelector('.tab-name').textContent = this.tabs[i].name;
     });
@@ -248,8 +250,8 @@ class MarkdownEditor {
       e.stopPropagation();
       document.getElementById('export-menu').classList.toggle('hidden');
     });
-    document.getElementById('btn-export-html').addEventListener('click', () => this.exportHTML());
-    document.getElementById('btn-export-pdf').addEventListener('click', () => this.exportPDF());
+      document.getElementById('btn-export-html').addEventListener('click', () => this.exportHTML());
+      document.getElementById('btn-export-img').addEventListener('click', () => this.exportImage());
     document.addEventListener('click', () => {
       document.getElementById('export-menu').classList.add('hidden');
     });
@@ -261,6 +263,15 @@ class MarkdownEditor {
     document.getElementById('btn-side-right').addEventListener('click', () => this.toggleCollapse('preview'));
     document.getElementById('btn-about').addEventListener('click', () => this.showAbout());
     document.getElementById('about-close').addEventListener('click', () => this.hideAbout());
+    document.getElementById('about-dialog').addEventListener('click', (e) => {
+      if (e.target.id === 'about-dialog') this.hideAbout();
+    });
+
+    document.getElementById('btn-minimize').addEventListener('click', () => this.minimizeWindow());
+    document.getElementById('btn-maximize').addEventListener('click', () => this.toggleMaximize());
+    document.getElementById('btn-close').addEventListener('click', () => this.closeWindow());
+
+    window.addEventListener('resize', () => this.updateMaximizeIcon());
 
     document.addEventListener('keydown', async (e) => {
       if (e.key === 'Escape') {
@@ -943,11 +954,12 @@ class MarkdownEditor {
       if (!path) return;
 
       const htmlContent = await invoke('render_markdown', { content: this.activeTab.content });
+      const escapedTitle = this.activeTab.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       const fullHTML = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>${this.activeTab.name}</title>
+  <title>${escapedTitle}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 860px; margin: 0 auto; padding: 40px 20px; line-height: 1.8; color: #333; }
     h1,h2,h3,h4,h5,h6 { margin-top: 24px; margin-bottom: 16px; }
@@ -977,41 +989,87 @@ ${htmlContent}
     }
   }
 
-  async exportPDF() {
-    try {
-      const htmlContent = await invoke('render_markdown', { content: this.activeTab.content });
-      const printHTML = `<!DOCTYPE html>
-<html><head>
-<meta charset="UTF-8">
-<title>${this.activeTab.name}</title>
-<style>
-  body { font-family: "Microsoft YaHei", sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.8; color: #333; font-size: 14px; }
-  h1 { font-size: 24px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-  h2 { font-size: 20px; }
-  h3 { font-size: 16px; }
-  code { padding: 1px 4px; background: #f4f4f4; border-radius: 2px; font-size: 13px; }
-  pre { padding: 12px; background: #f6f8fa; border-radius: 4px; overflow-x: auto; font-size: 13px; }
-  pre code { background: none; padding: 0; }
-  blockquote { padding: 6px 12px; border-left: 3px solid #0078d4; background: #f9f9f9; margin: 0 0 12px 0; }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { padding: 6px 10px; border: 1px solid #ddd; }
-  th { background: #f6f8fa; }
-  img { max-width: 100%; }
-  hr { border: none; border-top: 1px solid #eee; margin: 16px 0; }
-  @media print { body { padding: 0; } }
-</style>
-</head><body>${htmlContent}</body></html>`;
+  async exportImage() {
+    if (typeof html2canvas === 'undefined') {
+      this.setStatus('导出失败: html2canvas 未加载');
+      return;
+    }
 
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(printHTML);
-      printWindow.document.close();
-      printWindow.onload = () => {
-        printWindow.print();
-      };
-      
-      this.setStatus('PDF 导出: 请在打印对话框中选择"另存为 PDF"');
+    let clone = null;
+    try {
+      this.setStatus('正在生成长图...');
+
+      clone = this.preview.cloneNode(true);
+      clone.style.position = 'fixed';
+      clone.style.left = '-9999px';
+      clone.style.top = '0';
+      clone.style.width = '800px';
+      clone.style.padding = '32px';
+      clone.style.background = this.isDark ? '#1e1e1e' : '#ffffff';
+      clone.style.color = this.isDark ? '#cccccc' : '#333333';
+      clone.style.overflow = 'visible';
+      clone.style.height = 'auto';
+      document.body.appendChild(clone);
+
+      const images = clone.querySelectorAll('img');
+      const imagePromises = Array.from(images).map(async (img) => {
+        const src = img.getAttribute('src');
+        if (!src || src.startsWith('data:')) return;
+
+        try {
+          const base64 = await invoke('fetch_image_as_base64', { url: src });
+          const ext = src.split('.').pop().split('?')[0].toLowerCase();
+          let mime = 'image/png';
+          if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
+          else if (ext === 'gif') mime = 'image/gif';
+          else if (ext === 'svg') mime = 'image/svg+xml';
+          else if (ext === 'webp') mime = 'image/webp';
+          img.src = `data:${mime};base64,${base64}`;
+        } catch (e) {
+          img.style.border = '1px solid red';
+          img.alt = '[图片加载失败]';
+        }
+      });
+
+      await Promise.all(imagePromises);
+      await new Promise(r => setTimeout(r, 300));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: this.isDark ? '#1e1e1e' : '#ffffff',
+        width: 800,
+        windowWidth: 800
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+
+      const result = await dialogSave({
+        defaultPath: `${this.activeTab.name.replace(/\.[^.]+$/, '')}.png`,
+        filters: [{ name: 'PNG', extensions: ['png'] }]
+      });
+
+      if (!result) return;
+
+      const base64 = imgData.split(',')[1];
+      const binaryStr = atob(base64);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+
+      const arr = Array.from(bytes);
+      await invoke('write_binary_file', { path: result, contents: arr });
+
+      this.setStatus(`已导出长图: ${result}`);
     } catch (error) {
       this.setStatus(`导出失败: ${error}`);
+    } finally {
+      if (clone && clone.parentNode) {
+        clone.parentNode.removeChild(clone);
+      }
     }
   }
 
@@ -1041,7 +1099,6 @@ ${htmlContent}
 
       this.processEmojiShortcodes();
       this.processMathFormulas();
-      this.processAlertBoxes();
       this.processHeadings();
       this.processMermaid();
       this.addCopyButtons();
@@ -1052,7 +1109,8 @@ ${htmlContent}
         });
       }
     } catch (error) {
-      this.preview.innerHTML = `<p style="color: red;">预览错误: ${error}</p>`;
+      const msg = String(error).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      this.preview.innerHTML = `<p style="color: red;">预览错误: ${msg}</p>`;
     }
   }
 
@@ -1118,16 +1176,8 @@ ${htmlContent}
     }
   }
 
-  processAlertBoxes() {
-    this.preview.querySelectorAll('.alert').forEach(alert => {
-      const type = alert.className.match(/alert-(\w+)/);
-      if (type) {
-        alert.classList.add('alert-' + type[1]);
-      }
-    });
-  }
-
   processHeadings() {
+    const idCount = {};
     this.preview.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(heading => {
       if (heading.id) return;
       const text = heading.textContent;
@@ -1142,7 +1192,13 @@ ${htmlContent}
         }
       }
       id = id.replace(/-+/g, '-').replace(/^-|-$/g, '');
-      heading.id = id;
+      if (idCount[id]) {
+        idCount[id]++;
+        heading.id = id + '-' + idCount[id];
+      } else {
+        idCount[id] = 1;
+        heading.id = id;
+      }
     });
   }
 
@@ -1368,17 +1424,62 @@ ${htmlContent}
   showAbout() {
     const dialog = document.getElementById('about-dialog');
     dialog.classList.remove('hidden');
-    
-    // 点击对话框外部关闭
-    dialog.addEventListener('click', (e) => {
-      if (e.target === dialog) {
-        this.hideAbout();
-      }
-    });
   }
 
   hideAbout() {
     document.getElementById('about-dialog').classList.add('hidden');
+  }
+
+  async minimizeWindow() {
+    try {
+      const { getCurrentWindow } = window.__TAURI__.window;
+      const appWindow = getCurrentWindow();
+      await appWindow.minimize();
+    } catch (e) {
+      console.warn('minimize failed:', e);
+    }
+  }
+
+  async toggleMaximize() {
+    try {
+      const { getCurrentWindow } = window.__TAURI__.window;
+      const appWindow = getCurrentWindow();
+      const isMaximized = await appWindow.isMaximized();
+      if (isMaximized) {
+        await appWindow.unmaximize();
+      } else {
+        await appWindow.maximize();
+      }
+      this.updateMaximizeIcon();
+    } catch (e) {
+      console.warn('maximize failed:', e);
+    }
+  }
+
+  async updateMaximizeIcon() {
+    try {
+      const { getCurrentWindow } = window.__TAURI__.window;
+      const appWindow = getCurrentWindow();
+      const isMaximized = await appWindow.isMaximized();
+      const btn = document.getElementById('btn-maximize');
+      if (isMaximized) {
+        btn.innerHTML = '<svg width="10" height="10" viewBox="0 0 10 10"><rect x="0.5" y="2.5" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.2"/><polyline points="2.5,2.5 2.5,0.5 9.5,0.5 9.5,7.5 7.5,7.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>';
+      } else {
+        btn.innerHTML = '<svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>';
+      }
+    } catch (e) {
+      console.warn('updateMaximizeIcon failed:', e);
+    }
+  }
+
+  async closeWindow() {
+    try {
+      const { getCurrentWindow } = window.__TAURI__.window;
+      const appWindow = getCurrentWindow();
+      await appWindow.close();
+    } catch (e) {
+      console.warn('close failed:', e);
+    }
   }
 }
 

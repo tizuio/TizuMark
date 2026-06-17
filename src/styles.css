@@ -58,24 +58,40 @@ body {
   padding: 2px 8px;
   min-height: 32px;
   border-bottom: 1px solid var(--border-color);
+  -webkit-app-region: drag;
+  position: relative;
 }
 
 .toolbar-left, .toolbar-right {
   display: flex;
   align-items: center;
   gap: 2px;
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+}
+
+.app-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
 }
 
 .toolbar-center {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .tab-bar-wrapper {
   display: flex;
   padding: 4px 8px 0 8px;
   overflow-x: auto;
+  -webkit-app-region: drag;
 }
 
 .toolbar-btn {
@@ -99,6 +115,37 @@ body {
 }
 
 .toolbar-btn:hover { background-color: var(--bg-secondary); }
+
+.window-controls {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+}
+
+.window-btn {
+  width: 36px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s;
+  flex-shrink: 0;
+}
+
+.window-btn:hover {
+  background-color: rgba(128, 128, 128, 0.2);
+}
+
+.window-btn-close:hover {
+  background-color: #e81123;
+  color: #ffffff;
+}
 
 .toolbar-btn-active {
   background-color: var(--accent-color) !important;
@@ -126,6 +173,7 @@ body {
   font-size: 12px;
   transition: all 0.2s ease;
   border-radius: 16px;
+  -webkit-app-region: no-drag;
 }
 
 .view-mode-tab .icon {
@@ -217,6 +265,7 @@ body {
   min-width: 80px;
   max-width: 180px;
   transition: background-color 0.15s;
+  -webkit-app-region: no-drag;
 }
 
 .tab:hover { background-color: var(--bg-secondary); }
@@ -1114,4 +1163,34 @@ body.is-resizing .preview-pane {
   position: absolute;
   left: 0;
   color: var(--accent-color);
+}
+
+@media (max-width: 900px) {
+  .toolbar-btn span {
+    display: none;
+  }
+  .view-mode-tab span {
+    display: none;
+  }
+  .view-mode-tab {
+    padding: 4px 10px;
+  }
+}
+
+@media (max-width: 700px) {
+  .toolbar-btn span {
+    display: none;
+  }
+  .toolbar-btn {
+    padding: 2px 6px;
+  }
+  .view-mode-tab span {
+    display: none;
+  }
+  .view-mode-tab {
+    padding: 4px 8px;
+  }
+  .dropdown-arrow {
+    display: none;
+  }
 }
