@@ -91,7 +91,6 @@ body {
   display: flex;
   padding: 4px 8px 0 8px;
   overflow-x: auto;
-  -webkit-app-region: drag;
 }
 
 .toolbar-btn {
