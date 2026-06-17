@@ -129,8 +129,15 @@ class MarkdownEditor {
     });
     document.getElementById('set-max-width').addEventListener('change', (e) => {
       this.settings.maxWidth = Number(e.target.value);
-      this.preview.style.maxWidth = this.settings.maxWidth ? this.settings.maxWidth + 'px' : 'none';
-      this.preview.style.margin = this.settings.maxWidth ? '0 auto' : '';
+      if (this.settings.maxWidth) {
+        this.preview.style.maxWidth = this.settings.maxWidth + 'px';
+        this.preview.style.margin = '0 auto';
+        this.preview.classList.add('max-width-active');
+      } else {
+        this.preview.style.maxWidth = '';
+        this.preview.style.margin = '';
+        this.preview.classList.remove('max-width-active');
+      }
       this.saveSettings();
     });
     document.getElementById('set-theme-mode').addEventListener('change', (e) => {
@@ -161,6 +168,11 @@ class MarkdownEditor {
     if (s.maxWidth) {
       this.preview.style.maxWidth = s.maxWidth + 'px';
       this.preview.style.margin = '0 auto';
+      this.preview.classList.add('max-width-active');
+    } else {
+      this.preview.style.maxWidth = '';
+      this.preview.style.margin = '';
+      this.preview.classList.remove('max-width-active');
     }
     this.applyThemeMode();
   }

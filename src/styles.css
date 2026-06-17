@@ -498,6 +498,12 @@ body.is-resizing .preview-pane {
   scroll-behavior: smooth;
   -webkit-user-select: text;
   user-select: text;
+  transition: max-width 0.2s ease;
+}
+
+.preview-content.max-width-active {
+  flex: none;
+  width: 100%;
 }
 
 .scroll-top-btn {
