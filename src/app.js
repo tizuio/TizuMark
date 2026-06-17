@@ -242,26 +242,56 @@ class MarkdownEditor {
   }
 
   initEventListeners() {
-    document.getElementById('btn-new').addEventListener('click', () => this.newFile());
-    document.getElementById('btn-open').addEventListener('click', () => this.openFile());
-    document.getElementById('btn-save').addEventListener('click', () => this.saveFile());
-    document.getElementById('btn-save-as').addEventListener('click', () => this.saveAsFile());
-    document.getElementById('btn-export').addEventListener('click', (e) => {
+    document.getElementById('btn-file').addEventListener('click', (e) => {
       e.stopPropagation();
-      document.getElementById('export-menu').classList.toggle('hidden');
+      document.getElementById('file-menu').classList.toggle('hidden');
+      document.getElementById('more-menu').classList.add('hidden');
     });
-      document.getElementById('btn-export-html').addEventListener('click', () => this.exportHTML());
-      document.getElementById('btn-export-img').addEventListener('click', () => this.exportImage());
+    document.getElementById('btn-more').addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('more-menu').classList.toggle('hidden');
+      document.getElementById('file-menu').classList.add('hidden');
+    });
     document.addEventListener('click', () => {
-      document.getElementById('export-menu').classList.add('hidden');
+      document.getElementById('file-menu').classList.add('hidden');
+      document.getElementById('more-menu').classList.add('hidden');
     });
-    document.getElementById('btn-theme').addEventListener('click', () => this.toggleTheme());
-    document.getElementById('btn-find').addEventListener('click', () => this.toggleFindPanel());
+    document.getElementById('btn-new').addEventListener('click', () => {
+      document.getElementById('file-menu').classList.add('hidden');
+      this.newFile();
+    });
+    document.getElementById('btn-open').addEventListener('click', () => {
+      document.getElementById('file-menu').classList.add('hidden');
+      this.openFile();
+    });
+    document.getElementById('btn-save').addEventListener('click', () => {
+      document.getElementById('file-menu').classList.add('hidden');
+      this.saveFile();
+    });
+    document.getElementById('btn-save-as').addEventListener('click', () => {
+      document.getElementById('file-menu').classList.add('hidden');
+      this.saveAsFile();
+    });
+    document.getElementById('btn-export-html').addEventListener('click', () => {
+      document.getElementById('file-menu').classList.add('hidden');
+      this.exportHTML();
+    });
+    document.getElementById('btn-export-img').addEventListener('click', () => {
+      document.getElementById('file-menu').classList.add('hidden');
+      this.exportImage();
+    });
+    document.getElementById('btn-theme').addEventListener('click', () => {
+      document.getElementById('more-menu').classList.add('hidden');
+      this.toggleTheme();
+    });
+    document.getElementById('btn-about').addEventListener('click', () => {
+      document.getElementById('more-menu').classList.add('hidden');
+      this.showAbout();
+    });
     document.getElementById('btn-view-preview').addEventListener('click', () => this.setViewMode('preview'));
     document.getElementById('btn-view-edit').addEventListener('click', () => this.setViewMode('edit'));
     document.getElementById('btn-side-left').addEventListener('click', () => this.toggleCollapse('editor'));
     document.getElementById('btn-side-right').addEventListener('click', () => this.toggleCollapse('preview'));
-    document.getElementById('btn-about').addEventListener('click', () => this.showAbout());
     document.getElementById('about-close').addEventListener('click', () => this.hideAbout());
     document.getElementById('about-dialog').addEventListener('click', (e) => {
       if (e.target.id === 'about-dialog') this.hideAbout();
@@ -1297,11 +1327,14 @@ ${htmlContent}
   }
 
   updateThemeIcon() {
-    const icon = document.getElementById('theme-icon');
+    const btn = document.getElementById('btn-theme');
+    if (!btn) return;
+    const svg = btn.querySelector('svg');
+    if (!svg) return;
     if (this.isDark) {
-      icon.innerHTML = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>';
+      svg.innerHTML = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>';
     } else {
-      icon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
+      svg.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
     }
   }
 
