@@ -1229,6 +1229,7 @@ body.is-resizing .preview-pane {
 
 .settings-content {
   padding: 0;
+  overflow: visible !important;
 }
 
 .settings-section {
@@ -1335,12 +1336,8 @@ body.is-resizing .preview-pane {
   color: #fff;
 }
 
-.info-tip:hover::after {
-  content: attr(title);
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
+.settings-tooltip {
+  position: fixed;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
@@ -1351,6 +1348,30 @@ body.is-resizing .preview-pane {
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 200;
+  pointer-events: none;
+}
+
+.info-tip:hover {
+  background-color: var(--accent-color);
+  color: #fff;
+}
+
+.info-tip:hover::after {
+  content: attr(title);
+  position: fixed;
+  bottom: auto;
+  left: auto;
+  transform: none;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 2000;
   pointer-events: none;
 }
 
