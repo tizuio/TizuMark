@@ -471,6 +471,10 @@ class MarkdownEditor {
       document.getElementById('file-menu').classList.add('hidden');
       this.exportImage();
     });
+    document.getElementById('btn-settings').addEventListener('click', () => {
+      document.getElementById('file-menu').classList.add('hidden');
+      this.showSettings();
+    });
     document.getElementById('btn-theme').addEventListener('click', () => this.toggleTheme());
     document.getElementById('btn-about').addEventListener('click', () => {
       document.getElementById('help-menu').classList.add('hidden');
