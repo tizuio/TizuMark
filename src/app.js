@@ -1017,7 +1017,9 @@ class MarkdownEditor {
     } else {
       app.addEventListener('dragover', (e) => {
         e.preventDefault();
-        app.classList.add('drag-over');
+        if (e.dataTransfer.types.includes('Files')) {
+          app.classList.add('drag-over');
+        }
       });
 
       app.addEventListener('dragleave', (e) => {

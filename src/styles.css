@@ -420,21 +420,45 @@ body.is-resizing .preview-pane {
 
 /* Drag and drop overlay */
 #app.drag-over::after {
-  content: '拖放文件到此处打开';
+  content: '';
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 120, 212, 0.85);
-  color: #ffffff;
-  font-size: 24px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: rgba(0, 120, 212, 0.08);
+  border: 3px dashed var(--accent-color);
   z-index: 9999;
   pointer-events: none;
+  animation: drag-pulse 1.5s ease-in-out infinite;
+}
+
+#app.drag-over::before {
+  content: '拖放文件到此处打开';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--accent-color);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 16px 32px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 120, 212, 0.3);
+  z-index: 10000;
+  pointer-events: none;
+  animation: drag-float 1.5s ease-in-out infinite;
+}
+
+@keyframes drag-pulse {
+  0%, 100% { border-color: var(--accent-color); }
+  50% { border-color: rgba(0, 120, 212, 0.4); }
+}
+
+@keyframes drag-float {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.02); }
 }
 
 .editor-container.editor-collapsed .editor-pane,
