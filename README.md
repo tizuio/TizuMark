@@ -1,4 +1,4 @@
-# Markdown Editor
+# MarkFlow
 
 轻量级跨平台 Markdown 编辑器，基于 Tauri + Rust 构建。
 
@@ -33,7 +33,7 @@ npm run build
 ## 项目结构
 
 ```
-markdown-editor/
+markflow/
 ├── src-tauri/          # Rust 后端
 │   ├── src/
 │   │   ├── main.rs     # 主入口
