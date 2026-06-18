@@ -1807,16 +1807,12 @@ ${htmlContent}
     const doRefresh = () => {
       if (restored) return;
       restored = true;
-      const wrapper = document.getElementById('editor-wrapper');
-      wrapper.style.height = wrapper.offsetHeight + 'px';
       this.cm.refresh();
       this.preview.scrollTop = previewScrollTop;
-      this.syncingScroll = false;
       this.updateSideButtons();
-      this.preview.style.scrollBehavior = '';
       requestAnimationFrame(() => {
-        wrapper.style.height = '';
-        this.cm.refresh();
+        this.syncingScroll = false;
+        this.preview.style.scrollBehavior = '';
       });
     };
     const targetPane = pane === 'editor' ? editorPane : previewPane;
