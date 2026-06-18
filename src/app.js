@@ -1775,6 +1775,8 @@ ${htmlContent}
     const container = document.querySelector('.editor-container');
     if (this.viewMode === 'preview') return;
 
+    this.syncingScroll = true;
+
     const sideLeft = document.getElementById('btn-side-left');
     const sideRight = document.getElementById('btn-side-right');
     const editorPane = document.getElementById('editor-pane');
@@ -1809,6 +1811,7 @@ ${htmlContent}
       wrapper.style.height = wrapper.offsetHeight + 'px';
       this.cm.refresh();
       this.preview.scrollTop = previewScrollTop;
+      this.syncingScroll = false;
       this.updateSideButtons();
       this.preview.style.scrollBehavior = '';
       requestAnimationFrame(() => {
