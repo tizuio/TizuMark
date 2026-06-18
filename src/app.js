@@ -37,6 +37,9 @@ class MarkdownEditor {
     this.preview = document.getElementById('preview');
     this.statusText = document.getElementById('status-text');
     this.cursorPosition = document.getElementById('cursor-position');
+    this.wordCountEl = document.getElementById('word-count');
+    this.charCountEl = document.getElementById('char-count');
+    this.lineCountEl = document.getElementById('line-count');
 
     this.initEditor();
     this.initEventListeners();
@@ -46,10 +49,13 @@ class MarkdownEditor {
     this.initExternalLinks();
     this.initDragDrop();
     this.initSettings();
+    this.initOutline();
     this.loadTheme();
     this.updatePreview();
     this.applyViewMode();
     this.updateMaximizeIcon();
+    this.updateWordCount();
+    this.updateSideButtons();
   }
 
   loadSettings() {
@@ -125,7 +131,7 @@ class MarkdownEditor {
     });
     document.getElementById('set-line-height').addEventListener('change', (e) => {
       this.settings.lineHeight = Number(e.target.value);
-      this.preview.style.lineHeight = e.target.value;
+      this.preview.style.lineHeight = String(e.target.value);
       this.saveSettings();
     });
     document.getElementById('set-max-width').addEventListener('change', (e) => {
@@ -156,6 +162,112 @@ class MarkdownEditor {
     });
 
     this.applySettings();
+  }
+
+  initOutline() {
+    const outlineSidebar = document.getElementById('outline-sidebar');
+    const outlineClose = document.getElementById('outline-close');
+
+    outlineClose.addEventListener('click', () => {
+      outlineSidebar.classList.add('hidden');
+      this.updateOutlineCheck();
+      this.updateSideButtons();
+    });
+  }
+
+  updateSideButtons() {
+    const outlineSidebar = document.getElementById('outline-sidebar');
+    const sideLeft = document.getElementById('btn-side-left');
+    const sideRight = document.getElementById('btn-side-right');
+    const outlineWidth = outlineSidebar.classList.contains('hidden') ? 0 : 240;
+    sideLeft.style.left = outlineWidth + 'px';
+    sideRight.style.left = '';
+  }
+
+  toggleOutline() {
+    const outlineSidebar = document.getElementById('outline-sidebar');
+    outlineSidebar.classList.toggle('hidden');
+    this.updateOutlineCheck();
+    if (!outlineSidebar.classList.contains('hidden')) {
+      this.updateOutline();
+    }
+    this.updateSideButtons();
+  }
+
+  updateOutlineCheck() {
+    const outlineSidebar = document.getElementById('outline-sidebar');
+    const checkItem = document.getElementById('btn-outline-toggle');
+    if (outlineSidebar.classList.contains('hidden')) {
+      checkItem.classList.remove('checked');
+    } else {
+      checkItem.classList.add('checked');
+    }
+  }
+
+  updateOutline() {
+    const content = this.activeTab.content;
+    const outlineContent = document.getElementById('outline-content');
+    const lines = content.split('\n');
+    const headings = [];
+    let inCodeBlock = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.trimStart().startsWith('```')) {
+        inCodeBlock = !inCodeBlock;
+        continue;
+      }
+      if (inCodeBlock) continue;
+
+      const match = line.match(/^(#{1,6})\s+(.+)/);
+      if (match) {
+        const level = match[1].length;
+        const text = match[2].replace(/[*`~\[\]]/g, '').trim();
+        const id = this.headingToId(text);
+        headings.push({ level, text, id, line: i });
+      }
+    }
+
+    if (headings.length === 0) {
+      outlineContent.innerHTML = '<div class="outline-empty">暂无标题</div>';
+      return;
+    }
+
+    outlineContent.innerHTML = headings.map(h =>
+      `<div class="outline-item level-${h.level}" data-id="${h.id}" data-line="${h.line}">${this.escapeHtml(h.text)}</div>`
+    ).join('');
+
+    outlineContent.querySelectorAll('.outline-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const id = item.dataset.id;
+        const target = this.preview.querySelector(`#${CSS.escape(id)}`);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        outlineContent.querySelectorAll('.outline-item').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+      });
+    });
+  }
+
+  headingToId(text) {
+    let id = '';
+    for (const ch of text) {
+      if (ch >= '\u4e00' && ch <= '\u9fa5') {
+        id += ch;
+      } else if (/[a-zA-Z0-9]/.test(ch)) {
+        id += ch.toLowerCase();
+      } else if (ch === ' ' || ch === '-' || ch === '_') {
+        id += '-';
+      }
+    }
+    return id.replace(/-+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   applySettings() {
@@ -281,6 +393,8 @@ class MarkdownEditor {
       this.activeTab.content = this.cm.getValue();
       this.updateTabDisplay();
       this.debounceUpdatePreview();
+      this.updateWordCount();
+      this.updateOutline();
     });
 
     this.cm.on('cursorActivity', () => {
@@ -296,6 +410,8 @@ class MarkdownEditor {
       this.activeTab.scrollPos = { top: info.top, left: info.left };
 
       if (!this.settings.scrollSync || this.syncingScroll) return;
+      const container = document.querySelector('.editor-container');
+      if (container.classList.contains('preview-collapsed') || container.classList.contains('preview-mode')) return;
       this.syncingScroll = true;
 
       const editorMax = info.height - info.clientHeight || 1;
@@ -308,6 +424,8 @@ class MarkdownEditor {
 
     this.preview.addEventListener('scroll', () => {
       if (!this.settings.scrollSync || this.syncingScroll) return;
+      const container = document.querySelector('.editor-container');
+      if (container.classList.contains('preview-collapsed') || container.classList.contains('preview-mode')) return;
       this.syncingScroll = true;
 
       const previewMax = this.preview.scrollHeight - this.preview.clientHeight || 1;
@@ -338,6 +456,8 @@ class MarkdownEditor {
 
     this.updateTabDisplay();
     this.updatePreview();
+    this.updateWordCount();
+    this.updateOutline();
   }
 
   addTab(name = '未命名', content = '', filePath = null) {
@@ -436,16 +556,28 @@ class MarkdownEditor {
     document.getElementById('btn-file').addEventListener('click', (e) => {
       e.stopPropagation();
       document.getElementById('file-menu').classList.toggle('hidden');
+      document.getElementById('view-menu').classList.add('hidden');
+      document.getElementById('help-menu').classList.add('hidden');
+    });
+    document.getElementById('btn-view').addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('view-menu').classList.toggle('hidden');
+      document.getElementById('file-menu').classList.add('hidden');
       document.getElementById('help-menu').classList.add('hidden');
     });
     document.getElementById('btn-help').addEventListener('click', (e) => {
       e.stopPropagation();
       document.getElementById('help-menu').classList.toggle('hidden');
       document.getElementById('file-menu').classList.add('hidden');
+      document.getElementById('view-menu').classList.add('hidden');
     });
     document.addEventListener('click', () => {
       document.getElementById('file-menu').classList.add('hidden');
+      document.getElementById('view-menu').classList.add('hidden');
       document.getElementById('help-menu').classList.add('hidden');
+    });
+    document.getElementById('btn-outline-toggle').addEventListener('click', () => {
+      this.toggleOutline();
     });
     document.getElementById('btn-new').addEventListener('click', () => {
       document.getElementById('file-menu').classList.add('hidden');
@@ -499,7 +631,10 @@ class MarkdownEditor {
     document.getElementById('btn-maximize').addEventListener('click', () => this.toggleMaximize());
     document.getElementById('btn-close').addEventListener('click', () => this.closeWindow());
 
-    window.addEventListener('resize', () => this.updateMaximizeIcon());
+    window.addEventListener('resize', () => {
+      this.updateMaximizeIcon();
+      this.updateSideButtons();
+    });
 
     document.addEventListener('keydown', async (e) => {
       if (e.key === 'Escape') {
@@ -557,18 +692,27 @@ class MarkdownEditor {
     const container = document.querySelector('.editor-container');
     const editorPane = document.getElementById('editor-pane');
     const previewPane = document.getElementById('preview-pane');
+    const outlineSidebar = document.getElementById('outline-sidebar');
     let isResizing = false;
+    let startX = 0;
+    let startEditorWidth = 0;
 
     const onMouseMove = (e) => {
       if (!isResizing) return;
-      const containerRect = container.getBoundingClientRect();
-      const percentage = ((e.clientX - containerRect.left) / containerRect.width) * 100;
-      if (percentage > 20 && percentage < 80) {
-        editorPane.style.width = percentage + '%';
-        previewPane.style.width = (100 - percentage) + '%';
+      const delta = e.clientX - startX;
+      const newEditorWidth = startEditorWidth + delta;
+      const outlineWidth = outlineSidebar.classList.contains('hidden') ? 0 : outlineSidebar.offsetWidth;
+      const resizerWidth = resizer.offsetWidth;
+      const totalContentWidth = container.offsetWidth - outlineWidth - resizerWidth;
+      const editorPercent = (newEditorWidth / totalContentWidth) * 100;
+      if (editorPercent > 20 && editorPercent < 80) {
+        const previewWidth = totalContentWidth - newEditorWidth;
+        editorPane.style.width = newEditorWidth + 'px';
+        previewPane.style.width = previewWidth + 'px';
         editorPane.style.flex = 'none';
         previewPane.style.flex = 'none';
         this.cm.refresh();
+        this.updateSideButtons();
       }
     };
 
@@ -581,6 +725,8 @@ class MarkdownEditor {
     resizer.addEventListener('mousedown', (e) => {
       e.preventDefault();
       isResizing = true;
+      startX = e.clientX;
+      startEditorWidth = editorPane.getBoundingClientRect().width;
       document.body.classList.add('is-resizing');
     });
 
@@ -1008,6 +1154,8 @@ class MarkdownEditor {
               continue;
             }
             this.addTab(name, content, filePath);
+            this.updateWordCount();
+            this.updateOutline();
             this.setStatus(`已打开: ${name}`);
           } catch (err) {
             this.setStatus(`打开失败: ${err}`);
@@ -1126,6 +1274,7 @@ class MarkdownEditor {
       }
       this.viewMode = 'preview';
       this.applyViewMode();
+      this.updateWordCount();
       this.setStatus(openedCount > 0 ? `已打开 ${openedCount} 个文件` : '文件已在打开中');
     } catch (error) {
       this.setStatus(`打开失败: ${error}`);
@@ -1513,6 +1662,17 @@ ${htmlContent}
     }, 3000);
   }
 
+  updateWordCount() {
+    const content = this.activeTab.content;
+    const text = content.replace(/[#*`~\[\]()>_|\\-]/g, '').replace(/\s+/g, ' ').trim();
+    const words = text ? text.split(/\s+/).length : 0;
+    const chars = content.length;
+    const lines = content ? content.split('\n').length : 0;
+    this.wordCountEl.textContent = `字数: ${words}`;
+    this.charCountEl.textContent = `字符: ${chars}`;
+    this.lineCountEl.textContent = `行数: ${lines}`;
+  }
+
   toggleTheme() {
     if (this.settings.themeMode !== 'light' && this.settings.themeMode !== 'dark') {
       this.settings.themeMode = this.isDark ? 'light' : 'dark';
@@ -1605,7 +1765,10 @@ ${htmlContent}
       sideRight.title = '折叠预览';
     }
 
-    setTimeout(() => this.cm.refresh(), 50);
+    setTimeout(() => {
+      this.cm.refresh();
+      this.updateSideButtons();
+    }, 50);
   }
 
   toggleCollapse(pane) {
@@ -1616,6 +1779,7 @@ ${htmlContent}
     const sideRight = document.getElementById('btn-side-right');
     const editorPane = document.getElementById('editor-pane');
     const previewPane = document.getElementById('preview-pane');
+    const previewScrollTop = this.preview.scrollTop;
 
     editorPane.style.flex = '';
     editorPane.style.width = '';
@@ -1628,21 +1792,35 @@ ${htmlContent}
       sideLeft.innerHTML = isCollapsed ? '&#9654;' : '&#9664;';
       sideLeft.title = isCollapsed ? '恢复编辑器' : '折叠编辑器';
       sideLeft.classList.toggle('side-active', isCollapsed);
-      sideRight.classList.toggle('side-hidden', isCollapsed);
     } else {
       container.classList.toggle('preview-collapsed');
       const isCollapsed = container.classList.contains('preview-collapsed');
       sideRight.innerHTML = isCollapsed ? '&#9664;' : '&#9654;';
       sideRight.title = isCollapsed ? '恢复预览' : '折叠预览';
       sideRight.classList.toggle('side-active', isCollapsed);
-      sideLeft.classList.toggle('side-hidden', isCollapsed);
     }
 
-    const refresh = () => this.cm.refresh();
-    requestAnimationFrame(() => {
-      refresh();
-      requestAnimationFrame(refresh);
+    this.preview.style.scrollBehavior = 'auto';
+    let restored = false;
+    const doRefresh = () => {
+      if (restored) return;
+      restored = true;
+      const wrapper = document.getElementById('editor-wrapper');
+      wrapper.style.height = wrapper.offsetHeight + 'px';
+      this.cm.refresh();
+      this.preview.scrollTop = previewScrollTop;
+      this.updateSideButtons();
+      this.preview.style.scrollBehavior = '';
+      requestAnimationFrame(() => {
+        wrapper.style.height = '';
+        this.cm.refresh();
+      });
+    };
+    const targetPane = pane === 'editor' ? editorPane : previewPane;
+    targetPane.addEventListener('transitionend', (e) => {
+      if (e.propertyName === 'width') doRefresh();
     });
+    setTimeout(doRefresh, 400);
   }
 
   showAbout() {
@@ -1707,6 +1885,27 @@ ${htmlContent}
   }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   window.editor = new MarkdownEditor();
+
+  try {
+    const args = await invoke('get_cli_args');
+    if (args.length > 0) {
+      const filePath = args[0];
+      const content = await invoke('read_file', { path: filePath });
+      const name = filePath.split(/[/\\]/).pop();
+      window.editor.activeTab.content = content;
+      window.editor.activeTab.savedContent = content;
+      window.editor.activeTab.filePath = filePath;
+      window.editor.activeTab.name = name;
+      window.editor.cm.setValue(content);
+      window.editor.updateTabDisplay();
+      window.editor.updatePreview();
+      window.editor.updateWordCount();
+      window.editor.updateOutline();
+      window.editor.setStatus(`已打开: ${name}`);
+    }
+  } catch (e) {
+    console.warn('Failed to open file from CLI args:', e);
+  }
 });

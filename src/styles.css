@@ -265,6 +265,30 @@ body {
   margin: 4px 0;
 }
 
+.dropdown-check {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dropdown-check::after {
+  content: '';
+  display: none;
+  width: 6px;
+  height: 10px;
+  border: solid var(--accent-color);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-bottom: 2px;
+}
+
+.dropdown-item.checked .dropdown-check::after {
+  display: block;
+}
+
 .tab-bar {
   display: flex;
   gap: 2px;
@@ -1030,6 +1054,16 @@ body.is-resizing .preview-pane {
   min-height: 22px;
 }
 
+.statusbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+#word-count, #char-count, #line-count {
+  opacity: 0.8;
+}
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
 ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
@@ -1042,9 +1076,11 @@ body.is-resizing .preview-pane {
 .editor-container.preview-mode .preview-content { padding: 32px; }
 
 .editor-container.editor-collapsed .resizer { display: none; }
+.editor-container.editor-collapsed .editor-pane { flex: 0; min-width: 0; width: 0; overflow: hidden; }
 .editor-container.editor-collapsed .preview-pane { flex: 1; }
 
 .editor-container.preview-collapsed .resizer { display: none; }
+.editor-container.preview-collapsed .preview-pane { flex: 0; min-width: 0; width: 0; overflow: hidden; }
 .editor-container.preview-collapsed .editor-pane { flex: 1; }
 
 .side-btn {
@@ -1062,7 +1098,7 @@ body.is-resizing .preview-pane {
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 10px;
-  transition: background-color 0.2s, color 0.2s, opacity 0.3s ease;
+  transition: background-color 0.2s, color 0.2s, opacity 0.3s ease, left 0.3s ease;
 }
 
 .side-btn:hover {
@@ -1090,6 +1126,100 @@ body.is-resizing .preview-pane {
 .side-btn.side-hidden {
   opacity: 0;
   pointer-events: none;
+}
+
+/* Outline Sidebar */
+.outline-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background-color: var(--bg-primary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.3s ease, min-width 0.3s ease, border-right 0.3s ease;
+}
+
+.outline-sidebar.hidden {
+  width: 0;
+  min-width: 0;
+  border-right-width: 0;
+}
+
+.outline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.outline-close-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.outline-close-btn:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.outline-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.outline-item {
+  display: block;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.15s, color 0.15s;
+  border-left: 2px solid transparent;
+}
+
+.outline-item:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.outline-item.active {
+  color: var(--accent-color);
+  border-left-color: var(--accent-color);
+  background-color: var(--bg-secondary);
+}
+
+.outline-item.level-1 { padding-left: 12px; font-weight: 600; }
+.outline-item.level-2 { padding-left: 24px; }
+.outline-item.level-3 { padding-left: 36px; }
+.outline-item.level-4 { padding-left: 48px; }
+.outline-item.level-5 { padding-left: 60px; font-size: 11px; }
+.outline-item.level-6 { padding-left: 72px; font-size: 11px; }
+
+.outline-empty {
+  padding: 16px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
 }
 
 /* 对话框样式 */

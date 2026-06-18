@@ -98,6 +98,11 @@ fn sanitize_tag_attributes(tag_content: &str) -> String {
 }
 
 #[tauri::command]
+fn get_cli_args() -> Vec<String> {
+    std::env::args().skip(1).collect()
+}
+
+#[tauri::command]
 fn read_file(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| e.to_string())
 }
@@ -429,6 +434,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
+            get_cli_args,
             read_file,
             write_file,
             write_binary_file,

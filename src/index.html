@@ -60,6 +60,19 @@
             </div>
           </div>
           <div class="dropdown">
+            <button id="btn-view" class="toolbar-btn" title="视图">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span>视图</span>
+              <span class="dropdown-arrow">&#9662;</span>
+            </button>
+            <div class="dropdown-menu hidden" id="view-menu">
+              <div class="dropdown-item" id="btn-outline-toggle">
+                <span class="dropdown-check" id="outline-check"></span>
+                <span>大纲</span>
+              </div>
+            </div>
+          </div>
+          <div class="dropdown">
             <button id="btn-help" class="toolbar-btn" title="帮助">
               <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
               <span>帮助</span>
@@ -149,6 +162,13 @@
     </div>
 
     <main class="editor-container">
+      <div id="outline-sidebar" class="outline-sidebar hidden">
+        <div class="outline-header">
+          <span>大纲</span>
+          <button id="outline-close" class="outline-close-btn">&times;</button>
+        </div>
+        <div id="outline-content" class="outline-content"></div>
+      </div>
       <div class="editor-pane" id="editor-pane">
         <div class="pane-header">
           <span>编辑</span>
@@ -176,7 +196,12 @@
 
     <footer class="statusbar">
       <span id="status-text">就绪</span>
-      <span id="cursor-position">行 1, 列 1</span>
+      <div class="statusbar-right">
+        <span id="word-count">字数: 0</span>
+        <span id="char-count">字符: 0</span>
+        <span id="line-count">行数: 0</span>
+        <span id="cursor-position">行 1, 列 1</span>
+      </div>
     </footer>
   </div>
 
