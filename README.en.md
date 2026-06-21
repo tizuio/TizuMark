@@ -1,36 +1,97 @@
-# markdown
+# MarkFlow
 
-#### Description
-{**When you're done, you can delete the content in this README and update the file with details for others getting started with your repository**}
+A lightweight cross-platform Markdown editor built with Tauri + Rust. Blazing fast performance with an elegant experience.
 
-#### Software Architecture
-Software architecture description
+## Features
 
-#### Installation
+### Editing Experience
+- **Live Split Preview** - Edit on the left, instant rendering on the right
+- **Multi-Tab Management** - Edit multiple files simultaneously with tab switching
+- **Smart Outline Navigation** - Auto-detect heading hierarchy, click to jump
+- **Professional Syntax Highlighting** - GFM syntax, code blocks, tables support
+- **Code Block Enhancement** - One-click copy code, multi-language highlighting
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+### Extended Syntax
+- **Math Formulas** - KaTeX/LaTeX math formula rendering
+- **Flowcharts** - Built-in Mermaid diagram support
+- **Emoji Shortcodes** - Quick emoji insertion with shortcodes
 
-#### Instructions
+### File Management
+- **Drag & Drop** - Drag files directly to open
+- **File Association** - Double-click `.md` files to open
+- **Auto Save** - Smart save prompts on close
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+### Export Options
+- **Export HTML** - Generate standalone HTML files for sharing
+- **Export Image** - One-click high-quality long image for social media
 
-#### Contribution
+### Customization
+- **Theme Switching** - Light / Dark / System following modes
+- **Custom Shortcuts** - Configure all keyboard shortcuts
+- **Editor Settings** - Font size, tab width, line numbers, word wrap
+- **Preview Settings** - Font size, line height, max width
 
-1.  Fork the repository
-2.  Create Feat_xxx branch
-3.  Commit your code
-4.  Create Pull Request
+### UI Design
+- **Frameless Window** - Custom title bar for immersive editing
+- **Adjustable Layout** - Drag to resize editor and preview panels
+- **Collapsible Panels** - Single-column mode for focused editing
+- **Status Bar** - Real-time word/char/line count and cursor position
 
+## Keyboard Shortcuts
 
-#### Gitee Feature
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+N | New File |
+| Ctrl+O | Open File |
+| Ctrl+S | Save File |
+| Ctrl+W | Close Tab |
+| Ctrl+F | Find |
+| Ctrl+H | Find & Replace |
+| Ctrl+Tab | Next Tab |
+| Ctrl+Shift+Tab | Previous Tab |
 
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+> All shortcuts can be customized in File → Keyboard Shortcuts
+
+## Tech Stack
+
+- **Frontend** - Vanilla HTML/CSS/JavaScript + CodeMirror 5
+- **Backend** - Rust + Tauri 2.x
+- **Rendering** - markdown-it + highlight.js + KaTeX + Mermaid
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) >= 18
+- [Rust](https://www.rust-lang.org/tools/install) >= 1.77
+- [Tauri Prerequisites](https://tauri.app/start/prerequisites/)
+
+## Quick Start
+
+```bash
+git clone https://gitee.com/fankaa/markdown.git
+npm install
+npm run dev
+```
+
+## Project Structure
+
+```
+markflow/
+├── src-tauri/              # Rust backend
+│   ├── src/
+│   │   ├── main.rs
+│   │   └── lib.rs
+│   ├── icons/
+│   ├── Cargo.toml
+│   └── tauri.conf.json
+├── src/                    # Frontend
+│   ├── index.html
+│   ├── styles.css
+│   ├── app.js
+│   └── lib/
+├── package.json
+└── README.md
+```
+
+## License
+
+MIT License
