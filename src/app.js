@@ -74,6 +74,7 @@ class MarkdownEditor {
       themeMode: 'light',
       defaultView: 'preview',
       scrollSync: true,
+      language: 'zh',
     };
     try {
       const saved = JSON.parse(localStorage.getItem('markflow-settings'));
@@ -106,6 +107,7 @@ class MarkdownEditor {
     document.getElementById('set-theme-mode').value = s.themeMode;
     document.getElementById('set-default-view').value = s.defaultView;
     document.getElementById('set-scroll-sync').checked = s.scrollSync;
+    document.getElementById('set-language').value = s.language || 'zh';
 
     document.getElementById('set-font-size').addEventListener('change', (e) => {
       this.settings.fontSize = Number(e.target.value);
@@ -162,6 +164,10 @@ class MarkdownEditor {
     });
     document.getElementById('set-scroll-sync').addEventListener('change', (e) => {
       this.settings.scrollSync = e.target.checked;
+      this.saveSettings();
+    });
+    document.getElementById('set-language').addEventListener('change', (e) => {
+      this.settings.language = e.target.value;
       this.saveSettings();
     });
 
@@ -334,6 +340,7 @@ class MarkdownEditor {
       themeMode: 'light',
       defaultView: 'preview',
       scrollSync: true,
+      language: 'zh',
     };
     this.settings = defaults;
     localStorage.removeItem('markflow-settings');
@@ -348,6 +355,7 @@ class MarkdownEditor {
     document.getElementById('set-theme-mode').value = defaults.themeMode;
     document.getElementById('set-default-view').value = defaults.defaultView;
     document.getElementById('set-scroll-sync').checked = defaults.scrollSync;
+    document.getElementById('set-language').value = defaults.language;
 
     this.applySettings();
     this.setStatus('已恢复默认设置');
@@ -1996,7 +2004,7 @@ ${htmlContent}
   }
 
   async openUserGuide() {
-    const isEn = navigator.language.startsWith('en');
+    const isEn = this.settings.language === 'en';
     const fileName = isEn ? 'guide.en.md' : 'guide.md';
     const tabName = isEn ? 'User Guide.md' : '使用说明.md';
     const existingIndex = this.tabs.findIndex(t => t.name === tabName);
