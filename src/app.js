@@ -33,6 +33,8 @@ class MarkdownEditor {
     this.viewMode = 'preview';
 
     this.settings = this.loadSettings();
+    this.shortcuts = this.loadShortcuts();
+    this.recordingAction = null;
 
     this.preview = document.getElementById('preview');
     this.statusText = document.getElementById('status-text');
@@ -42,6 +44,7 @@ class MarkdownEditor {
     this.lineCountEl = document.getElementById('line-count');
 
     this.initEditor();
+    this.applyShortcuts();
     this.initEventListeners();
     this.initResizer();
     this.initFindReplace();
@@ -49,6 +52,7 @@ class MarkdownEditor {
     this.initExternalLinks();
     this.initDragDrop();
     this.initSettings();
+    this.initShortcutsDialog();
     this.initOutline();
     this.loadTheme();
     this.updatePreview();
@@ -349,6 +353,199 @@ class MarkdownEditor {
     this.setStatus('已恢复默认设置');
   }
 
+  getDefaultShortcuts() {
+    return {
+      newFile: { key: 'Ctrl+N', label: '新建' },
+      openFile: { key: 'Ctrl+O', label: '打开' },
+      saveFile: { key: 'Ctrl+S', label: '保存' },
+      closeTab: { key: 'Ctrl+W', label: '关闭标签页' },
+      find: { key: 'Ctrl+F', label: '查找' },
+      findReplace: { key: 'Ctrl+H', label: '查找和替换' },
+      nextTab: { key: 'Ctrl+Tab', label: '下一个标签页' },
+      prevTab: { key: 'Ctrl+Shift+Tab', label: '上一个标签页' },
+    };
+  }
+
+  loadShortcuts() {
+    const defaults = this.getDefaultShortcuts();
+    try {
+      const saved = JSON.parse(localStorage.getItem('markflow-shortcuts'));
+      return { ...defaults, ...saved };
+    } catch {
+      return defaults;
+    }
+  }
+
+  saveShortcuts() {
+    localStorage.setItem('markflow-shortcuts', JSON.stringify(this.shortcuts));
+  }
+
+  resetShortcuts() {
+    this.shortcuts = this.getDefaultShortcuts();
+    localStorage.removeItem('markflow-shortcuts');
+    this.renderShortcutsList();
+    this.applyShortcuts();
+    this.setStatus('已恢复默认快捷键');
+  }
+
+  formatShortcutDisplay(key) {
+    if (!key) return '无';
+    return key.split('+').map(k => `<kbd>${k}</kbd>`).join('<span class="key-separator">+</span>');
+  }
+
+  renderShortcutsList() {
+    const container = document.getElementById('shortcuts-list');
+    const actions = [
+      { id: 'newFile', label: '新建文件' },
+      { id: 'openFile', label: '打开文件' },
+      { id: 'saveFile', label: '保存文件' },
+      { id: 'closeTab', label: '关闭标签页' },
+      { id: 'find', label: '查找' },
+      { id: 'findReplace', label: '查找和替换' },
+      { id: 'nextTab', label: '下一个标签页' },
+      { id: 'prevTab', label: '上一个标签页' },
+    ];
+
+    container.innerHTML = actions.map(action => {
+      const shortcut = this.shortcuts[action.id];
+      const isRecording = this.recordingAction === action.id;
+      return `
+        <div class="shortcut-row" data-action="${action.id}">
+          <span class="shortcut-label">${action.label}</span>
+          <div class="shortcut-actions">
+            <div class="shortcut-key">${this.formatShortcutDisplay(shortcut.key)}</div>
+            <button class="shortcut-record-btn${isRecording ? ' recording' : ''}" data-action="${action.id}">${isRecording ? '按下快捷键...' : '修改'}</button>
+            <button class="shortcut-clear-btn" data-action="${action.id}">清除</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.shortcut-record-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        this.startRecording(action);
+      });
+    });
+
+    container.querySelectorAll('.shortcut-clear-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        this.shortcuts[action].key = '';
+        this.saveShortcuts();
+        this.renderShortcutsList();
+        this.applyShortcuts();
+      });
+    });
+  }
+
+  startRecording(action) {
+    this.recordingAction = action;
+    this.renderShortcutsList();
+  }
+
+  handleShortcutRecording(e) {
+    if (!this.recordingAction) return false;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.key === 'Escape') {
+      this.recordingAction = null;
+      this.renderShortcutsList();
+      return true;
+    }
+
+    if (['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) return true;
+
+    const parts = [];
+    if (e.ctrlKey || e.metaKey) parts.push('Ctrl');
+    if (e.shiftKey) parts.push('Shift');
+    if (e.altKey) parts.push('Alt');
+    parts.push(e.key.length === 1 ? e.key.toUpperCase() : e.key);
+
+    const keyStr = parts.join('+');
+    this.shortcuts[this.recordingAction].key = keyStr;
+    this.recordingAction = null;
+    this.saveShortcuts();
+    this.renderShortcutsList();
+    this.applyShortcuts();
+    return true;
+  }
+
+  initShortcutsDialog() {
+    document.getElementById('btn-shortcuts').addEventListener('click', () => {
+      document.getElementById('file-menu').classList.add('hidden');
+      this.showShortcutsDialog();
+    });
+    document.getElementById('shortcuts-close').addEventListener('click', () => this.hideShortcutsDialog());
+    document.getElementById('shortcuts-dialog').addEventListener('click', (e) => {
+      if (e.target.id === 'shortcuts-dialog') this.hideShortcutsDialog();
+    });
+    document.getElementById('shortcuts-reset').addEventListener('click', () => this.resetShortcuts());
+    document.getElementById('shortcuts-save-btn').addEventListener('click', () => this.hideShortcutsDialog());
+  }
+
+  showShortcutsDialog() {
+    this.recordingAction = null;
+    this.renderShortcutsList();
+    document.getElementById('shortcuts-dialog').classList.remove('hidden');
+  }
+
+  hideShortcutsDialog() {
+    this.recordingAction = null;
+    document.getElementById('shortcuts-dialog').classList.add('hidden');
+  }
+
+  applyShortcuts() {
+    const s = this.shortcuts;
+    this.cm.setOption('extraKeys', {
+      'Enter': 'newlineAndIndentContinueMarkdownList',
+      'Tab': (cm) => {
+        if (cm.somethingSelected()) {
+          cm.indentSelection('add');
+        } else {
+          cm.replaceSelection('  ', 'end');
+        }
+      },
+      'Shift-Tab': (cm) => cm.indentSelection('subtract'),
+    });
+
+    const map = {
+      saveFile: () => this.saveFile(),
+      openFile: () => this.openFile(),
+      newFile: () => this.newFile(),
+      closeTab: () => this.closeTab(this.activeTabIndex),
+      find: () => this.toggleFindPanel(),
+      findReplace: () => this.toggleFindPanel(true),
+    };
+
+    const extraKeys = this.cm.getOption('extraKeys');
+    for (const [action, fn] of Object.entries(map)) {
+      const key = s[action]?.key;
+      if (key) extraKeys[key] = fn;
+    }
+
+    if (s.nextTab?.key) {
+      const k = s.nextTab.key;
+      extraKeys[k] = () => {
+        const next = (this.activeTabIndex + 1) % this.tabs.length;
+        this.switchTab(next);
+      };
+    }
+    if (s.prevTab?.key) {
+      const k = s.prevTab.key;
+      extraKeys[k] = () => {
+        const prev = this.activeTabIndex > 0 ? this.activeTabIndex - 1 : this.tabs.length - 1;
+        this.switchTab(prev);
+      };
+    }
+
+    this.cm.setOption('extraKeys', extraKeys);
+  }
+
   get activeTab() {
     return this.tabs[this.activeTabIndex];
   }
@@ -373,19 +570,6 @@ class MarkdownEditor {
           }
         },
         'Shift-Tab': (cm) => cm.indentSelection('subtract'),
-        'Ctrl-S': () => this.saveFile(),
-        'Cmd-S': () => this.saveFile(),
-        'Ctrl-O': () => this.openFile(),
-        'Cmd-O': () => this.openFile(),
-        'Ctrl-N': () => this.newFile(),
-        'Cmd-N': () => this.newFile(),
-        'Ctrl-F': () => this.toggleFindPanel(),
-        'Cmd-F': () => this.toggleFindPanel(),
-        'Ctrl-H': () => this.toggleFindPanel(true),
-        'Cmd-H': () => this.toggleFindPanel(true),
-        'Ctrl-Shift-F': () => this.toggleFindPanel(),
-        'Cmd-Shift-F': () => this.toggleFindPanel(),
-        'Esc': () => this.closeFindPanel(),
       }
     });
 
@@ -637,51 +821,36 @@ class MarkdownEditor {
     });
 
     document.addEventListener('keydown', async (e) => {
+      if (this.handleShortcutRecording(e)) return;
+
       if (e.key === 'Escape') {
-        // 如果关于对话框打开，关闭它
         const aboutDialog = document.getElementById('about-dialog');
         if (!aboutDialog.classList.contains('hidden')) {
           this.hideAbout();
           return;
         }
+        const shortcutsDialog = document.getElementById('shortcuts-dialog');
+        if (!shortcutsDialog.classList.contains('hidden')) {
+          this.hideShortcutsDialog();
+          return;
+        }
       }
       
-      if (e.ctrlKey || e.metaKey) {
-        switch (e.key.toLowerCase()) {
-          case 's':
-            e.preventDefault();
-            this.saveFile();
-            break;
-          case 'o':
-            e.preventDefault();
-            this.openFile();
-            break;
-          case 'n':
-            e.preventDefault();
-            this.newFile();
-            break;
-          case 'w':
-            e.preventDefault();
-            await this.closeTab(this.activeTabIndex);
-            break;
-          case 'f':
-            e.preventDefault();
-            this.toggleFindPanel();
-            break;
-          case 'h':
-            e.preventDefault();
-            this.toggleFindPanel(true);
-            break;
-          case 'tab':
-            e.preventDefault();
-            if (e.shiftKey) {
-              const prev = this.activeTabIndex > 0 ? this.activeTabIndex - 1 : this.tabs.length - 1;
-              this.switchTab(prev);
-            } else {
-              const next = (this.activeTabIndex + 1) % this.tabs.length;
-              this.switchTab(next);
-            }
-            break;
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl) {
+        const key = e.key.toLowerCase();
+        if (key === 'w') {
+          e.preventDefault();
+          await this.closeTab(this.activeTabIndex);
+        } else if (key === 'tab') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            const prev = this.activeTabIndex > 0 ? this.activeTabIndex - 1 : this.tabs.length - 1;
+            this.switchTab(prev);
+          } else {
+            const next = (this.activeTabIndex + 1) % this.tabs.length;
+            this.switchTab(next);
+          }
         }
       }
     });
