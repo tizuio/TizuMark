@@ -1996,22 +1996,24 @@ ${htmlContent}
   }
 
   async openUserGuide() {
-    const name = '使用说明.md';
-    const existingIndex = this.tabs.findIndex(t => t.name === name);
+    const isEn = navigator.language.startsWith('en');
+    const fileName = isEn ? 'guide.en.md' : 'guide.md';
+    const tabName = isEn ? 'User Guide.md' : '使用说明.md';
+    const existingIndex = this.tabs.findIndex(t => t.name === tabName);
     if (existingIndex !== -1) {
       this.switchTab(existingIndex);
       return;
     }
     try {
-      const resp = await fetch('guide.md');
+      const resp = await fetch(fileName);
       if (!resp.ok) throw new Error(resp.statusText);
       const content = await resp.text();
-      this.addTab(name, content, null);
+      this.addTab(tabName, content, null);
       this.activeTab.savedContent = content;
       this.updateTabDisplay();
-      this.setStatus('已打开使用说明');
+      this.setStatus(isEn ? 'Opened User Guide' : '已打开使用说明');
     } catch (error) {
-      this.setStatus(`打开使用说明失败: ${error}`);
+      this.setStatus(isEn ? 'Failed to open guide' : `打开使用说明失败: ${error}`);
     }
   }
 
