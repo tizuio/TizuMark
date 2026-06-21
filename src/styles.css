@@ -1648,23 +1648,6 @@ body.is-resizing .preview-pane {
   padding: 0 20px;
 }
 
-.guide-lang-toggle {
-  margin-left: auto;
-  padding: 2px 10px;
-  font-size: 11px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.guide-lang-toggle:hover {
-  border-color: var(--accent-color);
-  color: var(--accent-color);
-}
-
 @media (max-width: 900px) {
   .toolbar-btn span {
     display: none;

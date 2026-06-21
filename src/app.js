@@ -2008,37 +2008,36 @@ ${htmlContent}
       const resp = await fetch(fileName);
       if (!resp.ok) throw new Error(resp.statusText);
       const content = await resp.text();
-      this.addTab(tabName, content, null);
-      this.activeTab.savedContent = content;
+      const langLink = isEn
+        ? '\n\n> [切换中文](#switch-lang)\n'
+        : '\n\n> [Switch to English](#switch-lang)\n';
+      const fullContent = content + langLink;
+      this.addTab(tabName, fullContent, null);
+      this.activeTab.savedContent = fullContent;
       this.activeTab.isGuide = true;
-      this.activeTab.guideLang = isEn ? 'en' : 'zh';
       this.updateTabDisplay();
-      this.addGuideToggleBtn();
+      this.setupGuideLangLink();
       this.setStatus(isEn ? 'Opened User Guide' : '已打开使用说明');
     } catch (error) {
       this.setStatus(isEn ? 'Failed to open guide' : `打开使用说明失败: ${error}`);
     }
   }
 
-  addGuideToggleBtn() {
+  setupGuideLangLink() {
     setTimeout(() => {
-      const existing = document.getElementById('guide-lang-toggle');
-      if (existing) existing.remove();
-
-      if (!this.activeTab.isGuide) return;
-
-      const btn = document.createElement('button');
-      btn.id = 'guide-lang-toggle';
-      btn.className = 'guide-lang-toggle';
-      btn.textContent = this.activeTab.guideLang === 'en' ? '切换中文' : 'Switch to English';
-      btn.addEventListener('click', () => this.switchGuideLang());
-      document.querySelector('.preview-pane .pane-header').appendChild(btn);
-    }, 100);
+      const link = this.preview.querySelector('a[href="#switch-lang"]');
+      if (link) {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.switchGuideLang();
+        });
+      }
+    }, 200);
   }
 
   async switchGuideLang() {
     const currentTab = this.activeTab;
-    const isCurrentlyEn = currentTab.guideLang === 'en';
+    const isCurrentlyEn = currentTab.name === 'User Guide.md';
     const newFileName = isCurrentlyEn ? 'guide.md' : 'guide.en.md';
     const newTabName = isCurrentlyEn ? '使用说明.md' : 'User Guide.md';
     const newLang = isCurrentlyEn ? 'zh' : 'en';
@@ -2047,15 +2046,18 @@ ${htmlContent}
       const resp = await fetch(newFileName);
       if (!resp.ok) throw new Error(resp.statusText);
       const content = await resp.text();
+      const langLink = newLang === 'en'
+        ? '\n\n> [切换中文](#switch-lang)\n'
+        : '\n\n> [Switch to English](#switch-lang)\n';
+      const fullContent = content + langLink;
       currentTab.name = newTabName;
-      currentTab.content = content;
-      currentTab.savedContent = content;
+      currentTab.content = fullContent;
+      currentTab.savedContent = fullContent;
       currentTab.filePath = null;
-      currentTab.guideLang = newLang;
-      this.cm.setValue(content);
+      this.cm.setValue(fullContent);
       this.updateTabDisplay();
       this.updatePreview();
-      this.addGuideToggleBtn();
+      this.setupGuideLangLink();
       this.setStatus(newLang === 'en' ? 'Switched to English' : '已切换到中文');
     } catch (error) {
       this.setStatus(`切换语言失败: ${error}`);
