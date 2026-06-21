@@ -2008,12 +2008,68 @@ ${htmlContent}
       const resp = await fetch(fileName);
       if (!resp.ok) throw new Error(resp.statusText);
       const content = await resp.text();
-      this.addTab(tabName, content, null);
-      this.activeTab.savedContent = content;
+      const langToggle = isEn
+        ? '> **[切换中文](javascript:void(0))**\n\n'
+        : '> **[Switch to English](javascript:void(0))**\n\n';
+      const fullContent = langToggle + content;
+      this.addTab(tabName, fullContent, null);
+      this.activeTab.savedContent = fullContent;
       this.updateTabDisplay();
+      this.setupGuideLangToggle();
       this.setStatus(isEn ? 'Opened User Guide' : '已打开使用说明');
     } catch (error) {
       this.setStatus(isEn ? 'Failed to open guide' : `打开使用说明失败: ${error}`);
+    }
+  }
+
+  setupGuideLangToggle() {
+    setTimeout(() => {
+      const links = this.preview.querySelectorAll('a');
+      links.forEach(link => {
+        const text = link.textContent.trim();
+        if (text === '切换中文' || text === 'Switch to English') {
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.switchGuideLang();
+          });
+        }
+      });
+    }, 200);
+  }
+
+  async switchGuideLang() {
+    const currentTab = this.activeTab;
+    const isCurrentlyEn = currentTab.name === 'User Guide.md';
+    const newFileName = isCurrentlyEn ? 'guide.md' : 'guide.en.md';
+    const newTabName = isCurrentlyEn ? '使用说明.md' : 'User Guide.md';
+    const newLang = isCurrentlyEn ? 'zh' : 'en';
+
+    const existingIndex = this.tabs.findIndex((t, i) => i !== this.activeTabIndex && t.name === newTabName);
+    if (existingIndex !== -1) {
+      this.switchTab(existingIndex);
+      return;
+    }
+
+    try {
+      const resp = await fetch(newFileName);
+      if (!resp.ok) throw new Error(resp.statusText);
+      const content = await resp.text();
+      const langToggle = newLang === 'en'
+        ? '> **[切换中文](javascript:void(0))**\n\n'
+        : '> **[Switch to English](javascript:void(0))**\n\n';
+      const fullContent = langToggle + content;
+      currentTab.name = newTabName;
+      currentTab.content = fullContent;
+      currentTab.savedContent = fullContent;
+      currentTab.filePath = null;
+      this.cm.setValue(fullContent);
+      this.updateTabDisplay();
+      this.updatePreview();
+      this.setupGuideLangToggle();
+      this.setStatus(newLang === 'en' ? 'Switched to English' : '已切换到中文');
+    } catch (error) {
+      this.setStatus(`切换语言失败: ${error}`);
     }
   }
 
