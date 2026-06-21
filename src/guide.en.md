@@ -99,15 +99,13 @@ Supported languages: JavaScript, Python, Rust, HTML, CSS, Shell, YAML, and more.
 
 ### Math Formulas
 
-Inline formula: `$E = mc^2$`
+Inline formula: $E = mc^2$
 
 Display formula:
 
-```latex
 $$
 \sum_{i=1}^{n} i = \frac{n(n+1)}{2}
 $$
-```
 
 ### Flowcharts
 
