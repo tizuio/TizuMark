@@ -102,11 +102,9 @@ Auto-detect heading hierarchy, click to jump instantly.
 
 ### Math Formulas
 
-```latex
 $$
 \sum_{i=1}^{n} i = \frac{n(n+1)}{2}
 $$
-```
 
 ### Flowcharts
 
