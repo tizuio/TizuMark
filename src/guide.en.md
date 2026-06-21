@@ -107,6 +107,17 @@ $$
 \sum_{i=1}^{n} i = \frac{n(n+1)}{2}
 $$
 
+**Source syntax:**
+
+Inline: `` `$E = mc^2$` ``
+
+Display:
+```
+$$
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+$$
+```
+
 ### Flowcharts
 
 ```mermaid
