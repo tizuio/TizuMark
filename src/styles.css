@@ -73,8 +73,8 @@ body {
 }
 
 .app-icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   margin-right: 6px;
   flex-shrink: 0;
   -webkit-app-region: no-drag;
@@ -1531,6 +1531,121 @@ body.is-resizing .preview-pane {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 2000;
   pointer-events: none;
+}
+
+.shortcuts-dialog {
+  max-width: 520px;
+}
+
+.shortcuts-content {
+  padding: 0;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.shortcuts-list {
+  padding: 8px 0;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  transition: background-color 0.15s;
+}
+
+.shortcut-row:hover {
+  background-color: var(--bg-secondary);
+}
+
+.shortcut-label {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.shortcut-key {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shortcut-key kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 var(--border-color);
+}
+
+.shortcut-key .key-separator {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.shortcut-record-btn {
+  padding: 3px 10px;
+  font-size: 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.shortcut-record-btn:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.shortcut-record-btn.recording {
+  border-color: var(--accent-color);
+  background: var(--accent-color);
+  color: #fff;
+  animation: pulse-recording 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-recording {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.shortcut-clear-btn {
+  padding: 3px 8px;
+  font-size: 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.shortcut-clear-btn:hover {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.shortcut-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shortcut-duplicate-warning {
+  font-size: 11px;
+  color: #e74c3c;
+  margin-top: 4px;
+  padding: 0 20px;
 }
 
 @media (max-width: 900px) {
