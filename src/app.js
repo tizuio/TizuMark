@@ -792,6 +792,10 @@ class MarkdownEditor {
       this.showSettings();
     });
     document.getElementById('btn-theme').addEventListener('click', () => this.toggleTheme());
+    document.getElementById('btn-user-guide').addEventListener('click', () => {
+      document.getElementById('help-menu').classList.add('hidden');
+      this.openUserGuide();
+    });
     document.getElementById('btn-about').addEventListener('click', () => {
       document.getElementById('help-menu').classList.add('hidden');
       this.showAbout();
@@ -1989,6 +1993,26 @@ ${htmlContent}
       if (e.propertyName === 'width') doRefresh();
     });
     setTimeout(doRefresh, 400);
+  }
+
+  async openUserGuide() {
+    const name = '使用说明.md';
+    const existingIndex = this.tabs.findIndex(t => t.name === name);
+    if (existingIndex !== -1) {
+      this.switchTab(existingIndex);
+      return;
+    }
+    try {
+      const resp = await fetch('guide.md');
+      if (!resp.ok) throw new Error(resp.statusText);
+      const content = await resp.text();
+      this.addTab(name, content, null);
+      this.activeTab.savedContent = content;
+      this.updateTabDisplay();
+      this.setStatus('已打开使用说明');
+    } catch (error) {
+      this.setStatus(`打开使用说明失败: ${error}`);
+    }
   }
 
   showAbout() {
