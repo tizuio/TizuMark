@@ -97,8 +97,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 8px;
-  min-height: 32px;
+  padding: 0 8px;
+  height: 36px;
   border-bottom: 1px solid var(--border-color);
   -webkit-app-region: drag;
   position: relative;
