@@ -96,7 +96,6 @@ body {
 .toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 0 8px;
   height: 36px;
   border-bottom: 1px solid var(--border-color);
@@ -110,6 +109,14 @@ body {
   gap: 2px;
   -webkit-app-region: no-drag;
   flex-shrink: 0;
+}
+
+.toolbar-left {
+  margin-right: auto;
+}
+
+.toolbar-right {
+  margin-left: auto;
 }
 
 .app-icon {
