@@ -1564,20 +1564,20 @@ class MarkdownEditor {
   <meta charset="UTF-8">
   <title>${escapedTitle}</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 860px; margin: 0 auto; padding: 40px 20px; line-height: 1.8; color: #333; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 860px; margin: 0 auto; padding: 40px 20px; line-height: 1.8; color: #2a2a2e; }
     h1,h2,h3,h4,h5,h6 { margin-top: 24px; margin-bottom: 16px; }
-    h1 { font-size: 2em; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-    h2 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 8px; }
-    code { padding: 2px 6px; background: #f4f4f4; border-radius: 3px; font-size: 0.9em; }
-    pre { padding: 16px; background: #f6f8fa; border-radius: 6px; overflow-x: auto; }
-    pre code { padding: 0; background: none; }
-    blockquote { padding: 8px 16px; border-left: 4px solid #0078d4; background: #f9f9f9; margin: 0 0 16px 0; color: #555; }
+    h1 { font-size: 2em; border-bottom: 1px solid #dbdad9; padding-bottom: 10px; }
+    h2 { font-size: 1.5em; border-bottom: 1px solid #dbdad9; padding-bottom: 8px; }
+    code { padding: 2px 6px; background: #f0efee; border: 1px solid #dbdad9; border-radius: 3px; font-size: 0.9em; }
+    pre { padding: 16px; background: #f0efee; border-radius: 6px; overflow-x: auto; }
+    pre code { padding: 0; background: none; border: none; }
+    blockquote { padding: 8px 16px; border-left: 4px solid #2563eb; background: #f6f5f4; margin: 0 0 16px 0; color: #5e5e62; }
     table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
-    th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; }
-    th { background: #f6f8fa; }
+    th, td { padding: 8px 12px; border: 1px solid #dbdad9; text-align: left; }
+    th { background: #f0efee; }
     img { max-width: 100%; }
-    hr { border: none; border-top: 1px solid #eee; margin: 24px 0; }
-    a { color: #0078d4; }
+    hr { border: none; border-top: 1px solid #dbdad9; margin: 24px 0; }
+    a { color: #2563eb; }
   </style>
 </head>
 <body>
@@ -1608,8 +1608,8 @@ ${htmlContent}
       clone.style.top = '0';
       clone.style.width = '800px';
       clone.style.padding = '32px';
-      clone.style.background = this.isDark ? '#1e1e1e' : '#ffffff';
-      clone.style.color = this.isDark ? '#cccccc' : '#333333';
+      clone.style.background = this.isDark ? '#1a1b1e' : '#ffffff';
+      clone.style.color = this.isDark ? '#d4d4d8' : '#2a2a2e';
       clone.style.overflow = 'visible';
       clone.style.height = 'auto';
       document.body.appendChild(clone);
@@ -1642,7 +1642,7 @@ ${htmlContent}
         useCORS: true,
         allowTaint: true,
         logging: false,
-        backgroundColor: this.isDark ? '#1e1e1e' : '#ffffff',
+        backgroundColor: this.isDark ? '#1a1b1e' : '#ffffff',
         width: 800,
         windowWidth: 800
       });
