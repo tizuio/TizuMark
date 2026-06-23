@@ -96,8 +96,8 @@ body {
 .toolbar {
   display: flex;
   align-items: center;
-  padding: 4px 8px;
-  min-height: 40px;
+  padding: 0 8px;
+  height: 30px;
   border-bottom: 1px solid var(--border-color);
   -webkit-app-region: drag;
   position: relative;
@@ -143,7 +143,8 @@ body {
 }
 
 .toolbar-btn {
-  padding: 5px 10px;
+  padding: 0 10px;
+  height: 24px;
   border: none;
   background: transparent;
   color: var(--text-primary);
@@ -170,14 +171,15 @@ body {
 .window-controls {
   display: flex;
   align-items: center;
-  margin-left: 8px;
+  margin-left: auto;
+  margin-right: -8px;
   -webkit-app-region: no-drag;
   flex-shrink: 0;
 }
 
 .window-btn {
-  width: 36px;
-  height: 32px;
+  width: 32px;
+  height: 30px;
   border: none;
   background: transparent;
   color: var(--text-primary);
@@ -216,7 +218,7 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 14px;
+  padding: 2px 14px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
@@ -399,11 +401,11 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 4px 12px;
   background-color: var(--bg-tab);
   border-radius: 8px 8px 0 0;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
   white-space: nowrap;
   min-width: 80px;
