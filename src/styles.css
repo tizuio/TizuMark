@@ -248,6 +248,30 @@ body {
   flex-shrink: 0;
 }
 
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.12s;
+  white-space: nowrap;
+}
+
+.context-menu-item .icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.dropdown-item .icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 .dropdown-item .shortcut {
   margin-left: auto;
   font-size: 11px;
@@ -943,16 +967,28 @@ body.is-resizing .preview-pane {
 
 /* Alert / Notice Boxes */
 .alert {
-  border-radius: 8px;
-  padding: 12px 16px;
+  border-radius: 10px;
+  padding: 14px 18px;
   margin: 16px 0;
   border-left: 4px solid;
+  position: relative;
+  backdrop-filter: blur(8px);
 }
 
 .alert-title {
-  font-weight: 600;
-  margin-bottom: 4px;
+  font-weight: 700;
+  margin-bottom: 6px;
   font-size: 0.95em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.3px;
+}
+
+.alert-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .alert-content {
@@ -964,56 +1000,61 @@ body.is-resizing .preview-pane {
 }
 
 .alert-note {
-  background-color: rgba(0, 120, 212, 0.08);
-  border-left-color: #0078d4;
+  background: linear-gradient(135deg, rgba(56, 132, 255, 0.08) 0%, rgba(56, 132, 255, 0.04) 100%);
+  border-left-color: #3884ff;
+  box-shadow: inset 0 0 0 1px rgba(56, 132, 255, 0.1);
 }
 
 .alert-note .alert-title {
-  color: #0078d4;
+  color: #2563eb;
 }
 
 .alert-tip {
-  background-color: rgba(0, 168, 107, 0.08);
-  border-left-color: #00a86b;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.04) 100%);
+  border-left-color: #10b981;
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.1);
 }
 
 .alert-tip .alert-title {
-  color: #00a86b;
+  color: #059669;
 }
 
 .alert-important {
-  background-color: rgba(130, 80, 220, 0.08);
-  border-left-color: #8250dc;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.04) 100%);
+  border-left-color: #8b5cf6;
+  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.1);
 }
 
 .alert-important .alert-title {
-  color: #8250dc;
+  color: #7c3aed;
 }
 
 .alert-warning {
-  background-color: rgba(210, 153, 34, 0.1);
-  border-left-color: #d29922;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.04) 100%);
+  border-left-color: #f59e0b;
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.1);
 }
 
 .alert-warning .alert-title {
-  color: #d29922;
+  color: #d97706;
 }
 
 .alert-caution {
-  background-color: rgba(216, 57, 52, 0.08);
-  border-left-color: #d83934;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.04) 100%);
+  border-left-color: #ef4444;
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.1);
 }
 
 .alert-caution .alert-title {
-  color: #d83934;
+  color: #dc2626;
 }
 
 /* Dark theme alerts */
-[data-theme="dark"] .alert-note { background-color: rgba(0, 120, 212, 0.15); }
-[data-theme="dark"] .alert-tip { background-color: rgba(0, 168, 107, 0.15); }
-[data-theme="dark"] .alert-important { background-color: rgba(130, 80, 220, 0.15); }
-[data-theme="dark"] .alert-warning { background-color: rgba(210, 153, 34, 0.15); }
-[data-theme="dark"] .alert-caution { background-color: rgba(216, 57, 52, 0.15); }
+[data-theme="dark"] .alert-note { background: linear-gradient(135deg, rgba(56, 132, 255, 0.12) 0%, rgba(56, 132, 255, 0.06) 100%); box-shadow: inset 0 0 0 1px rgba(56, 132, 255, 0.15); }
+[data-theme="dark"] .alert-tip { background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.06) 100%); box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.15); }
+[data-theme="dark"] .alert-important { background: linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.06) 100%); box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.15); }
+[data-theme="dark"] .alert-warning { background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.06) 100%); box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.15); }
+[data-theme="dark"] .alert-caution { background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.06) 100%); box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.15); }
 
 /* KaTeX Math Styles */
 .preview-content .katex-display {
@@ -1220,6 +1261,89 @@ body.is-resizing .preview-pane {
   font-size: 12px;
   color: var(--text-secondary);
   text-align: center;
+}
+
+/* 右键菜单样式 */
+.context-menu {
+  position: fixed;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18), 0 1px 4px rgba(0, 0, 0, 0.08);
+  min-width: 180px;
+  z-index: 10000;
+  padding: 4px 0;
+  animation: contextMenuFadeIn 0.12s ease-out;
+}
+
+@keyframes contextMenuFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.context-menu.hidden {
+  display: none;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.12s;
+  white-space: nowrap;
+}
+
+.context-menu-item:hover {
+  background-color: var(--accent-color);
+  color: #ffffff;
+}
+
+.context-menu-item:hover .shortcut {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.context-menu-item:hover .submenu-arrow {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.context-menu-item .shortcut {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-left: 24px;
+}
+
+.context-menu-item .submenu-arrow {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-left: 16px;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 4px 0;
+}
+
+/* 子菜单定位 - 完全由 JS 控制 */
+.context-menu.submenu {
+  position: fixed;
+  margin-left: -2px;
+}
+
+/* 插入菜单子菜单样式 - 完全由 JS 定位 */
+.dropdown-menu.submenu {
+  position: fixed;
+  animation: contextMenuFadeIn 0.12s ease-out;
+  margin-left: -2px;
+}
+
+/* 插入按钮子菜单箭头 */
+.insert-submenu-trigger .submenu-arrow {
+  margin-left: auto;
 }
 
 /* 对话框样式 */
