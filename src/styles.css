@@ -96,8 +96,8 @@ body {
 .toolbar {
   display: flex;
   align-items: center;
-  padding: 0 8px;
-  height: 36px;
+  padding: 4px 8px;
+  min-height: 40px;
   border-bottom: 1px solid var(--border-color);
   -webkit-app-region: drag;
   position: relative;
