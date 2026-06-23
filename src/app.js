@@ -320,6 +320,30 @@ class MarkdownEditor {
         ? 'lib/highlight.js/github-dark.min.css'
         : 'lib/highlight.js/github.min.css';
     }
+    this.rerenderMermaid();
+  }
+
+  rerenderMermaid() {
+    if (typeof mermaid === 'undefined') return;
+    const containers = this.preview.querySelectorAll('.mermaid-container');
+    if (containers.length === 0) return;
+    containers.forEach(container => {
+      const code = container.getAttribute('data-code') || container.textContent;
+      container.setAttribute('data-code', code);
+      container.innerHTML = '';
+      container.textContent = code;
+    });
+    try {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: this.isDark ? 'dark' : 'default',
+        securityLevel: 'loose',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+      });
+      mermaid.run({ nodes: containers });
+    } catch (e) {
+      console.warn('Mermaid re-render error:', e);
+    }
   }
 
   showSettings() {
@@ -1823,6 +1847,7 @@ ${htmlContent}
       container.className = 'mermaid-container';
       const id = 'mermaid-' + Date.now() + '-' + index;
       container.id = id;
+      container.setAttribute('data-code', block.textContent);
       container.textContent = block.textContent;
       pre.replaceWith(container);
     });
