@@ -138,12 +138,12 @@ body {
 
 .tab-bar-wrapper {
   display: flex;
-  padding: 4px 8px 0 8px;
+  padding: 2px 8px 0 8px;
   overflow-x: auto;
 }
 
 .toolbar-btn {
-  padding: 2px 8px;
+  padding: 5px 10px;
   border: none;
   background: transparent;
   color: var(--text-primary);
