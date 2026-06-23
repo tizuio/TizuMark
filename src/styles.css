@@ -868,12 +868,7 @@ body.is-resizing .preview-pane {
   vertical-align: super;
 }
 
-/* Heading anchor links */
-.preview-content h1:hover, .preview-content h2:hover,
-.preview-content h3:hover, .preview-content h4:hover,
-.preview-content h5:hover, .preview-content h6:hover {
-  cursor: pointer;
-}
+
 
 /* Nested lists */
 .preview-content ul ul, .preview-content ol ol,

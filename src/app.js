@@ -1827,15 +1827,6 @@ ${htmlContent}
         heading.id = id;
       }
     });
-
-    this.preview.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]').forEach(heading => {
-      if (heading._clickBound) return;
-      heading._clickBound = true;
-      heading.addEventListener('click', (e) => {
-        e.preventDefault();
-        heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    });
   }
 
   processMermaid() {
