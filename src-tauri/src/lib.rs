@@ -295,6 +295,10 @@ fn preprocess_markdown(content: String) -> String {
                     i += 1;
                 }
                 result.push_str("</div></div>\n");
+            } else {
+                result.push_str(&process_inline_markdown(line));
+                result.push('\n');
+                i += 1;
             }
             continue;
         }
@@ -413,15 +417,15 @@ fn process_inline_markdown(line: &str) -> String {
 
 fn parse_alert(line: &str) -> Option<String> {
     if line.starts_with("> [!INFO]") || line.starts_with("> [!NOTE]") {
-        Some(r#"<div class="alert alert-note"><div class="alert-title">&#x2139;&#xFE0F; INFO</div><div class="alert-content">"#.to_string())
+        Some(r#"<div class="alert alert-note"><div class="alert-title"><svg class="alert-icon" viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="7" x2="8" y2="11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="5" r="0.8" fill="currentColor"/></svg>Note</div><div class="alert-content">"#.to_string())
     } else if line.starts_with("> [!TIP]") {
-        Some(r#"<div class="alert alert-tip"><div class="alert-title">&#x1F4A1; Tip</div><div class="alert-content">"#.to_string())
+        Some(r#"<div class="alert alert-tip"><div class="alert-title"><svg class="alert-icon" viewBox="0 0 16 16" width="16" height="16"><path d="M8 1.5c-2.5 0-4.5 2-4.5 4.5 0 1.8 1 3 2.2 3.8.3.2.3.5.3.8v1.4h4v-1.4c0-.3.1-.6.3-.8 1.2-.8 2.2-2 2.2-3.8 0-2.5-2-4.5-4.5-4.5z" fill="none" stroke="currentColor" stroke-width="1.3"/><line x1="6" y1="14" x2="10" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Tip</div><div class="alert-content">"#.to_string())
     } else if line.starts_with("> [!IMPORTANT]") {
-        Some(r#"<div class="alert alert-important"><div class="alert-title">&#x2757; Important</div><div class="alert-content">"#.to_string())
+        Some(r#"<div class="alert alert-important"><div class="alert-title"><svg class="alert-icon" viewBox="0 0 16 16" width="16" height="16"><path d="M8 1.5L1.5 13.5h13L8 1.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.2" r="0.7" fill="currentColor"/></svg>Important</div><div class="alert-content">"#.to_string())
     } else if line.starts_with("> [!WARNING]") {
-        Some(r#"<div class="alert alert-warning"><div class="alert-title">&#x26A0;&#xFE0F; Warning</div><div class="alert-content">"#.to_string())
+        Some(r#"<div class="alert alert-warning"><div class="alert-title"><svg class="alert-icon" viewBox="0 0 16 16" width="16" height="16"><path d="M8 1.5L1.5 13.5h13L8 1.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="8" y1="6" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.2" r="0.7" fill="currentColor"/></svg>Warning</div><div class="alert-content">"#.to_string())
     } else if line.starts_with("> [!CAUTION]") {
-        Some(r#"<div class="alert alert-caution"><div class="alert-title">&#x1F6D1; Caution</div><div class="alert-content">"#.to_string())
+        Some(r#"<div class="alert alert-caution"><div class="alert-title"><svg class="alert-icon" viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.3"/><line x1="8" y1="4.5" x2="8" y2="8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="10.5" r="0.8" fill="currentColor"/></svg>Caution</div><div class="alert-content">"#.to_string())
     } else {
         None
     }

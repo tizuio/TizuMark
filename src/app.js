@@ -54,6 +54,8 @@ class MarkdownEditor {
     this.initSettings();
     this.initShortcutsDialog();
     this.initOutline();
+    this.initContextMenu();
+    this.initInsertMenu();
     this.loadTheme();
     this.updatePreview();
     this.applyViewMode();
@@ -745,28 +747,65 @@ class MarkdownEditor {
   }
 
   initEventListeners() {
-    document.getElementById('btn-file').addEventListener('click', (e) => {
-      e.stopPropagation();
-      document.getElementById('file-menu').classList.toggle('hidden');
-      document.getElementById('view-menu').classList.add('hidden');
-      document.getElementById('help-menu').classList.add('hidden');
+    const toolbarDropdowns = [
+      { btn: 'btn-file', menu: 'file-menu' },
+      { btn: 'btn-view', menu: 'view-menu' },
+      { btn: 'btn-help', menu: 'help-menu' },
+      { btn: 'btn-insert', menu: 'insert-menu' },
+    ];
+
+    let toolbarHideTimer = null;
+    let anyToolbarOpen = false;
+
+    toolbarDropdowns.forEach(({ btn, menu }) => {
+      const btnEl = document.getElementById(btn);
+      const menuEl = document.getElementById(menu);
+      const dropdown = btnEl.closest('.dropdown');
+
+      const closeMenu = () => {
+        toolbarHideTimer = setTimeout(() => {
+          if (!dropdown.matches(':hover') && !document.querySelector('.dropdown:hover')) {
+            menuEl.classList.add('hidden');
+            anyToolbarOpen = false;
+          }
+        }, 150);
+      };
+
+      const cancelClose = () => {
+        clearTimeout(toolbarHideTimer);
+      };
+
+      btnEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cancelClose();
+        toolbarDropdowns.forEach(d => {
+          const m = document.getElementById(d.menu);
+          if (d.menu !== menu) m.classList.add('hidden');
+        });
+        document.getElementById('insert-menu').classList.add('hidden');
+        const isOpening = menuEl.classList.contains('hidden');
+        menuEl.classList.toggle('hidden');
+        anyToolbarOpen = isOpening;
+      });
+
+      dropdown.addEventListener('mouseenter', () => {
+        cancelClose();
+        if (anyToolbarOpen && menuEl.classList.contains('hidden')) {
+          toolbarDropdowns.forEach(d => {
+            document.getElementById(d.menu).classList.add('hidden');
+          });
+          document.getElementById('insert-menu').classList.add('hidden');
+          menuEl.classList.remove('hidden');
+        }
+      });
+
+      dropdown.addEventListener('mouseleave', closeMenu);
     });
-    document.getElementById('btn-view').addEventListener('click', (e) => {
-      e.stopPropagation();
-      document.getElementById('view-menu').classList.toggle('hidden');
-      document.getElementById('file-menu').classList.add('hidden');
-      document.getElementById('help-menu').classList.add('hidden');
-    });
-    document.getElementById('btn-help').addEventListener('click', (e) => {
-      e.stopPropagation();
-      document.getElementById('help-menu').classList.toggle('hidden');
-      document.getElementById('file-menu').classList.add('hidden');
-      document.getElementById('view-menu').classList.add('hidden');
-    });
+
     document.addEventListener('click', () => {
-      document.getElementById('file-menu').classList.add('hidden');
-      document.getElementById('view-menu').classList.add('hidden');
-      document.getElementById('help-menu').classList.add('hidden');
+      toolbarDropdowns.forEach(d => document.getElementById(d.menu).classList.add('hidden'));
+      document.querySelectorAll('#insert-menu ~ .dropdown-menu.submenu').forEach(m => m.classList.add('hidden'));
+      this.hideAllContextMenus();
     });
     document.getElementById('btn-outline-toggle').addEventListener('click', () => {
       this.toggleOutline();
@@ -2131,6 +2170,422 @@ ${htmlContent}
     } catch (e) {
       console.warn('close failed:', e);
     }
+  }
+
+  // ========== Markdown 格式化辅助方法 ==========
+
+  wrapSelection(before, after) {
+    const sel = this.cm.getSelection();
+    if (sel) {
+      this.cm.replaceSelection(before + sel + after);
+    } else {
+      const cursor = this.cm.getCursor();
+      this.cm.replaceRange(before + after, cursor);
+      this.cm.setCursor({ line: cursor.line, ch: cursor.ch + before.length });
+    }
+    this.cm.focus();
+  }
+
+  insertAtCursor(text, cursorOffset) {
+    const cursor = this.cm.getCursor();
+    const prevLine = cursor.line > 0 ? this.cm.getLine(cursor.line - 1) : '';
+    const needNewline = cursor.line > 0 && prevLine.trim() !== '';
+    const prefix = needNewline ? '\n' : '';
+    const addedLines = needNewline ? 1 : 0;
+    this.cm.replaceRange(prefix + text, cursor);
+    if (cursorOffset !== undefined) {
+      this.cm.setCursor({ line: cursor.line + addedLines, ch: cursor.ch + cursorOffset });
+    } else {
+      this.cm.setCursor({ line: cursor.line + addedLines, ch: cursor.ch + text.length });
+    }
+    this.cm.focus();
+  }
+
+  insertLinePrefix(prefix) {
+    const cursor = this.cm.getCursor();
+    const line = this.cm.getLine(cursor.line);
+    const prevLine = cursor.line > 0 ? this.cm.getLine(cursor.line - 1) : '';
+    const needNewline = cursor.line > 0 && prevLine.trim() !== '';
+    const newLine = needNewline ? '\n' : '';
+    this.cm.replaceRange(newLine + prefix + line, { line: cursor.line, ch: 0 }, { line: cursor.line, ch: line.length });
+    this.cm.setCursor({ line: cursor.line + (needNewline ? 1 : 0), ch: prefix.length + cursor.ch });
+    this.cm.focus();
+  }
+
+  insertBlock(text, cursorOffset) {
+    const cursor = this.cm.getCursor();
+    const line = this.cm.getLine(cursor.line);
+    const needNewline = line.trim() !== '';
+    const prefix = needNewline ? '\n\n' : '';
+    const addedLines = needNewline ? 2 : 0;
+    this.cm.replaceRange(prefix + text + '\n', cursor);
+    if (cursorOffset !== undefined) {
+      const before = text.substring(0, cursorOffset);
+      const lastNewline = before.lastIndexOf('\n');
+      const targetLine = cursor.line + addedLines + (before.split('\n').length - 1);
+      const targetCh = lastNewline === -1 ? cursorOffset : (cursorOffset - lastNewline - 1);
+      this.cm.setCursor({ line: targetLine, ch: targetCh });
+    } else {
+      const lines = text.split('\n');
+      this.cm.setCursor({ line: cursor.line + addedLines + lines.length - 1, ch: lines[lines.length - 1].length });
+    }
+    this.cm.focus();
+  }
+
+  // ========== 右键菜单 ==========
+
+  initContextMenu() {
+    const editorWrapper = document.getElementById('editor-wrapper');
+    const previewWrapper = document.getElementById('preview-wrapper');
+
+    editorWrapper.addEventListener('contextmenu', (e) => {
+      if (e.target.closest('.copy-btn')) return;
+      e.preventDefault();
+      this.hideAllContextMenus();
+      this.showContextMenu('context-menu-editor', e.clientX, e.clientY);
+    });
+
+    previewWrapper.addEventListener('contextmenu', (e) => {
+      if (e.target.closest('.copy-btn')) return;
+      e.preventDefault();
+      this.hideAllContextMenus();
+      this.showContextMenu('context-menu-preview', e.clientX, e.clientY);
+    });
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.hideAllContextMenus();
+        this._contextTabIndex = parseInt(tab.dataset.index);
+        this.showContextMenu('context-menu-tab', e.clientX, e.clientY);
+      });
+    });
+
+    const observer = new MutationObserver(() => {
+      document.querySelectorAll('.tab').forEach(tab => {
+        if (!tab._ctxBound) {
+          tab._ctxBound = true;
+          tab.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.hideAllContextMenus();
+            this._contextTabIndex = parseInt(tab.dataset.index);
+            this.showContextMenu('context-menu-tab', e.clientX, e.clientY);
+          });
+        }
+      });
+    });
+    observer.observe(document.getElementById('tab-bar'), { childList: true, subtree: true });
+
+    document.addEventListener('click', () => this.hideAllContextMenus());
+    document.addEventListener('contextmenu', (e) => {
+      if (!e.target.closest('.context-menu') && !e.target.closest('.dropdown-menu') && !e.target.closest('#editor-wrapper') && !e.target.closest('#preview-wrapper') && !e.target.closest('.tab')) {
+        this.hideAllContextMenus();
+      }
+    });
+
+    document.querySelectorAll('.context-menu-item[data-action]').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = item.dataset.action;
+        this.hideAllContextMenus();
+        this.executeMenuAction(action);
+      });
+    });
+
+    document.querySelectorAll('.context-submenu-trigger').forEach(trigger => {
+      const showSubmenu = () => {
+        const parentMenu = trigger.closest('.context-menu');
+        const submenuId = trigger.dataset.submenu;
+        const submenu = document.getElementById(submenuId);
+        if (!submenu) return;
+
+        const ancestors = [];
+        let el = parentMenu;
+        while (el) {
+          if (el.classList && el.classList.contains('context-menu')) {
+            ancestors.push(el);
+          }
+          el = el.parentElement;
+        }
+
+        document.querySelectorAll('.context-menu.submenu').forEach(s => {
+          if (!ancestors.includes(s) && s !== submenu) {
+            s.classList.add('hidden');
+          }
+        });
+
+        submenu.classList.remove('hidden');
+        const parentRect = trigger.getBoundingClientRect();
+        submenu.style.left = (parentRect.right - 1) + 'px';
+        submenu.style.top = parentRect.top + 'px';
+
+        requestAnimationFrame(() => {
+          const subRect = submenu.getBoundingClientRect();
+          if (subRect.right > window.innerWidth) {
+            submenu.style.left = (parentRect.left - subRect.width + 1) + 'px';
+          }
+          if (subRect.bottom > window.innerHeight) {
+            submenu.style.top = (window.innerHeight - subRect.height - 4) + 'px';
+          }
+        });
+      };
+
+      trigger.addEventListener('mouseenter', showSubmenu);
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const submenuId = trigger.dataset.submenu;
+        const submenu = document.getElementById(submenuId);
+        if (submenu && submenu.classList.contains('hidden')) {
+          showSubmenu();
+        }
+      });
+    });
+
+    let ctxHideTimer = null;
+
+    document.querySelectorAll('.context-menu').forEach(menu => {
+      menu.addEventListener('mouseleave', () => {
+        clearTimeout(ctxHideTimer);
+        ctxHideTimer = setTimeout(() => {
+          if (!document.querySelector('.context-menu.submenu:hover') && !document.querySelector('.context-submenu-trigger:hover')) {
+            document.querySelectorAll('.context-menu.submenu').forEach(s => s.classList.add('hidden'));
+          }
+        }, 150);
+      });
+      menu.addEventListener('mouseenter', () => {
+        if (menu.classList.contains('submenu')) {
+          clearTimeout(ctxHideTimer);
+        }
+      });
+    });
+
+    document.querySelectorAll('.context-menu .context-menu-item:not(.context-submenu-trigger)').forEach(item => {
+      item.addEventListener('mouseenter', () => {
+        const parentMenu = item.closest('.context-menu');
+        parentMenu.querySelectorAll('.context-submenu-trigger').forEach(trigger => {
+          const sub = document.getElementById(trigger.dataset.submenu);
+          if (sub) sub.classList.add('hidden');
+        });
+      });
+    });
+  }
+
+  showContextMenu(menuId, x, y) {
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+    menu.classList.remove('hidden');
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+
+    requestAnimationFrame(() => {
+      const rect = menu.getBoundingClientRect();
+      if (rect.right > window.innerWidth) {
+        menu.style.left = (x - rect.width) + 'px';
+      }
+      if (rect.bottom > window.innerHeight) {
+        menu.style.top = (y - rect.height) + 'px';
+      }
+    });
+  }
+
+  hideAllContextMenus() {
+    document.querySelectorAll('.context-menu').forEach(m => m.classList.add('hidden'));
+    document.querySelectorAll('.dropdown-menu.submenu').forEach(m => m.classList.add('hidden'));
+  }
+
+  executeMenuAction(action) {
+    switch (action) {
+      case 'cut': document.execCommand('cut'); this.cm.focus(); break;
+      case 'copy': document.execCommand('copy'); this.cm.focus(); break;
+      case 'paste': document.execCommand('paste'); this.cm.focus(); break;
+      case 'find-replace': this.toggleFindPanel(true); break;
+      case 'select-all': this.cm.execCommand('selectAll'); break;
+
+      case 'insert-bold': this.wrapSelection('**', '**'); break;
+      case 'insert-italic': this.wrapSelection('*', '*'); break;
+      case 'insert-strikethrough': this.wrapSelection('~~', '~~'); break;
+      case 'insert-inline-code': this.wrapSelection('`', '`'); break;
+      case 'insert-highlight': this.wrapSelection('==', '=='); break;
+      case 'insert-superscript': this.wrapSelection('<sup>', '</sup>'); break;
+      case 'insert-subscript': this.wrapSelection('<sub>', '</sub>'); break;
+
+      case 'insert-h1': this.insertLinePrefix('# '); break;
+      case 'insert-h2': this.insertLinePrefix('## '); break;
+      case 'insert-h3': this.insertLinePrefix('### '); break;
+      case 'insert-h4': this.insertLinePrefix('#### '); break;
+      case 'insert-h5': this.insertLinePrefix('##### '); break;
+      case 'insert-h6': this.insertLinePrefix('###### '); break;
+
+      case 'insert-code-block': this.insertBlock('```javascript\n// code here\n```', 14); break;
+      case 'insert-table': this.insertBlock('| 列1 | 列2 | 列3 |\n| --- | --- | --- |\n| 内容 | 内容 | 内容 |', 2); break;
+      case 'insert-quote': this.insertLinePrefix('> '); break;
+      case 'insert-math-block': this.insertBlock('$$\nE = mc^2\n$$', 3); break;
+      case 'insert-mermaid': this.insertBlock('```mermaid\ngraph TD\n    A[开始] --> B[结束]\n```', 11); break;
+      case 'insert-hr': this.insertBlock('---'); break;
+      case 'insert-toc': this.insertBlock('[TOC]'); break;
+
+      case 'insert-callout-note': this.insertBlock('> [!NOTE]\n> 提示内容', 12); break;
+      case 'insert-callout-tip': this.insertBlock('> [!TIP]\n> 建议内容', 11); break;
+      case 'insert-callout-warning': this.insertBlock('> [!WARNING]\n> 警告内容', 15); break;
+      case 'insert-callout-caution': this.insertBlock('> [!CAUTION]\n> 注意内容', 15); break;
+      case 'insert-callout-important': this.insertBlock('> [!IMPORTANT]\n> 重要内容', 17); break;
+
+      case 'insert-ul': this.insertLinePrefix('- '); break;
+      case 'insert-ol': this.insertLinePrefix('1. '); break;
+      case 'insert-task': this.insertLinePrefix('- [ ] '); break;
+
+      case 'insert-link': this.insertAtCursor('[链接文本](https://example.com)', 1); break;
+      case 'insert-image': this.insertAtCursor('![图片描述](image-url)', 2); break;
+
+      case 'preview-copy': document.execCommand('copy'); break;
+      case 'preview-select-all': { const range = document.createRange(); range.selectNodeContents(this.preview); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); break; }
+      case 'preview-copy-html': { const sel = window.getSelection(); if (sel.rangeCount > 0) { const range = sel.getRangeAt(0); const frag = range.cloneContents(); const div = document.createElement('div'); div.appendChild(frag); navigator.clipboard.writeText(div.innerHTML); } break; }
+      case 'preview-find': this.toggleFindPanel(); break;
+
+      case 'tab-close': this.closeTab(this._contextTabIndex); break;
+      case 'tab-close-others': this.closeOtherTabs(this._contextTabIndex); break;
+      case 'tab-close-all': this.closeAllTabs(); break;
+      case 'tab-copy-path': this.copyTabPath(this._contextTabIndex); break;
+    }
+  }
+
+  closeOtherTabs(keepIndex) {
+    if (keepIndex < 0 || keepIndex >= this.tabs.length) return;
+    const tab = this.tabs[keepIndex];
+    if (tab.isModified) return;
+    this.tabs = [tab];
+    this.activeTabIndex = 0;
+    this.cm.setValue(tab.content);
+    this.cm.setCursor(tab.cursorPos);
+    this.updateTabBar();
+    this.updatePreview();
+  }
+
+  closeAllTabs() {
+    this.tabs = [new Tab()];
+    this.activeTabIndex = 0;
+    this.cm.setValue('');
+    this.updateTabBar();
+    this.updatePreview();
+  }
+
+  async copyTabPath(index) {
+    if (index < 0 || index >= this.tabs.length) return;
+    const tab = this.tabs[index];
+    if (!tab.filePath) {
+      this.setStatus('该文件尚未保存');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(tab.filePath);
+      this.setStatus('已复制文件路径');
+    } catch {
+      this.setStatus('复制失败');
+    }
+  }
+
+  // ========== 顶部插入菜单 ==========
+
+  initInsertMenu() {
+    const insertMenu = document.getElementById('insert-menu');
+
+    let hideAllTimer = null;
+
+    const hideAllSubmenus = () => {
+      document.querySelectorAll('#insert-menu ~ .dropdown-menu.submenu').forEach(m => m.classList.add('hidden'));
+    };
+
+    const scheduleHideAll = (delay = 300) => {
+      clearTimeout(hideAllTimer);
+      hideAllTimer = setTimeout(() => {
+        if (!document.querySelector('#insert-menu:hover, #insert-menu ~ .dropdown-menu.submenu:hover')) {
+          hideAllSubmenus();
+        }
+      }, delay);
+    };
+
+    const cancelHideAll = () => {
+      clearTimeout(hideAllTimer);
+    };
+
+    insertMenu.addEventListener('mouseleave', () => scheduleHideAll());
+
+    document.querySelectorAll('#insert-menu ~ .dropdown-menu.submenu').forEach(submenu => {
+      submenu.addEventListener('mouseenter', cancelHideAll);
+      submenu.addEventListener('mouseleave', () => scheduleHideAll());
+    });
+
+    document.querySelectorAll('.insert-submenu-trigger').forEach(trigger => {
+      const showSubmenu = () => {
+        cancelHideAll();
+        const submenuId = trigger.dataset.submenu;
+        const parentMenu = trigger.closest('.dropdown-menu');
+        if (!parentMenu) return;
+
+        const ancestors = [];
+        let el = parentMenu;
+        while (el) {
+          if (el.classList && el.classList.contains('dropdown-menu')) {
+            ancestors.push(el);
+          }
+          el = el.parentElement;
+        }
+
+        document.querySelectorAll('.dropdown-menu.submenu').forEach(s => {
+          if (!ancestors.includes(s) && s.id !== submenuId) {
+            s.classList.add('hidden');
+          }
+        });
+
+        const submenu = document.getElementById(submenuId);
+        if (!submenu) return;
+        submenu.classList.remove('hidden');
+        const parentRect = trigger.getBoundingClientRect();
+        submenu.style.left = (parentRect.right - 1) + 'px';
+        submenu.style.top = parentRect.top + 'px';
+        requestAnimationFrame(() => {
+          const subRect = submenu.getBoundingClientRect();
+          if (subRect.right > window.innerWidth) {
+            submenu.style.left = (parentRect.left - subRect.width + 1) + 'px';
+          }
+          if (subRect.bottom > window.innerHeight) {
+            submenu.style.top = (window.innerHeight - subRect.height - 4) + 'px';
+          }
+        });
+      };
+
+      trigger.addEventListener('mouseenter', showSubmenu);
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const submenuId = trigger.dataset.submenu;
+        const submenu = document.getElementById(submenuId);
+        if (submenu && submenu.classList.contains('hidden')) {
+          showSubmenu();
+        }
+      });
+    });
+
+    document.querySelectorAll('.dropdown-menu .dropdown-item:not(.insert-submenu-trigger)').forEach(item => {
+      item.addEventListener('mouseenter', () => {
+        const parentMenu = item.closest('.dropdown-menu');
+        parentMenu.querySelectorAll('.insert-submenu-trigger').forEach(trigger => {
+          const sub = document.getElementById(trigger.dataset.submenu);
+          if (sub) sub.classList.add('hidden');
+        });
+      });
+    });
+
+    document.querySelectorAll('#insert-menu .dropdown-item[data-action], .dropdown-menu.submenu .dropdown-item[data-action]').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = item.dataset.action;
+        insertMenu.classList.add('hidden');
+        document.querySelectorAll('#insert-menu ~ .dropdown-menu.submenu').forEach(m => m.classList.add('hidden'));
+        this.executeMenuAction(action);
+      });
+    });
   }
 }
 
