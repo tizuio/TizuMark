@@ -31,6 +31,12 @@ fn sanitize_html(html: &str) -> String {
                 i = end;
             } else if chars[i + 1] == '!' {
                 let end = find_str(&chars, i, "->");
+                let comment: String = chars[i..end].iter().collect();
+                if comment.starts_with("<!--MATHBLOCK_") {
+                    for c in &chars[i..end] {
+                        result.push(*c);
+                    }
+                }
                 i = end;
             } else {
                 let end = find_char(&chars, i, '>');
@@ -74,25 +80,87 @@ fn find_str(chars: &[char], start: usize, pattern: &str) -> usize {
 }
 
 fn sanitize_tag_attributes(tag_content: &str) -> String {
-    let mut parts = tag_content.splitn(2, |c: char| c.is_whitespace());
-    let tag_name = parts.next().unwrap_or("");
-    let rest = parts.next().unwrap_or("");
+    let chars: Vec<char> = tag_content.chars().collect();
+    let len = chars.len();
 
-    if rest.is_empty() {
-        return tag_content.to_string();
+    // Extract tag name (first word before whitespace)
+    let mut i = 0;
+    while i < len && !chars[i].is_whitespace() {
+        i += 1;
+    }
+    let tag_name: String = chars[..i].iter().collect();
+    if i >= len {
+        return tag_name;
     }
 
-    let mut result = tag_name.to_string();
-    for attr in rest.split_whitespace() {
-        let attr_lower = attr.to_lowercase();
-        if attr_lower.starts_with("on") {
-            continue;
+    let mut result = tag_name;
+    while i < len {
+        // Skip whitespace
+        while i < len && chars[i].is_whitespace() {
+            i += 1;
         }
-        if attr_lower.contains("javascript:") {
-            continue;
+        if i >= len { break; }
+
+        // Read attribute name until '=' or whitespace (boolean attr)
+        let attr_start = i;
+        while i < len && chars[i] != '=' && !chars[i].is_whitespace() {
+            i += 1;
         }
-        result.push(' ');
-        result.push_str(attr);
+        let _attr_name: String = chars[attr_start..i].iter().collect();
+
+        if i < len && chars[i] == '=' {
+            // Quoted or unquoted value
+            i += 1; // skip '='
+            let _value_start = i;
+            if i < len && (chars[i] == '"' || chars[i] == '\'') {
+                let quote = chars[i];
+                i += 1; // skip opening quote
+                let val_start = i;
+                while i < len && chars[i] != quote {
+                    i += 1;
+                }
+                let _value: String = chars[val_start..i].iter().collect();
+                i += 1; // skip closing quote
+                // Reconstruct from original to preserve exact quoting
+                let raw: String = chars[attr_start..i].iter().collect();
+                let raw_lower = raw.to_lowercase();
+                if raw_lower.starts_with("on") {
+                    continue;
+                }
+                if raw_lower.contains("javascript:") {
+                    continue;
+                }
+                result.push(' ');
+                result.push_str(&raw);
+            } else {
+                // Unquoted value
+                while i < len && !chars[i].is_whitespace() {
+                    i += 1;
+                }
+                let raw: String = chars[attr_start..i].iter().collect();
+                let raw_lower = raw.to_lowercase();
+                if raw_lower.starts_with("on") {
+                    continue;
+                }
+                if raw_lower.contains("javascript:") {
+                    continue;
+                }
+                result.push(' ');
+                result.push_str(&raw);
+            }
+        } else {
+            // Boolean attribute (no value)
+            let raw: String = chars[attr_start..i].iter().collect();
+            let raw_lower = raw.to_lowercase();
+            if raw_lower.starts_with("on") {
+                continue;
+            }
+            if raw_lower.contains("javascript:") {
+                continue;
+            }
+            result.push(' ');
+            result.push_str(&raw);
+        }
     }
     result
 }
@@ -211,6 +279,7 @@ fn render_markdown(content: String) -> String {
     use pulldown_cmark::{Parser, Options, html};
 
     let preprocessed = preprocess_markdown(content);
+    let (guarded, placeholders) = guard_math_blocks(&preprocessed);
 
     let mut options = Options::empty();
     options.insert(Options::ENABLE_STRIKETHROUGH);
@@ -220,10 +289,49 @@ fn render_markdown(content: String) -> String {
     options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
     options.insert(Options::ENABLE_SMART_PUNCTUATION);
 
-    let parser = Parser::new_ext(&preprocessed, options);
+    let parser = Parser::new_ext(&guarded, options);
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
-    sanitize_html(&html_output)
+    let html = sanitize_html(&html_output);
+    restore_math_blocks(&html, &placeholders)
+}
+
+fn guard_math_blocks(content: &str) -> (String, Vec<String>) {
+    let mut placeholders = Vec::new();
+    let mut result = String::with_capacity(content.len());
+    let mut i = 0;
+    let chars: Vec<char> = content.chars().collect();
+
+    while i < chars.len() {
+        if i + 1 < chars.len() && chars[i] == '$' && chars[i + 1] == '$' {
+            let start = i;
+            i += 2;
+            while i + 1 < chars.len() {
+                if chars[i] == '$' && chars[i + 1] == '$' {
+                    i += 2;
+                    let math_block: String = chars[start..i].iter().collect();
+                    let idx = placeholders.len();
+                    placeholders.push(math_block);
+                    result.push_str(&format!("<!--MATHBLOCK_{}-->", idx));
+                    break;
+                }
+                i += 1;
+            }
+        } else {
+            result.push(chars[i]);
+            i += 1;
+        }
+    }
+    (result, placeholders)
+}
+
+fn restore_math_blocks(html: &str, placeholders: &[String]) -> String {
+    let mut result = html.to_string();
+    for (idx, math) in placeholders.iter().enumerate() {
+        let marker = format!("<!--MATHBLOCK_{}-->", idx);
+        result = result.replace(&marker, math);
+    }
+    result
 }
 
 fn preprocess_markdown(content: String) -> String {
@@ -309,7 +417,7 @@ fn preprocess_markdown(content: String) -> String {
                 i += 1;
                 while i < len && (lines[i].starts_with("> ") || lines[i] == ">") {
                     let content_line = if lines[i] == "> " { "" } else { &lines[i][2..] };
-                    result.push_str(&escape_html(content_line));
+                    result.push_str(&process_inline_markdown(content_line));
                     result.push('\n');
                     i += 1;
                 }
@@ -339,7 +447,7 @@ fn preprocess_markdown(content: String) -> String {
             continue;
         }
 
-        if line.contains("<a ") || line.contains("<img ") || line.contains("<iframe ") || line.contains("<figure") || line.contains("<video") || line.contains("<audio") {
+        if contains_html_tag(line) {
             result.push_str(line);
         } else {
             let processed = process_inline_markdown(line);
@@ -362,6 +470,22 @@ enum LineType {
     DefTerm,
 }
 
+fn contains_html_tag(line: &str) -> bool {
+    let chars: Vec<char> = line.chars().collect();
+    let len = chars.len();
+    let mut i = 0;
+    while i < len {
+        if chars[i] == '<' && i + 1 < len {
+            let next = chars[i + 1];
+            if next.is_ascii_alphabetic() || next == '/' {
+                return true;
+            }
+        }
+        i += 1;
+    }
+    false
+}
+
 fn process_inline_markdown(line: &str) -> String {
     let mut result = String::new();
     let chars: Vec<char> = line.chars().collect();
@@ -372,7 +496,7 @@ fn process_inline_markdown(line: &str) -> String {
     while i < len {
         if chars[i] == '`' {
             in_code = !in_code;
-            result.push(chars[i]);
+            result.push('`');
             i += 1;
             continue;
         }
@@ -383,6 +507,49 @@ fn process_inline_markdown(line: &str) -> String {
             continue;
         }
 
+        // ~~strikethrough~~
+        if i + 3 < len && chars[i] == '~' && chars[i + 1] == '~' {
+            let mut j = i + 2;
+            while j + 1 < len && !(chars[j] == '~' && chars[j + 1] == '~') {
+                j += 1;
+            }
+            if j + 1 < len {
+                let inner: String = chars[i + 2..j].iter().collect();
+                result.push_str(&format!("<del>{}</del>", escape_html(&inner)));
+                i = j + 2;
+                continue;
+            }
+        }
+
+        // **bold**
+        if i + 3 < len && chars[i] == '*' && chars[i + 1] == '*' {
+            let mut j = i + 2;
+            while j + 1 < len && !(chars[j] == '*' && chars[j + 1] == '*') {
+                j += 1;
+            }
+            if j + 1 < len {
+                let inner: String = chars[i + 2..j].iter().collect();
+                result.push_str(&format!("<strong>{}</strong>", escape_html(&inner)));
+                i = j + 2;
+                continue;
+            }
+        }
+
+        // *italic*
+        if chars[i] == '*' {
+            let mut j = i + 1;
+            while j < len && chars[j] != '*' {
+                j += 1;
+            }
+            if j < len && j > i + 1 {
+                let inner: String = chars[i + 1..j].iter().collect();
+                result.push_str(&format!("<em>{}</em>", escape_html(&inner)));
+                i = j + 1;
+                continue;
+            }
+        }
+
+        // ==highlight==
         if i + 1 < len && chars[i] == '=' && chars[i + 1] == '=' {
             let mut j = i + 2;
             while j + 1 < len && !(chars[j] == '=' && chars[j + 1] == '=') {
@@ -396,6 +563,7 @@ fn process_inline_markdown(line: &str) -> String {
             }
         }
 
+        // Auto-links
         if i + 7 < len && chars[i] == 'h' && chars[i+1] == 't' && chars[i+2] == 't' && chars[i+3] == 'p' {
             let is_in_brackets = i >= 2 && chars[i-1] == '(' && chars[i-2] == ']';
             let is_in_angle = i >= 1 && chars[i-1] == '<';
@@ -428,7 +596,49 @@ fn process_inline_markdown(line: &str) -> String {
             }
         }
 
-        result.push(chars[i]);
+        // Auto-detect email addresses (e.g. contact@markflow.app)
+        if chars[i].is_alphanumeric() {
+            // Scan forward looking for an @ that would indicate an email
+            let mut has_at = false;
+            let mut at_pos = 0;
+            let mut j = i;
+            while j < len {
+                let c = chars[j];
+                if c.is_alphanumeric() || c == '.' || c == '-' || c == '_' || c == '+' {
+                    // valid email character
+                } else if c == '@' && !has_at && j > i && j + 1 < len {
+                    has_at = true;
+                    at_pos = j;
+                } else {
+                    break;
+                }
+                j += 1;
+            }
+            // Valid email: has @, domain has a dot, and ends with a valid TLD
+            if has_at && at_pos + 3 < j {
+                let domain_part: String = chars[at_pos + 1..j].iter().collect();
+                if domain_part.contains('.') && !domain_part.starts_with('.') && !domain_part.ends_with('.') {
+                    let email: String = chars[i..j].iter().collect();
+                    // Verify the character after the email isn't alphanumeric (to avoid false matches)
+                    let is_standalone = j >= len || !chars[j].is_alphanumeric();
+                    if is_standalone {
+                        result.push_str(&format!("<a href=\"mailto:{}\">{}</a>", escape_html(&email), escape_html(&email)));
+                        i = j;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        // Default: HTML-escape to prevent XSS
+        match chars[i] {
+            '<' => result.push_str("&lt;"),
+            '>' => result.push_str("&gt;"),
+            '&' => result.push_str("&amp;"),
+            '"' => result.push_str("&quot;"),
+            '\'' => result.push_str("&#x27;"),
+            c => result.push(c),
+        }
         i += 1;
     }
 
