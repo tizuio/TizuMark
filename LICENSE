@@ -1,0 +1,25 @@
+TizuMark — Markdown Editor
+Copyright (c) 2024-2026 TizuMark. All Rights Reserved.
+
+This software and associated documentation files (the "Software") are proprietary
+and confidential. Unauthorized copying, distribution, modification, public display,
+or any other use of the Software, in whole or in part, via any medium, is strictly
+prohibited without prior written permission from the copyright holder.
+
+Use of the Software is subject to the terms of the End User License Agreement
+("EULA") that accompanies the Software or is made available to you at the time
+of purchase or installation.
+
+The Software contains third-party open-source components. These components are
+licensed under their respective open-source licenses, including but not limited
+to MIT, BSD-3-Clause, and Apache-2.0. The copyright and license terms for these
+components are available in the application under "Help → About", and their full
+license texts can be found in the respective upstream repositories.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

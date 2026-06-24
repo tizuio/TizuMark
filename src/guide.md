@@ -1,4 +1,4 @@
-# MarkFlow 使用说明
+# TizuMark 使用说明
 
 ## 快速开始
 
@@ -90,7 +90,7 @@
 ````markdown
 ```javascript
 function hello() {
-  console.log('Hello MarkFlow!');
+  console.log('Hello TizuMark!');
 }
 ```
 ````

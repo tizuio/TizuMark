@@ -1,9 +1,9 @@
-# MarkFlow
+# TizuMark
 
 🌐 [简体中文](README.md) | **English**
 
 <p align="center">
-  <img src="https://gitee.com/fankaa/markdown/raw/master/icon.png" alt="MarkFlow" width="96" height="96">
+  <img src="https://gitee.com/tizu/tizu-mark/raw/master/icon.png" alt="TizuMark" width="96" height="96">
 </p>
 
 <p align="center">
@@ -11,23 +11,23 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/fankaa/markdown/releases"><img src="https://img.shields.io/badge/version-0.1.0-blue.svg" alt="Version"></a>
-  <a href="https://github.com/fankaa/markdown/releases"><img src="https://img.shields.io/badge/Windows-7%2B-brightgreen.svg" alt="Windows"></a>
+  <a href="https://github.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/version-0.1.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/Windows-7%2B-brightgreen.svg" alt="Windows"></a>
   <img src="https://img.shields.io/badge/macOS-Coming%20Soon-lightgrey.svg" alt="macOS">
   <img src="https://img.shields.io/badge/Linux-Coming%20Soon-lightgrey.svg" alt="Linux">
   <img src="https://img.shields.io/badge/Tauri-2.x-orange.svg" alt="Tauri">
   <img src="https://img.shields.io/badge/Rust-1.77+-black.svg" alt="Rust">
-  <a href="https://github.com/fankaa/markdown/releases"><img src="https://img.shields.io/github/downloads/fankaa/markdown/total?color=blue" alt="Downloads"></a>
+  <a href="https://github.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/github/downloads/fankaa/markdown/total?color=blue" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/免费-Free-brightgreen.svg" alt="Free">
 </p>
 
 ---
 
-## Why MarkFlow?
+## Why TizuMark?
 
 <p align="center"><b>One app. Every Markdown task. Zero friction.</b></p>
 
-| | The Old Way | ✨ MarkFlow |
+| | The Old Way | ✨ TizuMark |
 |---|---|---|
 | 🚀 **Startup** | Wait for heavy editor → install plugins → open file → lag | **Double-click. Instant.** |
 | 📝 **Editing** | Split windows, switch tabs, lose context | **Live side-by-side WYSIWYG preview** |
@@ -64,7 +64,7 @@
 
 ### Download
 
-Get the latest installer from [Releases](https://github.com/fankaa/markdown/releases):
+Get the latest installer from [Releases](https://github.com/tizu/tizu-mark/releases):
 
 | Platform | Status |
 |---|---|
@@ -74,7 +74,7 @@ Get the latest installer from [Releases](https://github.com/fankaa/markdown/rele
 
 Install, launch, write.
 
-> Want to see everything MarkFlow can do? Try the demo: [demo.md](demo.md)
+> Want to see everything TizuMark can do? Try the demo: [demo.md](demo.md)
 
 ### Keyboard Shortcuts
 
@@ -91,7 +91,7 @@ Install, launch, write.
 ### Build from Source
 
 ```bash
-git clone https://github.com/fankaa/markdown.git
+git clone https://github.com/tizu/tizu-mark.git
 cd markdown
 npm install
 npm run dev      # dev mode
@@ -129,9 +129,9 @@ npm run build    # production
 ## FAQ
 
 <details>
-<summary><b>Is MarkFlow free?</b></summary>
+<summary><b>Is TizuMark free?</b></summary>
 
-MarkFlow is currently free. A premium tier with advanced features may be introduced in the future, but core editing functionality will remain free forever.
+TizuMark is currently free. A premium tier with advanced features may be introduced in the future, but core editing functionality will remain free forever.
 </details>
 
 <details>
@@ -149,15 +149,15 @@ Click "Restore Default" in `File → Settings` or `File → Keyboard Shortcuts`.
 <details>
 <summary><b>How do I report a bug or request a feature?</b></summary>
 
-- [GitHub Issues](https://github.com/fankaa/markdown/issues)
-- [Gitee Issues](https://gitee.com/fankaa/markdown/issues)
+- [GitHub Issues](https://github.com/tizu/tizu-mark/issues)
+- [Gitee Issues](https://gitee.com/tizu/tizu-mark/issues)
 </details>
 
 ---
 
 ## Support the Project
 
-If MarkFlow makes your writing flow better, consider buying the author a coffee ☕
+If TizuMark makes your writing flow better, consider buying the author a coffee ☕
 
 | WeChat | Alipay |
 |---|---|
@@ -181,7 +181,7 @@ For collaboration, custom development, or general inquiries — don't hesitate t
 
 ## License
 
-Copyright (c) 2024-2026 MarkFlow. All rights reserved.
+Copyright (c) 2024-2026 TizuMark. All rights reserved.
 
 This software is proprietary commercial software. Unauthorized copying, modification, distribution, or use of any part of this software is strictly prohibited.
 
@@ -190,10 +190,10 @@ Bundled open-source components are licensed under their respective terms. See `H
 ---
 
 <p align="center">
-  <b>✨ MarkFlow — Write at the speed of thought</b><br><br>
-  <a href="https://github.com/fankaa/markdown/releases">⬇ Download</a>
+  <b>✨ TizuMark — Write at the speed of thought</b><br><br>
+  <a href="https://github.com/tizu/tizu-mark/releases">⬇ Download</a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/fankaa/markdown/issues">🐛 Report Bug</a>
+  <a href="https://github.com/tizu/tizu-mark/issues">🐛 Report Bug</a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/fankaa/markdown">⭐ Star on GitHub</a>
+  <a href="https://github.com/tizu/tizu-mark">⭐ Star on GitHub</a>
 </p>

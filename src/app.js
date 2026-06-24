@@ -79,7 +79,7 @@ class MarkdownEditor {
       language: 'zh',
     };
     try {
-      const saved = JSON.parse(localStorage.getItem('markflow-settings'));
+      const saved = JSON.parse(localStorage.getItem('tizumark-settings'));
       return { ...defaults, ...saved };
     } catch {
       return defaults;
@@ -87,7 +87,7 @@ class MarkdownEditor {
   }
 
   saveSettings() {
-    localStorage.setItem('markflow-settings', JSON.stringify(this.settings));
+    localStorage.setItem('tizumark-settings', JSON.stringify(this.settings));
   }
 
   initSettings() {
@@ -369,7 +369,7 @@ class MarkdownEditor {
       language: 'zh',
     };
     this.settings = defaults;
-    localStorage.removeItem('markflow-settings');
+    localStorage.removeItem('tizumark-settings');
 
     document.getElementById('set-font-size').value = defaults.fontSize;
     document.getElementById('set-tab-size').value = defaults.tabSize;
@@ -403,7 +403,7 @@ class MarkdownEditor {
   loadShortcuts() {
     const defaults = this.getDefaultShortcuts();
     try {
-      const saved = JSON.parse(localStorage.getItem('markflow-shortcuts'));
+      const saved = JSON.parse(localStorage.getItem('tizumark-shortcuts'));
       return { ...defaults, ...saved };
     } catch {
       return defaults;
@@ -411,12 +411,12 @@ class MarkdownEditor {
   }
 
   saveShortcuts() {
-    localStorage.setItem('markflow-shortcuts', JSON.stringify(this.shortcuts));
+    localStorage.setItem('tizumark-shortcuts', JSON.stringify(this.shortcuts));
   }
 
   resetShortcuts() {
     this.shortcuts = this.getDefaultShortcuts();
-    localStorage.removeItem('markflow-shortcuts');
+    localStorage.removeItem('tizumark-shortcuts');
     this.renderShortcutsList();
     this.applyShortcuts();
     this.setStatus('已恢复默认快捷键');
@@ -2649,7 +2649,7 @@ ${htmlContent}
 }
 
 function initEula() {
-  const eulaAccepted = localStorage.getItem('markflow-eula-accepted');
+  const eulaAccepted = localStorage.getItem('tizumark-eula-accepted');
   if (eulaAccepted === 'true') {
     document.getElementById('eula-dialog').classList.add('hidden');
     return Promise.resolve();
@@ -2663,7 +2663,7 @@ function initEula() {
     overlay.classList.remove('hidden');
 
     acceptBtn.addEventListener('click', () => {
-      localStorage.setItem('markflow-eula-accepted', 'true');
+      localStorage.setItem('tizumark-eula-accepted', 'true');
       overlay.classList.add('hidden');
       resolve();
     });

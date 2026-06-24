@@ -596,7 +596,7 @@ fn process_inline_markdown(line: &str) -> String {
             }
         }
 
-        // Auto-detect email addresses (e.g. contact@markflow.app)
+        // Auto-detect email addresses (e.g. contact@tizumark.app)
         if chars[i].is_alphanumeric() {
             // Scan forward looking for an @ that would indicate an email
             let mut has_at = false;

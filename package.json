@@ -1,5 +1,5 @@
 {
-  "name": "markflow",
+  "name": "tizumark",
   "version": "0.1.0",
   "description": "A lightweight cross-platform Markdown editor",
   "private": true,
@@ -8,7 +8,7 @@
     "build": "tauri build",
     "tauri": "tauri"
   },
-  "author": "MarkFlow",
+  "author": "TizuMark",
   "license": "UNLICENSED",
   "dependencies": {
     "codemirror": "^5.65.18",

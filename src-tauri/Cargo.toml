@@ -1,8 +1,8 @@
 [package]
-name = "markflow"
+name = "tizumark"
 version = "0.1.0"
 description = "A lightweight cross-platform Markdown editor"
-authors = ["MarkFlow"]
+authors = ["TizuMark"]
 edition = "2021"
 license = "UNLICENSED"
 

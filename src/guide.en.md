@@ -1,4 +1,4 @@
-# MarkFlow User Guide
+# TizuMark User Guide
 
 ## Quick Start
 
@@ -90,7 +90,7 @@ Wrap code with triple backticks and specify the language:
 ````markdown
 ```javascript
 function hello() {
-  console.log('Hello MarkFlow!');
+  console.log('Hello TizuMark!');
 }
 ```
 ````
