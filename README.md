@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <b>轻量、高速、优雅的跨平台 Markdown 编辑器</b>
+  <b>轻量、高速、优雅、<font color="#16a34a">永久免费</font>的跨平台 Markdown 编辑器</b>
 </p>
 
 <p align="center">
@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/Tauri-2.x-orange.svg" alt="Tauri">
   <img src="https://img.shields.io/badge/Rust-1.77+-black.svg" alt="Rust">
   <a href="https://gitee.com/fankaa/markdown/releases"><img src="https://img.shields.io/github/downloads/fankaa/markdown/total?color=blue" alt="Downloads"></a>
+  <img src="https://img.shields.io/badge/免费-Free-brightgreen.svg" alt="Free">
 </p>
 
 ---

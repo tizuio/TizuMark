@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <b>A Blazing-Fast, Cross-Platform Markdown Editor That Just Works</b>
+  <b>A Blazing-Fast, Cross-Platform & <font color="#16a34a">Free Forever</font> Markdown Editor That Just Works</b>
 </p>
 
 <p align="center">
@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/Tauri-2.x-orange.svg" alt="Tauri">
   <img src="https://img.shields.io/badge/Rust-1.77+-black.svg" alt="Rust">
   <a href="https://github.com/fankaa/markdown/releases"><img src="https://img.shields.io/github/downloads/fankaa/markdown/total?color=blue" alt="Downloads"></a>
+  <img src="https://img.shields.io/badge/免费-Free-brightgreen.svg" alt="Free">
 </p>
 
 ---
