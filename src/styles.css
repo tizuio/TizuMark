@@ -1501,6 +1501,39 @@ body.is-resizing .preview-pane {
   background-color: var(--accent-hover);
 }
 
+/* EULA 对话框 */
+.eula-dialog {
+  max-width: 600px;
+  max-height: 75vh;
+}
+
+.eula-scroll {
+  max-height: 40vh;
+  overflow-y: auto;
+  padding-right: 12px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.eula-scroll h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.eula-scroll h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 2px;
+  color: var(--text-primary);
+}
+
+.eula-scroll p {
+  font-size: 13px;
+  margin: 0;
+}
+
 .about-section {
   margin-bottom: 20px;
 }

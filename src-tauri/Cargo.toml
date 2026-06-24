@@ -2,8 +2,9 @@
 name = "markflow"
 version = "0.1.0"
 description = "A lightweight cross-platform Markdown editor"
-authors = ["you"]
+authors = ["MarkFlow"]
 edition = "2021"
+license = "UNLICENSED"
 
 [lib]
 name = "markdown_editor_lib"
@@ -25,4 +26,4 @@ reqwest = { version = "0.12", features = ["rustls-tls"] }
 base64 = "0.22"
 
 [patch.crates-io]
-brotli = { git = "https://github.com/dropbox/rust-brotli" }
+brotli = { git = "https://github.com/dropbox/rust-brotli", rev = "9cbed81a1a098fcd4ffcf956429dce6154415970" }

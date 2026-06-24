@@ -230,11 +230,14 @@ fn preprocess_markdown(content: String) -> String {
     let lines: Vec<&str> = content.lines().collect();
     let len = lines.len();
     let mut in_code_block = false;
+    let mut in_math_block = false;
     let mut line_types: Vec<LineType> = Vec::with_capacity(len);
 
     for idx in 0..len {
         let line = lines[idx];
-        if line.trim_start().starts_with("```") {
+        let trimmed = line.trim_start();
+        
+        if trimmed.starts_with("```") {
             in_code_block = !in_code_block;
             line_types.push(LineType::Code);
             continue;
@@ -243,6 +246,22 @@ fn preprocess_markdown(content: String) -> String {
             line_types.push(LineType::Code);
             continue;
         }
+        
+        if trimmed.starts_with("$$") {
+            if in_math_block {
+                in_math_block = false;
+                line_types.push(LineType::Math);
+            } else {
+                in_math_block = true;
+                line_types.push(LineType::Math);
+            }
+            continue;
+        }
+        if in_math_block {
+            line_types.push(LineType::Math);
+            continue;
+        }
+        
         if line.starts_with("> [!") {
             line_types.push(LineType::Alert);
         } else if line.starts_with(": ") || line == ":" {
@@ -277,7 +296,7 @@ fn preprocess_markdown(content: String) -> String {
         let line = lines[i];
         let lt = &line_types[i];
 
-        if *lt == LineType::Code {
+        if *lt == LineType::Code || *lt == LineType::Math {
             result.push_str(line);
             result.push('\n');
             i += 1;
@@ -337,6 +356,7 @@ fn preprocess_markdown(content: String) -> String {
 enum LineType {
     Normal,
     Code,
+    Math,
     Alert,
     Def,
     DefTerm,
@@ -583,5 +603,21 @@ mod tests {
         assert!(html.contains("标题"));
         assert!(html.contains("加粗"));
         assert!(html.contains("文字"));
+    }
+
+    #[test]
+    fn test_render_markdown_math_block() {
+        let input = "$$\n\\begin{bmatrix} a_{11} & a_{12} \\\\ a_{21} & a_{22} \\end{bmatrix}\n$$".to_string();
+        let html = render_markdown(input);
+        assert!(html.contains("\\begin{bmatrix}"));
+        assert!(html.contains("\\end{bmatrix}"));
+        assert!(html.contains("$$"));
+    }
+
+    #[test]
+    fn test_render_markdown_inline_math() {
+        let input = "行内公式：$E = mc^2$".to_string();
+        let html = render_markdown(input);
+        assert!(html.contains("$E = mc^2$"));
     }
 }

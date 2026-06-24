@@ -1794,7 +1794,11 @@ ${htmlContent}
           { left: '\\[', right: '\\]', display: true },
           { left: '\\begin{equation}', right: '\\end{equation}', display: true },
           { left: '\\begin{align}', right: '\\end{align}', display: true },
-          { left: '\\begin{aligned}', right: '\\end{aligned}', display: true }
+          { left: '\\begin{aligned}', right: '\\end{aligned}', display: true },
+          { left: '\\begin{bmatrix}', right: '\\end{bmatrix}', display: true },
+          { left: '\\begin{pmatrix}', right: '\\end{pmatrix}', display: true },
+          { left: '\\begin{vmatrix}', right: '\\end{vmatrix}', display: true },
+          { left: '\\begin{cases}', right: '\\end{cases}', display: true }
         ],
         throwOnError: false
       });
@@ -2614,7 +2618,40 @@ ${htmlContent}
   }
 }
 
+function initEula() {
+  const eulaAccepted = localStorage.getItem('markflow-eula-accepted');
+  if (eulaAccepted === 'true') {
+    document.getElementById('eula-dialog').classList.add('hidden');
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('eula-dialog');
+    const acceptBtn = document.getElementById('eula-accept');
+    const declineBtn = document.getElementById('eula-decline');
+
+    overlay.classList.remove('hidden');
+
+    acceptBtn.addEventListener('click', () => {
+      localStorage.setItem('markflow-eula-accepted', 'true');
+      overlay.classList.add('hidden');
+      resolve();
+    });
+
+    declineBtn.addEventListener('click', async () => {
+      try {
+        const { getCurrentWindow } = window.__TAURI__.window;
+        await getCurrentWindow().close();
+      } catch (e) {
+        window.close();
+      }
+    });
+  });
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
+  await initEula();
+
   window.editor = new MarkdownEditor();
 
   try {
