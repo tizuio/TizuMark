@@ -3,7 +3,7 @@
 🌐 [简体中文](README.md) | **English**
 
 <p align="center">
-  <img src="https://gitee.com/tizu/tizu-mark/raw/master/icon.png" alt="TizuMark" width="96" height="96">
+  <img src="icon.png" alt="TizuMark" width="96" height="96">
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/Linux-Coming%20Soon-lightgrey.svg" alt="Linux">
   <img src="https://img.shields.io/badge/Tauri-2.x-orange.svg" alt="Tauri">
   <img src="https://img.shields.io/badge/Rust-1.77+-black.svg" alt="Rust">
-  <a href="https://github.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/github/downloads/fankaa/markdown/total?color=blue" alt="Downloads"></a>
+  <a href="https://github.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/github/downloads/tizu/tizu-mark/total?color=blue" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/免费-Free-brightgreen.svg" alt="Free">
 </p>
 
@@ -171,8 +171,8 @@ Every bit of support fuels continued development 🚀
 
 | Channel | Link |
 |---|---|
-| GitHub | [@fankaa](https://github.com/fankaa) |
-| Gitee | [@fankaa](https://gitee.com/fankaa) |
+| GitHub | [@tizu](https://github.com/tizu) |
+| Gitee | [@tizu](https://gitee.com/tizu) |
 | Email | *(your email address)* |
 
 For collaboration, custom development, or general inquiries — don't hesitate to reach out.

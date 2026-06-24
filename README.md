@@ -3,7 +3,7 @@
 🌐 **简体中文** | [English](README.en.md)
 
 <p align="center">
-  <img src="https://gitee.com/tizu/tizu-mark/raw/master/icon.png" alt="TizuMark" width="96" height="96">
+  <img src="icon.png" alt="TizuMark" width="96" height="96">
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/Linux-即将推出-lightgrey.svg" alt="Linux">
   <img src="https://img.shields.io/badge/Tauri-2.x-orange.svg" alt="Tauri">
   <img src="https://img.shields.io/badge/Rust-1.77+-black.svg" alt="Rust">
-  <a href="https://gitee.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/github/downloads/fankaa/markdown/total?color=blue" alt="Downloads"></a>
+  <a href="https://gitee.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/github/downloads/tizu/tizu-mark/total?color=blue" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/免费-Free-brightgreen.svg" alt="Free">
 </p>
 
@@ -178,8 +178,8 @@ TizuMark 当前为免费软件。未来可能推出高级付费版本，但基�
 
 | 方式 | 链接 |
 |---|---|
-| GitHub | [@fankaa](https://github.com/fankaa) |
-| Gitee | [@fankaa](https://gitee.com/fankaa) |
+| GitHub | [@tizu](https://github.com/tizu) |
+| Gitee | [@tizu](https://gitee.com/tizu) |
 | 邮箱 | *（请填写你的邮箱）* |
 
 有合作意向、定制需求或任何问题，欢迎随时联系。
