@@ -1786,24 +1786,54 @@ ${htmlContent}
     if (typeof renderMathInElement === 'undefined') return;
 
     try {
+      this.renderDisplayMathBlocks();
+
       renderMathInElement(this.preview, {
         delimiters: [
           { left: '$$', right: '$$', display: true },
           { left: '$', right: '$', display: false },
           { left: '\\(', right: '\\)', display: false },
-          { left: '\\[', right: '\\]', display: true },
-          { left: '\\begin{equation}', right: '\\end{equation}', display: true },
-          { left: '\\begin{align}', right: '\\end{align}', display: true },
-          { left: '\\begin{aligned}', right: '\\end{aligned}', display: true },
-          { left: '\\begin{bmatrix}', right: '\\end{bmatrix}', display: true },
-          { left: '\\begin{pmatrix}', right: '\\end{pmatrix}', display: true },
-          { left: '\\begin{vmatrix}', right: '\\end{vmatrix}', display: true },
-          { left: '\\begin{cases}', right: '\\end{cases}', display: true }
+          { left: '\\[', right: '\\]', display: true }
         ],
         throwOnError: false
       });
     } catch (e) {
       console.warn('KaTeX rendering error:', e);
+    }
+  }
+
+  renderDisplayMathBlocks() {
+    const walker = document.createTreeWalker(this.preview, NodeFilter.SHOW_TEXT, null, false);
+    const textNodes = [];
+    let node;
+    while (node = walker.nextNode()) textNodes.push(node);
+
+    for (const textNode of textNodes) {
+      const text = textNode.textContent;
+      if (!text.includes('$$')) continue;
+
+      const parts = text.split(/(\$\$[\s\S]*?\$\$)/);
+      if (parts.length <= 1) continue;
+
+      const fragment = document.createDocumentFragment();
+      for (const part of parts) {
+        if (part.startsWith('$$') && part.endsWith('$$') && part.length > 4) {
+          const latex = part.slice(2, -2).trim();
+          if (latex) {
+            const span = document.createElement('div');
+            span.className = 'katex-display';
+            try {
+              katex.render(latex, span, { displayMode: true, throwOnError: false });
+            } catch (e) {
+              span.textContent = part;
+            }
+            fragment.appendChild(span);
+          }
+        } else if (part) {
+          fragment.appendChild(document.createTextNode(part));
+        }
+      }
+      textNode.parentNode.replaceChild(fragment, textNode);
     }
   }
 
