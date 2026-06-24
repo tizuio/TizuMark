@@ -8,6 +8,8 @@
     "build": "tauri build",
     "tauri": "tauri"
   },
+  "author": "MarkFlow",
+  "license": "UNLICENSED",
   "dependencies": {
     "codemirror": "^5.65.18",
     "highlight.js": "^11.10.0",

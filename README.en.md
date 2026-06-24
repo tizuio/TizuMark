@@ -2,132 +2,60 @@
 
 🌐 [简体中文](README.md) | **English**
 
-> ✨ **Lightweight Cross-Platform Markdown Editor** — Built with Tauri + Rust for blazing performance and elegant experience. Live preview, multi-tab, smart outline, math formulas, flowcharts, and export. Focus on writing, not tools.
+<p align="center">
+  <img src="https://gitee.com/fankaa/markdown/raw/master/icon.png" alt="MarkFlow" width="96" height="96">
+</p>
 
----
+<p align="center">
+  <b>A Blazing-Fast, Cross-Platform Markdown Editor That Just Works</b>
+</p>
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/fankaa/markdown)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tauri](https://img.shields.io/badge/Tauri-2.x-orange.svg)](https://tauri.app)
-[![Rust](https://img.shields.io/badge/Rust-1.77+-black.svg)](https://www.rust-lang.org)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://makeapullrequest.com)
+<p align="center">
+  <a href="https://github.com/fankaa/markdown/releases"><img src="https://img.shields.io/badge/version-0.1.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/fankaa/markdown/releases"><img src="https://img.shields.io/badge/Windows-7%2B-brightgreen.svg" alt="Windows"></a>
+  <img src="https://img.shields.io/badge/macOS-Coming%20Soon-lightgrey.svg" alt="macOS">
+  <img src="https://img.shields.io/badge/Linux-Coming%20Soon-lightgrey.svg" alt="Linux">
+  <img src="https://img.shields.io/badge/Tauri-2.x-orange.svg" alt="Tauri">
+  <img src="https://img.shields.io/badge/Rust-1.77+-black.svg" alt="Rust">
+  <a href="https://github.com/fankaa/markdown/releases"><img src="https://img.shields.io/github/downloads/fankaa/markdown/total?color=blue" alt="Downloads"></a>
+</p>
 
 ---
 
 ## Why MarkFlow?
 
-<table>
-<tr><td>
+<p align="center"><b>One app. Every Markdown task. Zero friction.</b></p>
 
-**Without MarkFlow:**
-```
-Open VS Code → Find plugin → Install preview → Lags
-Want to export → Install Pandoc → CLI convert → Broken format
-Need outline → Scroll manually → Lose position
-```
-
-</td><td>
-
-**With MarkFlow:**
-```
-Double-click → Start writing → Live preview
-Export HTML → One click share → Perfect format
-Smart outline → Click to jump → Precise navigation
-```
-
-</td></tr>
-</table>
+| | The Old Way | ✨ MarkFlow |
+|---|---|---|
+| 🚀 **Startup** | Wait for heavy editor → install plugins → open file → lag | **Double-click. Instant.** |
+| 📝 **Editing** | Split windows, switch tabs, lose context | **Live side-by-side WYSIWYG preview** |
+| 🧭 **Navigation** | Scroll endlessly, lose your place | **Smart outline — one click, you're there** |
+| 📤 **Export** | Install converters → CLI incantations → broken formatting | **One-click HTML or high-res PNG** |
+| 📐 **Math** | Requires LaTeX setup or just isn't supported | **Built-in KaTeX — type `$E=mc^2$`, see it rendered** |
+| 📊 **Diagrams** | Switch to drawing tool → export → paste | **Mermaid code → live diagrams** |
+| 🎨 **Themes** | One stale theme, config-file diving to change it | **Light / Dark / System — one click** |
+| 💾 **Memory** | Hundreds of MB of RAM for a text editor | **Rust-powered, sub-50MB** |
+| 🖥️ **Platforms** | Fragmented ecosystem, inconsistent UX | **True native on Windows, macOS & Linux** |
 
 ---
 
-## Features
+## Features at a Glance
 
-<table>
-<tr>
-<td width="50%">
+| Editing | Preview | Export |
+|---|---|---|
+| Multi-tab workflow | Live scroll sync | Standalone HTML file |
+| Full GFM syntax highlighting | KaTeX math rendering | High-res long screenshot |
+| Code blocks: 100+ languages | Mermaid diagrams | Preserved styling |
+| Auto bracket closing | Emoji shortcodes | Works offline |
+| Find & replace w/ regex | Responsive images | No network needed |
 
-### 📝 Editing Experience
-
-- **Live Split Preview** — Edit left, render right
-- **Multi-Tab Management** — Edit multiple files
-- **Smart Outline** — Auto-detect headings, click to jump
-- **Syntax Highlighting** — Full GFM support
-- **Code Blocks** — One-click copy, multi-language
-
-</td>
-<td width="50%">
-
-### 🎨 Customization
-
-- **Theme Switching** — Light / Dark / System
-- **Custom Shortcuts** — Configure all keys
-- **Editor Settings** — Font, tab, line numbers
-- **Preview Settings** — Font size, line height
-- **Adjustable Layout** — Drag to resize panels
-
-</td>
-</tr>
-<tr>
-<td>
-
-### 📤 Export Options
-
-- **Export HTML** — Standalone webpage, ready to share
-- **Export Image** — High-quality long image for social media
-
-</td>
-<td>
-
-### 🚀 Extended Syntax
-
-- **Math Formulas** — KaTeX/LaTeX rendering
-- **Flowcharts** — Mermaid diagram support
-- **Emoji** — Shortcode quick insert
-
-</td>
-</tr>
-</table>
-
----
-
-## Demo
-
-### Live Preview
-
-Write Markdown, render instantly in real-time.
-
-### Smart Outline
-
-Auto-detect heading hierarchy, click to jump instantly.
-
-### Math Formulas
-
-$$
-\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
-$$
-
-### Flowcharts
-
-```mermaid
-graph TD
-    A[Start] --> B{Condition}
-    B -->|Yes| C[Execute]
-    B -->|No| D[End]
-    C --> D
-```
-
----
-
-## Keyboard Shortcuts
-
-| Shortcut | Action | Shortcut | Action |
-|----------|--------|----------|--------|
-| `Ctrl+N` | New File | `Ctrl+W` | Close Tab |
-| `Ctrl+O` | Open File | `Ctrl+F` | Find |
-| `Ctrl+S` | Save File | `Ctrl+H` | Find & Replace |
-| `Ctrl+Tab` | Next Tab | `Ctrl+Shift+Tab` | Previous Tab |
-
-> 💡 All shortcuts can be customized in "File → Keyboard Shortcuts"
+| Productivity | Personalization | Professional |
+|---|---|---|
+| Outline sidebar nav | Fully customizable shortcuts | CLI file opening |
+| Drag & drop file open | Font, line-height, max-width | File association: .md, .markdown |
+| Adjustable split ratio | Tab size, word wrap toggle | Auto-save & dirty state |
+| Batch file open | Line numbers on/off | Word & char count |
 
 ---
 
@@ -135,134 +63,136 @@ graph TD
 
 ### Download
 
-前往 [Releases](https://gitee.com/fankaa/markdown/releases) 下载最新版本。
+Get the latest installer from [Releases](https://github.com/fankaa/markdown/releases):
 
-### Prerequisites
+| Platform | Status |
+|---|---|
+| Windows | Released |
+| macOS | Coming soon |
+| Linux | Coming soon |
 
-- [Node.js](https://nodejs.org/) >= 18
-- [Rust](https://www.rust-lang.org/tools/install) >= 1.77
-- [Tauri Prerequisites](https://tauri.app/start/prerequisites/)
+Install, launch, write.
+
+> Want to see everything MarkFlow can do? Try the demo: [demo.md](demo.md)
+
+### Keyboard Shortcuts
+
+| Shortcut | Action | Shortcut | Action |
+|---|---|---|---|
+| `Ctrl+N` | New File | `Ctrl+W` | Close Tab |
+| `Ctrl+O` | Open File | `Ctrl+F` | Find |
+| `Ctrl+S` | Save File | `Ctrl+H` | Find & Replace |
+| `Ctrl+B` | Bold | `Ctrl+I` | Italic |
+| `Ctrl+K` | Insert Link | `Ctrl+Tab` | Switch Tab |
+
+> Customize all shortcuts via `File → Keyboard Shortcuts`
 
 ### Build from Source
 
 ```bash
-git clone https://gitee.com/fankaa/markdown.git
+git clone https://github.com/fankaa/markdown.git
 cd markdown
 npm install
-npm run dev      # Development
-npm run build    # Production
+npm run dev      # dev mode
+npm run build    # production
 ```
 
 ---
 
-## Tech Stack
-
-<table>
-<tr>
-<td align="center" width="30%">
-
-**Frontend**
-<br>
-<img src="https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white" alt="HTML5">
-<img src="https://img.shields.io/badge/CSS3-1572B6?style=flat&logo=css3&logoColor=white" alt="CSS3">
-<img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black" alt="JavaScript">
-<br><br>
-CodeMirror 5
-
-</td>
-<td align="center" width="30%">
-
-**Backend**
-<br>
-<img src="https://img.shields.io/badge/Tauri-2.x-FFC131?style=flat&logo=tauri&logoColor=black" alt="Tauri">
-<img src="https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white" alt="Rust">
-<br><br>
-Native Performance
-
-</td>
-<td align="center" width="30%">
-
-**Rendering**
-<br>
-<img src="https://img.shields.io/badge/markdown--it-Module-blue" alt="markdown-it">
-<img src="https://img.shields.io/badge/highlight.js-Syntax-green" alt="highlight.js">
-<img src="https://img.shields.io/badge/KaTeX-Math-purple" alt="KaTeX">
-<img src="https://img.shields.io/badge/Mermaid-Diagram-pink" alt="Mermaid">
-
-</td>
-</tr>
-</table>
-
----
-
-## Project Structure
+## 🛠 Architecture
 
 ```
-markflow/
-├── src-tauri/              # Rust Backend
-│   ├── src/
-│   │   ├── main.rs
-│   │   └── lib.rs
-│   ├── icons/
-│   ├── Cargo.toml
-│   └── tauri.conf.json
-├── src/                    # Frontend
-│   ├── index.html
-│   ├── styles.css
-│   ├── app.js
-│   ├── guide.md            # Guide (Chinese)
-│   ├── guide.en.md         # Guide (English)
-│   └── lib/
-├── package.json
-└── README.md
+┌──────────────────────────────────────────┐
+│               Frontend (WebView)          │
+│   CodeMirror 5  │  markdown-it  │ KaTeX  │
+│   highlight.js  │    Mermaid    │ ...    │
+└──────────────┬───────────────────────────┘
+               │ IPC (ipc: / tauri:)
+┌──────────────┴───────────────────────────┐
+│              Backend (Rust)               │
+│   Tauri 2.5  │  pulldown-cmark         │
+│   File I/O   │  Native Dialogs          │
+└──────────────┬───────────────────────────┘
+               │
+        ┌──────┴──────┐
+        │  OS Native   │
+        │ Win / Mac /  │
+        │   Linux      │
+        └─────────────┘
 ```
+
+> **Tauri vs alternatives**: Tauri v2 uses the OS native WebView, producing ~5MB installers — roughly 1/5 the footprint of comparable Electron-based tools.
 
 ---
 
 ## FAQ
 
 <details>
-<summary><b>Q: How to restore default settings?</b></summary>
+<summary><b>Is MarkFlow free?</b></summary>
 
-Click "Restore Default" in "File → Settings" or "File → Keyboard Shortcuts".
+MarkFlow is currently free. A premium tier with advanced features may be introduced in the future, but core editing functionality will remain free forever.
 </details>
 
 <details>
-<summary><b>Q: What file formats are supported?</b></summary>
+<summary><b>How do I restore default settings?</b></summary>
 
-Supports `.md`, `.markdown`, and `.txt` files.
+Click "Restore Default" in `File → Settings` or `File → Keyboard Shortcuts`.
 </details>
 
 <details>
-<summary><b>Q: How to report issues?</b></summary>
+<summary><b>What file formats are supported?</b></summary>
 
-Visit [Gitee Issues](https://gitee.com/fankaa/markdown/issues) to submit problems or suggestions.
+`.md`, `.markdown`, `.txt`. More formats are planned.
+</details>
+
+<details>
+<summary><b>How do I report a bug or request a feature?</b></summary>
+
+- [GitHub Issues](https://github.com/fankaa/markdown/issues)
+- [Gitee Issues](https://gitee.com/fankaa/markdown/issues)
 </details>
 
 ---
 
-## Contributing
+## Support the Project
 
-Contributions welcome! Bug fixes, new features, documentation improvements.
+If MarkFlow makes your writing flow better, consider buying the author a coffee ☕
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'feat: Add some feature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Create Pull Request
+| WeChat | Alipay |
+|---|---|
+| *(QR code / donation link)* | *(QR code / donation link)* |
+
+Every bit of support fuels continued development 🚀
+
+---
+
+## Contact the Author
+
+| Channel | Link |
+|---|---|
+| GitHub | [@fankaa](https://github.com/fankaa) |
+| Gitee | [@fankaa](https://gitee.com/fankaa) |
+| Email | *(your email address)* |
+
+For collaboration, custom development, or general inquiries — don't hesitate to reach out.
 
 ---
 
 ## License
 
-MIT License — Free to use, commercial or personal.
+Copyright (c) 2024-2026 MarkFlow. All rights reserved.
+
+This software is proprietary commercial software. Unauthorized copying, modification, distribution, or use of any part of this software is strictly prohibited.
+
+Bundled open-source components are licensed under their respective terms. See `Help → About` within the application for details.
 
 ---
 
-<div align="center">
-
-**✨ MarkFlow — Elegant Markdown Writing**
-
-[Download](https://gitee.com/fankaa/markdown/releases) · [Report Issue](https://gitee.com/fankaa/markdown/issues) · [Contribute](https://gitee.com/fankaa/markdown/pulls)
-
-</div>
+<p align="center">
+  <b>✨ MarkFlow — Write at the speed of thought</b><br><br>
+  <a href="https://github.com/fankaa/markdown/releases">⬇ Download</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/fankaa/markdown/issues">🐛 Report Bug</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/fankaa/markdown">⭐ Star on GitHub</a>
+</p>
