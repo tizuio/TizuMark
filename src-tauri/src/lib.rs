@@ -1,5 +1,6 @@
 use std::fs;
 use tauri::{Emitter, Manager};
+use tauri::WindowEvent;
 
 fn escape_html(s: &str) -> String {
     s.replace('&', "&amp;")
@@ -192,8 +193,12 @@ fn write_binary_file(path: String, contents: Vec<u8>) -> Result<(), String> {
 
 #[tauri::command]
 async fn fetch_image_as_base64(url: String) -> Result<String, String> {
-    let resp = reqwest::get(&url).await.map_err(|e| e.to_string())?;
-    let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
+    let bytes = if url.starts_with("http://") || url.starts_with("https://") {
+        let resp = reqwest::get(&url).await.map_err(|e| e.to_string())?;
+        resp.bytes().await.map_err(|e| e.to_string())?.to_vec()
+    } else {
+        std::fs::read(&url).map_err(|e| format!("Cannot read local file {}: {}", url, e))?
+    };
     use base64::Engine;
     let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
     Ok(encoded)
@@ -595,6 +600,41 @@ fn process_inline_markdown(line: &str) -> String {
     let mut i = 0;
 
     while i < len {
+        // Backslash escapes (CommonMark §2.2): \* → *, \[ → [, etc.
+        if chars[i] == '\\' && i + 1 < len {
+            let next = chars[i + 1];
+            // Preserve \( and \) for KaTeX inline math compatibility
+            if next == '(' || next == ')' {
+                result.push('\\');
+                result.push(next);
+                i += 2;
+                continue;
+            }
+            if matches!(next, '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '@' | '[' | '\\' | ']' | '^' | '_' | '`' | '{' | '|' | '}' | '~') {
+                // Use HTML entity for chars that pulldown-cmark would re-interpret
+                match next {
+                    '*' => result.push_str("&#42;"),
+                    '_' => result.push_str("&#95;"),
+                    '`' => result.push_str("&#96;"),
+                    '[' => result.push_str("&#91;"),
+                    ']' => result.push_str("&#93;"),
+                    '!' => result.push_str("&#33;"),
+                    '#' => result.push_str("&#35;"),
+                    '~' => result.push_str("&#126;"),
+                    '<' => result.push_str("&lt;"),
+                    '&' => result.push_str("&amp;"),
+                    '"' => result.push_str("&quot;"),
+                    '\'' => result.push_str("&#x27;"),
+                    c => result.push(c),
+                }
+                i += 2;
+                continue;
+            }
+            result.push('\\');
+            i += 1;
+            continue;
+        }
+
         // `inline code` → <code>inline code</code>
         // Supports 1-3 backtick delimiters per CommonMark (e.g. `` ` ``)
         if chars[i] == '`' {
@@ -615,7 +655,16 @@ fn process_inline_markdown(line: &str) -> String {
                     if match_count >= open_count {
                         // Found matching closer
                         let inner: String = chars[i + open_count..j].iter().collect();
-                        result.push_str(&format!("<code>{}</code>", escape_html(&inner)));
+                        // CommonMark §6.1: strip one space from each end if both start/end with space
+                        let trimmed = inner.trim();
+                        let code_content = if inner.len() > 1 && inner.starts_with(' ') && inner.ends_with(' ') && !trimmed.is_empty() {
+                            &inner[1..inner.len() - 1]
+                        } else if inner.chars().all(|c| c == ' ') {
+                            " "
+                        } else {
+                            &inner
+                        };
+                        result.push_str(&format!("<code>{}</code>", escape_html(code_content)));
                         i = j + open_count;
                         break;
                     }
@@ -644,6 +693,20 @@ fn process_inline_markdown(line: &str) -> String {
                 let inner: String = chars[i + 2..j].iter().collect();
                 result.push_str(&format!("<del>{}</del>", escape_html(&inner)));
                 i = j + 2;
+                continue;
+            }
+        }
+
+        // ***bold italic*** (handle before ** to avoid conflict)
+        if i + 5 < len && chars[i] == '*' && chars[i + 1] == '*' && chars[i + 2] == '*' {
+            let mut j = i + 3;
+            while j + 2 < len && !(chars[j] == '*' && chars[j + 1] == '*' && chars[j + 2] == '*') {
+                j += 1;
+            }
+            if j + 2 < len {
+                let inner: String = chars[i + 3..j].iter().collect();
+                result.push_str(&format!("<em><strong>{}</strong></em>", escape_html(&inner)));
+                i = j + 3;
                 continue;
             }
         }
@@ -782,8 +845,45 @@ fn process_inline_markdown(line: &str) -> String {
         // Note: '>' is NOT escaped because it is valid Markdown syntax (blockquote, nested blockquote).
         // pulldown-cmark will properly escape it in text content during HTML generation.
         match chars[i] {
+            '&' => {
+                // CommonMark §2.3 & §6.5: preserve valid HTML entity references
+                let start = i;
+                let mut found = false;
+                if i + 1 < len {
+                    if chars[i + 1] == '#' {
+                        // Numeric entity &#NNN; or &#xHHH;
+                        let mut j = i + 2;
+                        if j < len && chars[j] == 'x' { j += 1; }
+                        while j < len {
+                            if chars[j] == ';' {
+                                for k in start..=j { result.push(chars[k]); }
+                                i = j;
+                                found = true;
+                                break;
+                            }
+                            if !chars[j].is_ascii_hexdigit() { break; }
+                            j += 1;
+                        }
+                    } else if chars[i + 1].is_ascii_alphabetic() {
+                        // Named entity &amp; &lt; &copy; etc.
+                        let mut j = i + 2;
+                        while j < len {
+                            if chars[j] == ';' {
+                                for k in start..=j { result.push(chars[k]); }
+                                i = j;
+                                found = true;
+                                break;
+                            }
+                            if !chars[j].is_ascii_alphanumeric() { break; }
+                            j += 1;
+                        }
+                    }
+                }
+                if !found {
+                    result.push_str("&amp;");
+                }
+            }
             '<' => result.push_str("&lt;"),
-            '&' => result.push_str("&amp;"),
             '"' => result.push_str("&quot;"),
             '\'' => result.push_str("&#x27;"),
             c => result.push(c),
@@ -821,6 +921,12 @@ pub fn run() {
                 let _ = app.emit("file-open", argv);
             }
         }))
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.emit("close-requested", ());
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             get_cli_args,
             read_file,
@@ -1227,4 +1333,55 @@ $$\n\
         assert!(html.contains("矩阵乘法"), "Should contain 矩阵乘法 heading text");
         // After HTML-escaping, & becomes &amp; but \\ is preserved (backslash is not special in HTML)
         assert!(html.contains("a_{11} &amp; a_{12} \\\\"), "Should preserve LaTeX row breaks with &amp;");
+    }
+
+    #[test]
+    fn test_backslash_escape_asterisk() {
+        let input = "\\*not italic\\*".to_string();
+        let html = render_markdown(input);
+        assert!(!html.contains("<em>"), "Escaped * should not be emphasis");
+        assert!(html.contains("not italic"), "Content should be preserved");
+    }
+
+    #[test]
+    fn test_backslash_escape_bracket() {
+        let input = "\\[not a link\\]".to_string();
+        let html = render_markdown(input);
+        assert!(html.contains("[not a link]"), "Escaped brackets as literal");
+    }
+
+    #[test]
+    fn test_inline_code_space_trimming() {
+        let input = "` code `".to_string();
+        let html = render_markdown(input);
+        assert!(html.contains("<code>code</code>"), "Spaces should be trimmed");
+    }
+
+    #[test]
+    fn test_triple_emphasis() {
+        let input = "***bold italic***".to_string();
+        let html = render_markdown(input);
+        assert!(html.contains("<em><strong>"), "Triple *** should give nested emphasis");
+        assert!(html.contains("bold italic"), "Content preserved");
+    }
+
+    #[test]
+    fn test_html_entity_copy() {
+        let input = "&copy; 2025".to_string();
+        let html = render_markdown(input);
+        assert!(!html.contains("&amp;copy;"), "Entity &copy; should not be double-escaped");
+    }
+
+    #[test]
+    fn test_html_entity_amp() {
+        let input = "&amp; is the & symbol".to_string();
+        let html = render_markdown(input);
+        assert!(!html.contains("&amp;amp;"), "Entity &amp; should not be double-escaped");
+    }
+
+    #[test]
+    fn test_plain_ampersand_escaped() {
+        let input = "A & B".to_string();
+        let html = render_markdown(input);
+        assert!(html.contains("&amp;"), "Plain & should be escaped");
     }

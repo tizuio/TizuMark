@@ -14,6 +14,7 @@ async function generateIcons() {
     { size: 128, dest: 'src-tauri/icons/128x128.png' },
     { size: 128, dest: 'src-tauri/icons/128x128@2x.png' },
     { size: 256, dest: 'src-tauri/icons/icon.png' },
+    { size: 256, dest: 'icon.png' },
   ];
 
   for (const { size, dest } of sizes) {

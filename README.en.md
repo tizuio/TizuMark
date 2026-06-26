@@ -2,23 +2,26 @@
 
 🌐 [简体中文](README.md) | **English**
 
+<div align="center">
+
+![TizuMark](icon.png)
+
+</div>
+
 <p align="center">
-  <img src="icon.png" alt="TizuMark" width="96" height="96">
+  <b>⚡Lightning Fast &nbsp;·&nbsp; 🚀High Performance &nbsp;·&nbsp; ✨Elegant &nbsp;·&nbsp; 🆓<font color="#16a34a">Free Forever</font></b>
+  <br>
+  <b>A Cross-Platform Markdown Editor That Just Works</b>
 </p>
 
 <p align="center">
-  <b>A Blazing-Fast, Cross-Platform & <font color="#16a34a">Free Forever</font> Markdown Editor That Just Works</b>
-</p>
-
-<p align="center">
-  <a href="https://github.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/version-0.1.0-blue.svg" alt="Version"></a>
-  <a href="https://github.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/Windows-7%2B-brightgreen.svg" alt="Windows"></a>
-  <img src="https://img.shields.io/badge/macOS-Coming%20Soon-lightgrey.svg" alt="macOS">
-  <img src="https://img.shields.io/badge/Linux-Coming%20Soon-lightgrey.svg" alt="Linux">
-  <img src="https://img.shields.io/badge/Tauri-2.x-orange.svg" alt="Tauri">
-  <img src="https://img.shields.io/badge/Rust-1.77+-black.svg" alt="Rust">
-  <a href="https://github.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/github/downloads/tizu/tizu-mark/total?color=blue" alt="Downloads"></a>
-  <img src="https://img.shields.io/badge/免费-Free-brightgreen.svg" alt="Free">
+  <img src="https://img.shields.io/badge/Version-0.1.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/Windows-7%2B-brightgreen" alt="Windows">
+  <img src="https://img.shields.io/badge/macOS-Coming%20Soon-lightgrey" alt="macOS">
+  <img src="https://img.shields.io/badge/Linux-Coming%20Soon-lightgrey" alt="Linux">
+  <img src="https://img.shields.io/badge/Tauri-2.x-orange" alt="Tauri">
+  <img src="https://img.shields.io/badge/Rust-1.77%2B-black" alt="Rust">
+  <img src="https://img.shields.io/badge/License-Proprietary-red" alt="License">
 </p>
 
 ---
@@ -131,7 +134,7 @@ npm run build    # production
 <details>
 <summary><b>Is TizuMark free?</b></summary>
 
-TizuMark is currently free. A premium tier with advanced features may be introduced in the future, but core editing functionality will remain free forever.
+TizuMark is free forever. Core features have no restrictions. A premium tier may be introduced in the future, but existing features will remain unaffected.
 </details>
 
 <details>
@@ -149,6 +152,7 @@ Click "Restore Default" in `File → Settings` or `File → Keyboard Shortcuts`.
 <details>
 <summary><b>How do I report a bug or request a feature?</b></summary>
 
+- QQ Group: **1035294939** (Chinese community)
 - [GitHub Issues](https://github.com/tizu/tizu-mark/issues)
 - [Gitee Issues](https://gitee.com/tizu/tizu-mark/issues)
 </details>
@@ -159,23 +163,25 @@ Click "Restore Default" in `File → Settings` or `File → Keyboard Shortcuts`.
 
 If TizuMark makes your writing flow better, consider buying the author a coffee ☕
 
-| WeChat | Alipay |
-|---|---|
-| *(QR code / donation link)* | *(QR code / donation link)* |
+<p align="center">
+  <img src="donate-wechat.png" alt="WeChat Donate" width="200">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="donate-alipay.png" alt="Alipay Donate" width="200">
+</p>
 
 Every bit of support fuels continued development 🚀
 
 ---
 
-## Contact the Author
+## Contact
 
 | Channel | Link |
 |---|---|
+| QQ Group | **1035294939** |
 | GitHub | [@tizu](https://github.com/tizu) |
 | Gitee | [@tizu](https://gitee.com/tizu) |
-| Email | *(your email address)* |
 
-For collaboration, custom development, or general inquiries — don't hesitate to reach out.
+For collaboration, custom development, or general inquiries — join our QQ group or open an issue.
 
 ---
 

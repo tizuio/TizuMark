@@ -262,13 +262,17 @@
         </div>
       </div>
       <div class="tab-bar-wrapper">
-        <div id="tab-bar" class="tab-bar">
-          <div class="tab active" data-index="0">
-            <span class="tab-name">未命名</span>
-            <span class="tab-close">&times;</span>
+        <button id="tab-scroll-left" class="tab-scroll-arrow hidden" title="向左滚动">&#9664;</button>
+        <div class="tab-bar-scroll" id="tab-bar-scroll">
+          <div id="tab-bar" class="tab-bar">
+            <div class="tab active" data-index="0">
+              <span class="tab-name">未命名</span>
+              <span class="tab-close">&times;</span>
+            </div>
+            <button id="btn-add-tab" class="tab-add" title="新建标签页">+</button>
           </div>
-          <button id="btn-add-tab" class="tab-add" title="新建标签页">+</button>
         </div>
+        <button id="tab-scroll-right" class="tab-scroll-arrow hidden" title="向右滚动">&#9654;</button>
       </div>
     </header>
 
@@ -303,7 +307,7 @@
     <main class="editor-container">
       <div id="outline-sidebar" class="outline-sidebar hidden">
         <div class="outline-header">
-          <span>大纲</span>
+          <span id="outline-header-title">大纲</span>
           <button id="outline-close" class="outline-close-btn">&times;</button>
         </div>
         <div id="outline-content" class="outline-content"></div>
@@ -385,12 +389,18 @@
         </div>
 
         <div class="about-section">
+          <h3>联系我们</h3>
+          <p>QQ交流群：<strong>1035294939</strong></p>
+          <p>反馈建议、报告Bug、交流使用心得</p>
+        </div>
+
+        <div class="about-section">
           <h3>许可协议</h3>
           <p>Copyright (c) 2024-2026 TizuMark</p>
           <p>本软件为专有商业软件，保留所有权利。</p>
           <p>未经授权，禁止以任何形式复制、修改、分发或使用本软件。</p>
         </div>
-        
+
         <div class="about-section">
           <h3>第三方组件</h3>
           <div class="dependency-list">

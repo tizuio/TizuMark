@@ -145,9 +145,49 @@ body {
 
 .tab-bar-wrapper {
   display: flex;
-  padding: 2px 8px 0 8px;
-  overflow-x: auto;
+  align-items: center;
+  padding: 2px 0 0 0;
+  overflow: hidden;
+  position: relative;
 }
+
+.tab-bar-wrapper::-webkit-scrollbar { display: none; }
+
+.tab-scroll-arrow {
+  width: 22px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 10px;
+  -webkit-app-region: no-drag;
+  transition: color 0.15s, opacity 0.15s;
+  opacity: 0.6;
+}
+
+.tab-scroll-arrow:hover {
+  color: var(--text-primary);
+  opacity: 1;
+}
+
+.tab-scroll-arrow.hidden {
+  visibility: hidden;
+}
+
+.tab-bar-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1;
+  min-width: 0;
+}
+
+.tab-bar-scroll::-webkit-scrollbar { display: none; }
 
 .toolbar-btn {
   padding: 0 10px;
@@ -380,12 +420,9 @@ body {
 .tab-bar {
   display: flex;
   gap: 2px;
-  overflow-x: auto;
-  width: 100%;
+  flex: none;
   align-items: center;
 }
-
-.tab-bar::-webkit-scrollbar { display: none; }
 
 .tab-add {
   width: 24px;
@@ -402,6 +439,7 @@ body {
   flex-shrink: 0;
   transition: background-color 0.15s, color 0.15s;
   -webkit-app-region: no-drag;
+  margin-left: 2px;
 }
 
 .tab-add:hover {
@@ -422,6 +460,7 @@ body {
   white-space: nowrap;
   min-width: 80px;
   max-width: 180px;
+  flex-shrink: 0;
   overflow: hidden;
   transition: all 0.2s ease;
   -webkit-app-region: no-drag;

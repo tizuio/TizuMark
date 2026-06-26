@@ -532,6 +532,170 @@ TizuMark 支持 Markdown 扩展脚注语法[^1]。
 
 ---
 
+## 更多图表类型
+
+TizuMark 支持 Mermaid 所有常用图表。以下展示更多图表类型：
+
+### ER 图
+
+```mermaid
+erDiagram
+    USER {
+        int id PK
+        string name
+        string email
+    }
+    POST {
+        int id PK
+        string title
+        text content
+        int author_id FK
+    }
+    COMMENT {
+        int id PK
+        text body
+        int post_id FK
+        int user_id FK
+    }
+    USER ||--o{ POST : 撰写
+    USER ||--o{ COMMENT : 发表
+    POST ||--o{ COMMENT : 包含
+```
+
+### 饼图
+
+```mermaid
+pie title TizuMark 技术栈构成
+    "Rust 后端" : 35
+    "JavaScript 前端" : 30
+    "CSS 样式" : 15
+    "KaTeX 数学" : 10
+    "Mermaid 图表" : 10
+```
+
+### Git 图
+
+```mermaid
+gitGraph
+    commit id: "初始化项目"
+    branch feature/math
+    checkout feature/math
+    commit id: "添加 KaTeX 渲染"
+    commit id: "添加行内公式支持"
+    checkout main
+    merge feature/math
+    branch feature/mermaid
+    checkout feature/mermaid
+    commit id: "集成 Mermaid 图表"
+    commit id: "支持主题切换"
+    checkout main
+    merge feature/mermaid
+    commit id: "v0.1.0 发布"
+```
+
+### 用户旅程图
+
+```mermaid
+journey
+    title 用户使用 TizuMark 的一天
+    section 上午
+      启动软件: 5: 用户
+      打开文档: 5: 用户
+      撰写内容: 4: 用户
+    section 下午
+      插入数学公式: 3: 用户
+      导出 HTML: 5: 用户
+      分享给同事: 5: 用户, 同事
+```
+
+---
+
+## 其他 Markdown 扩展
+
+### 按键标签
+
+使用 `<kbd>` 标签展示键盘按键：
+
+按下 <kbd>Ctrl</kbd> + <kbd>S</kbd> 保存文件，<kbd>Ctrl</kbd> + <kbd>F</kbd> 查找内容。
+
+### 缩写词
+
+TizuMark 支持缩写词标注（鼠标悬停查看释义）：
+
+*[HTML]: HyperText Markup Language — 超文本标记语言
+*[CSS]: Cascading Style Sheets — 层叠样式表
+*[GFM]: GitHub Flavored Markdown — GitHub 风格 Markdown
+*[TOC]: Table of Contents — 文档目录
+
+HTML、CSS 和 GFM 都是 Web 技术的基础。TizuMark 使用 GFM 作为默认 Markdown 方言。
+
+### 转义字符
+
+当需要在 Markdown 中显示特殊字符本身而非其格式化含义时，使用反斜杠 `\` 转义：
+
+| 转义写法 | 显示效果 |
+|----------|----------|
+| `\*` | \*星号不再是斜体\* |
+| `\#` | \# 井号不再是标题 |
+| `\[` | \[ 不再被解析为链接 |
+| `\`` | \` 不再解析为代码 |
+| `\\` | \\ 反斜杠本身 |
+
+### HTML 实体
+
+TizuMark 支持 HTML 实体字符：
+
+- 版权符号：`&copy;` → &copy;
+- 商标符号：`&reg;` → &reg;
+- 小于号：`&lt;` → &lt;
+- 大于号：`&gt;` → &gt;
+- 与符号：`&amp;` → &amp;
+
+---
+
+## 嵌套与混合排版
+
+### 列表中的代码块
+
+1. 第一步：编写 Markdown
+
+   ```javascript
+   // 在列表项中嵌入代码块
+   const content = '# Hello\n\nWorld!';
+   ```
+
+2. 第二步：预览渲染效果
+3. 第三步：导出为 HTML
+
+### 引用中的列表
+
+> **项目规划**：
+> - [x] 完成核心编辑器
+> - [x] 集成 KaTeX 和 Mermaid
+> - [ ] 适配 macOS 和 Linux
+> - [ ] 移动端版本
+
+### 引用中的代码
+
+> 在 TizuMark 中构建项目：
+>
+> ```shell
+> npm run build
+> ```
+>
+> 构建产物位于 `src-tauri/target/release/`。
+
+### 表格中的格式
+
+| 特性 | 语法示例 | 渲染效果 |
+|------|----------|----------|
+| 加粗 | `**重要**` | **重要** |
+| 代码 | `` `const x = 1` `` | `const x = 1` |
+| 链接 | `[链接](url)` | [TizuMark](https://gitee.com/tizu/tizu-mark) |
+| 图片 | `![icon](url)` | 表格中不推荐放图片 |
+
+---
+
 ## 综合演示
 
 下面是一段综合运用多种语法的实际文档片段，模拟一篇技术博客的排版效果：
@@ -574,5 +738,5 @@ $$
 <p align="center">
   <b>✨ 这就是 TizuMark 的全部语法能力 ✨</b><br><br>
   如果觉得好用，欢迎给项目点一个 ⭐ Star！<br>
-  有使用问题？前往 <a href="https://gitee.com/tizu/tizu-mark/issues">Issues</a> 反馈
+  有使用问题？加 QQ群 <b>1035294939</b> 或前往 <a href="https://gitee.com/tizu/tizu-mark/issues">Issues</a> 反馈
 </p>
