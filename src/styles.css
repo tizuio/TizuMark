@@ -749,7 +749,8 @@ body.is-resizing .preview-pane {
   background-color: var(--code-bg);
   border-radius: 6px;
   overflow-x: auto;
-  margin-bottom: 16px;
+  margin: 16px 0;
+  max-width: 100%;
   border: 1px solid var(--border-color);
 }
 
@@ -815,8 +816,9 @@ body.is-resizing .preview-pane {
 /* Tables */
 .preview-content table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
-  margin-bottom: 16px;
+  margin: 16px 0;
   overflow-x: auto;
   display: block;
 }
@@ -927,7 +929,8 @@ body.is-resizing .preview-pane {
   border-left: 3px solid var(--accent-color);
   border-radius: 8px;
   padding: 16px 20px;
-  margin-bottom: 20px;
+  margin: 16px 0;
+  max-width: 100%;
   color: var(--text-primary);
 }
 
@@ -1025,6 +1028,7 @@ body.is-resizing .preview-pane {
   text-align: center;
   margin: 16px 0;
   padding: 16px;
+  max-width: 100%;
   background-color: var(--bg-secondary);
   border-radius: 8px;
   border: 1px solid var(--border-color);
@@ -1041,9 +1045,11 @@ body.is-resizing .preview-pane {
   border-radius: 10px;
   padding: 14px 18px;
   margin: 16px 0;
+  max-width: 100%;
   border-left: 4px solid;
   position: relative;
   backdrop-filter: blur(8px);
+  overflow-wrap: break-word;
 }
 
 .alert-title {
