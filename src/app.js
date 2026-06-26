@@ -23,6 +23,347 @@ class Tab {
   }
 }
 
+const I18N = {
+  zh: {
+    file: '文件',
+    new: '新建',
+    open: '打开',
+    save: '保存',
+    saveAs: '另存为',
+    exportHTML: '导出 HTML',
+    exportImg: '导出长图',
+    shortcuts: '快捷键设置',
+    settings: '设置',
+    insert: '插入',
+    structure: '结构插入',
+    heading: '标题',
+    codeBlock: '代码块',
+    table: '表格',
+    quoteBlock: '引用块',
+    callout: '提示块',
+    mathBlock: '数学公式',
+    mermaidChart: 'Mermaid 图表',
+    hr: '水平线',
+    toc: '目录 [TOC]',
+    textFormat: '文本格式',
+    bold: '加粗',
+    italic: '斜体',
+    strikethrough: '删除线',
+    inlineCode: '行内代码',
+    highlight: '高亮',
+    superscript: '上标',
+    subscript: '下标',
+    list: '列表',
+    ul: '无序列表',
+    ol: '有序列表',
+    taskList: '任务列表',
+    linkMedia: '链接与媒体',
+    link: '链接',
+    image: '图片',
+    view: '视图',
+    outline: '大纲',
+    help: '帮助',
+    userGuide: '使用说明',
+    about: '关于',
+    preview: '预览',
+    edit: '编辑',
+    themeLight: '明亮',
+    themeDark: '暗黑',
+    minimize: '最小化',
+    maximize: '最大化',
+    close: '关闭',
+    ready: '就绪',
+    words: '字数',
+    chars: '字符',
+    lines: '行数',
+    untitled: '未命名',
+    noHeadings: '暂无标题',
+    copy: '复制',
+    copied: '已复制',
+    copyCode: '复制代码',
+    cut: '剪切',
+    paste: '粘贴',
+    selectAll: '全选',
+    findReplace: '查找替换',
+    find: '查找',
+    replace: '替换',
+    replaceAll: '全部替换',
+    findNext: '下一个',
+    findPrev: '上一个',
+    caseSensitive: '区分大小写',
+    regex: '正则',
+    matches: '个结果',
+    noMatches: '无结果',
+    findInPreview: '在预览中查找',
+    copyAsHTML: '复制为 HTML',
+    closeTab: '关闭',
+    closeOther: '关闭其他',
+    closeAll: '关闭所有',
+    copyFilePath: '复制文件路径',
+    newFileCreated: '新文件已创建',
+    opened: '已打开',
+    openedFiles: '已打开 {n} 个文件',
+    alreadyOpen: '文件已在打开中',
+    saved: '已保存',
+    savedAs: '已另存为',
+    saveFailed: '保存失败',
+    openFailed: '打开失败',
+    exportFailed: '导出失败',
+    fileModified: '已修改，是否保存？',
+    saveChanges: '保存更改',
+    dontSave: '不保存',
+    cancel: '取消',
+    fontSize: '字体大小',
+    tabSize: 'Tab 宽度',
+    lineWrap: '自动换行',
+    lineNumbers: '显示行号',
+    previewFontSize: '正文字号',
+    lineHeight: '行高',
+    maxWidth: '最大宽度',
+    unlimited: '无限制',
+    language: '界面语言',
+    behavior: '行为',
+    themeMode: '主题模式',
+    defaultView: '默认视图',
+    scrollSync: '滚动同步',
+    followSystem: '跟随系统',
+    resetDefault: '恢复默认',
+    done: '完成',
+    themeSwitched: '已切换到{theme}主题',
+    scrollTop: 'TOP',
+    collapseEditor: '折叠编辑器',
+    collapsePreview: '折叠预览',
+    restoreEditor: '恢复编辑器',
+    restorePreview: '恢复预览',
+    noteHint: 'Note 提示',
+    tipHint: 'Tip 建议',
+    warningHint: 'Warning 警告',
+    cautionHint: 'Caution 注意',
+    importantHint: 'Important 重要',
+    version: '版本信息',
+    contact: '联系我们',
+    contactDesc: '反馈建议、报告Bug、交流使用心得',
+    license: '许可协议',
+    thirdParty: '第三方组件',
+    copyright: '版权声明',
+    aboutTitle: '关于 TizuMark',
+    versionInfo: 'TizuMark v0.1.0',
+    versionDesc: '轻量级跨平台 Markdown 编辑器',
+    buildInfo: '基于 Tauri v2.5 + Rust 构建',
+    copyrightLine: 'Copyright (c) 2024-2026 TizuMark',
+    proprietary: '本软件为专有商业软件，保留所有权利。',
+    noUnauthorized: '未经授权，禁止以任何形式复制、修改、分发或使用本软件。',
+    shortcutLabel: { newFile: '新建文件', openFile: '打开文件', saveFile: '保存文件', closeTab: '关闭标签页', find: '查找（编辑器）', findReplace: '查找替换', nextTab: '下一个标签页', prevTab: '上一个标签页', bold: '加粗', italic: '斜体', insertLink: '插入链接' },
+    modify: '修改',
+    clear: '清除',
+    none: '无',
+    pressKeys: '按下快捷键...',
+    generatingImg: '正在生成长图...',
+    exportedImg: '已导出长图',
+    exportedHTML: '已导出 HTML',
+    editor: '编辑器',
+    previewSection: '预览',
+    paneEdit: '编辑',
+    panePreview: '预览',
+    column1: '列1',
+    column2: '列2',
+    column3: '列3',
+    content: '内容',
+    noteContent: '提示内容',
+    tipContent: '建议内容',
+    warningContent: '警告内容',
+    cautionContent: '注意内容',
+    importantContent: '重要内容',
+    linkText: '链接文本',
+    notSaved: '该文件尚未保存',
+    pathCopied: '已复制文件路径',
+    copyFailed: '复制失败',
+    guideSwitchZh: '> [切换中文](#switch-lang)',
+    guideSwitchEn: '\n\n> [Switch to English](#switch-lang)',
+    openedGuide: '已打开使用说明',
+    openedGuideEn: 'Opened User Guide',
+    failedGuide: '打开使用说明失败',
+    failedGuideEn: 'Failed to open guide',
+    switchedZh: '已切换到中文',
+    switchedEn: 'Switched to English',
+    switchFailed: '切换语言失败',
+    spaces: '空格',
+    settingsReset: '已恢复默认设置',
+    shortcutsReset: '已恢复默认快捷键',
+    saveDialogMessage: '文件已修改，是否保存？',
+    imageLoadFailed: '[图片加载失败]',
+  },
+  en: {
+    file: 'File',
+    new: 'New',
+    open: 'Open',
+    save: 'Save',
+    saveAs: 'Save As',
+    exportHTML: 'Export HTML',
+    exportImg: 'Export Image',
+    shortcuts: 'Shortcuts',
+    settings: 'Settings',
+    insert: 'Insert',
+    structure: 'Structure',
+    heading: 'Heading',
+    codeBlock: 'Code Block',
+    table: 'Table',
+    quoteBlock: 'Blockquote',
+    callout: 'Callout',
+    mathBlock: 'Math Block',
+    mermaidChart: 'Mermaid Chart',
+    hr: 'Horizontal Rule',
+    toc: 'Table of Contents',
+    textFormat: 'Text Format',
+    bold: 'Bold',
+    italic: 'Italic',
+    strikethrough: 'Strikethrough',
+    inlineCode: 'Inline Code',
+    highlight: 'Highlight',
+    superscript: 'Superscript',
+    subscript: 'Subscript',
+    list: 'List',
+    ul: 'Unordered List',
+    ol: 'Ordered List',
+    taskList: 'Task List',
+    linkMedia: 'Links & Media',
+    link: 'Link',
+    image: 'Image',
+    view: 'View',
+    outline: 'Outline',
+    help: 'Help',
+    userGuide: 'User Guide',
+    about: 'About',
+    preview: 'Preview',
+    edit: 'Edit',
+    themeLight: 'Light',
+    themeDark: 'Dark',
+    minimize: 'Minimize',
+    maximize: 'Maximize',
+    close: 'Close',
+    ready: 'Ready',
+    words: 'Words',
+    chars: 'Chars',
+    lines: 'Lines',
+    untitled: 'Untitled',
+    noHeadings: 'No headings',
+    copy: 'Copy',
+    copied: 'Copied',
+    copyCode: 'Copy code',
+    cut: 'Cut',
+    paste: 'Paste',
+    selectAll: 'Select All',
+    findReplace: 'Find & Replace',
+    find: 'Find',
+    replace: 'Replace',
+    replaceAll: 'Replace All',
+    findNext: 'Next',
+    findPrev: 'Previous',
+    caseSensitive: 'Case Sensitive',
+    regex: 'Regex',
+    matches: ' matches',
+    noMatches: 'No matches',
+    findInPreview: 'Find in Preview',
+    copyAsHTML: 'Copy as HTML',
+    closeTab: 'Close',
+    closeOther: 'Close Others',
+    closeAll: 'Close All',
+    copyFilePath: 'Copy File Path',
+    newFileCreated: 'New file created',
+    opened: 'Opened',
+    openedFiles: 'Opened {n} files',
+    alreadyOpen: 'File already open',
+    saved: 'Saved',
+    savedAs: 'Saved as',
+    saveFailed: 'Save failed',
+    openFailed: 'Open failed',
+    exportFailed: 'Export failed',
+    fileModified: ' has been modified. Save?',
+    saveChanges: 'Save Changes',
+    dontSave: 'Don\'t Save',
+    cancel: 'Cancel',
+    fontSize: 'Font Size',
+    tabSize: 'Tab Size',
+    lineWrap: 'Line Wrap',
+    lineNumbers: 'Line Numbers',
+    previewFontSize: 'Preview Font Size',
+    lineHeight: 'Line Height',
+    maxWidth: 'Max Width',
+    unlimited: 'Unlimited',
+    language: 'Language',
+    behavior: 'Behavior',
+    themeMode: 'Theme Mode',
+    defaultView: 'Default View',
+    scrollSync: 'Scroll Sync',
+    followSystem: 'Follow System',
+    resetDefault: 'Reset Default',
+    done: 'Done',
+    themeSwitched: 'Switched to {theme} theme',
+    scrollTop: 'TOP',
+    collapseEditor: 'Collapse Editor',
+    collapsePreview: 'Collapse Preview',
+    restoreEditor: 'Restore Editor',
+    restorePreview: 'Restore Preview',
+    noteHint: 'Note',
+    tipHint: 'Tip',
+    warningHint: 'Warning',
+    cautionHint: 'Caution',
+    importantHint: 'Important',
+    version: 'Version',
+    contact: 'Contact Us',
+    contactDesc: 'Feedback, bug reports, and community discussion',
+    license: 'License',
+    thirdParty: 'Third-Party Components',
+    copyright: 'Copyright Notice',
+    aboutTitle: 'About TizuMark',
+    versionInfo: 'TizuMark v0.1.0',
+    versionDesc: 'Lightweight cross-platform Markdown editor',
+    buildInfo: 'Built with Tauri v2.5 + Rust',
+    copyrightLine: 'Copyright (c) 2024-2026 TizuMark',
+    proprietary: 'This software is proprietary commercial software. All rights reserved.',
+    noUnauthorized: 'Unauthorized reproduction, modification, distribution, or use of this software is prohibited.',
+    shortcutLabel: { newFile: 'New File', openFile: 'Open File', saveFile: 'Save File', closeTab: 'Close Tab', find: 'Find (Editor)', findReplace: 'Find & Replace', nextTab: 'Next Tab', prevTab: 'Previous Tab', bold: 'Bold', italic: 'Italic', insertLink: 'Insert Link' },
+    modify: 'Modify',
+    clear: 'Clear',
+    none: 'None',
+    pressKeys: 'Press keys...',
+    generatingImg: 'Generating image...',
+    exportedImg: 'Exported image',
+    exportedHTML: 'Exported HTML',
+    editor: 'Editor',
+    previewSection: 'Preview',
+    paneEdit: 'Edit',
+    panePreview: 'Preview',
+    column1: 'Col 1',
+    column2: 'Col 2',
+    column3: 'Col 3',
+    content: 'Content',
+    noteContent: 'Note content',
+    tipContent: 'Tip content',
+    warningContent: 'Warning content',
+    cautionContent: 'Caution content',
+    importantContent: 'Important content',
+    linkText: 'Link text',
+    notSaved: 'File not saved yet',
+    pathCopied: 'File path copied',
+    copyFailed: 'Copy failed',
+    guideSwitchZh: '\n\n> [切换中文](#switch-lang)',
+    guideSwitchEn: '> [Switch to English](#switch-lang)',
+    openedGuide: '已打开使用说明',
+    openedGuideEn: 'Opened User Guide',
+    failedGuide: '打开使用说明失败',
+    failedGuideEn: 'Failed to open guide',
+    switchedZh: '已切换到中文',
+    switchedEn: 'Switched to English',
+    switchFailed: 'Failed to switch language',
+    spaces: 'spaces',
+    settingsReset: 'Settings reset to defaults',
+    shortcutsReset: 'Shortcuts reset to defaults',
+    saveDialogMessage: 'File has been modified. Save?',
+    imageLoadFailed: '[Image failed to load]',
+  }
+};
+
 class MarkdownEditor {
   constructor() {
     this.tabs = [new Tab()];
@@ -56,12 +397,161 @@ class MarkdownEditor {
     this.initOutline();
     this.initContextMenu();
     this.initInsertMenu();
+    this.initTabScroll();
     this.loadTheme();
     this.updatePreview();
     this.applyViewMode();
     this.updateMaximizeIcon();
     this.updateWordCount();
     this.updateSideButtons();
+    this.applyLanguage();
+  }
+
+  t(key, params = {}) {
+    const lang = this.settings.language === 'en' ? 'en' : 'zh';
+    let text = I18N[lang][key];
+    if (text === undefined) {
+      text = I18N.zh[key] || key;
+    }
+    if (text && params) {
+      for (const [k, v] of Object.entries(params)) {
+        text = text.replace('{' + k + '}', v);
+      }
+    }
+    return text;
+  }
+
+  applyLanguage() {
+    const t = (k, p) => this.t(k, p);
+    const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    const setPlaceholder = (id, text) => { const el = document.getElementById(id); if (el) el.placeholder = text; };
+    const setTitle = (id, text) => { const el = document.getElementById(id); if (el) el.title = text; };
+
+    // Toolbar buttons — skip the dropdown-arrow span, target the label span
+    const updateToolbarBtn = (btnId, text) => {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+      const span = btn.querySelector('span:not(.dropdown-arrow)');
+      if (span) span.textContent = text;
+    };
+    updateToolbarBtn('btn-file', t('file'));
+    updateToolbarBtn('btn-insert', t('insert'));
+    updateToolbarBtn('btn-view', t('view'));
+    updateToolbarBtn('btn-help', t('help'));
+
+    // File menu items
+    setText('btn-new', null); document.querySelector('#btn-new span:first-of-type')?.nextElementSibling && (() => { const el = document.querySelector('#btn-new'); if (el) { const spans = el.querySelectorAll('span'); if (spans.length >= 1) spans[0].textContent = t('new'); } })();
+    // Use direct approach for menu items
+    const updateMenuText = (id, text) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const span = el.querySelector('span:not(.shortcut):not(.icon)');
+      if (span) span.textContent = text;
+    };
+
+    updateMenuText('btn-new', t('new'));
+    updateMenuText('btn-open', t('open'));
+    updateMenuText('btn-save', t('save'));
+    updateMenuText('btn-save-as', t('saveAs'));
+    updateMenuText('btn-export-html', t('exportHTML'));
+    updateMenuText('btn-export-img', t('exportImg'));
+    updateMenuText('btn-shortcuts', t('shortcuts'));
+    updateMenuText('btn-settings', t('settings'));
+    updateMenuText('btn-user-guide', t('userGuide'));
+    updateMenuText('btn-about', t('about'));
+
+    // View mode tabs
+    updateMenuText('btn-view-preview', t('preview'));
+    updateMenuText('btn-view-edit', t('edit'));
+
+    // Theme button
+    setText('theme-text', this.isDark ? t('themeDark') : t('themeLight'));
+
+    // Window controls
+    setTitle('btn-minimize', t('minimize'));
+    setTitle('btn-maximize', t('maximize'));
+    setTitle('btn-close', t('close'));
+
+    // Status bar
+    setText('status-text', t('ready'));
+    document.getElementById('word-count').textContent = t('words') + ': 0';
+    document.getElementById('char-count').textContent = t('chars') + ': 0';
+    document.getElementById('line-count').textContent = t('lines') + ': 0';
+
+    // Pane headers & outline
+    document.querySelector('#editor-pane .pane-header span').textContent = t('paneEdit');
+    document.querySelector('#preview-pane .pane-header span').textContent = t('panePreview');
+    setText('outline-header-title', t('outline'));
+
+    // Settings dialog
+    document.querySelector('#settings-dialog .dialog-header h2').textContent = t('settings');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) h3').textContent = t('editor');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(1) label').textContent = t('fontSize');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(2) label').textContent = t('tabSize');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(3) label').textContent = t('lineWrap');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(4) label').textContent = t('lineNumbers');
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) h3').textContent = t('previewSection');
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(1) label').textContent = t('previewFontSize');
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(2) label').textContent = t('lineHeight');
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(3) label').textContent = t('maxWidth');
+    document.querySelector('#settings-dialog .settings-section:nth-child(3) h3').textContent = t('language');
+    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row label').textContent = t('language');
+    document.querySelector('#settings-dialog .settings-section:nth-child(4) h3').textContent = t('behavior');
+    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(1) label').textContent = t('themeMode');
+    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(2) label').textContent = t('defaultView');
+    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(3) label').textContent = t('scrollSync');
+    document.getElementById('settings-reset').textContent = t('resetDefault');
+    document.getElementById('settings-close-btn').textContent = t('done');
+
+    // Update tab bar
+    this.updateTabBar();
+    this.updateWordCount();
+
+    // Side buttons
+    this.applyViewMode();
+
+    // About dialog
+    document.querySelector('#about-dialog .dialog-header h2').textContent = t('aboutTitle');
+    const aboutSections = document.querySelectorAll('#about-dialog .about-section');
+    if (aboutSections.length >= 1) {
+      aboutSections[0].querySelector('h3').textContent = t('version');
+      aboutSections[0].querySelector('p:nth-child(2)').textContent = t('versionInfo');
+      aboutSections[0].querySelector('p:nth-child(3)').textContent = t('versionDesc');
+      aboutSections[0].querySelector('p:nth-child(4)').textContent = t('buildInfo');
+    }
+    if (aboutSections.length >= 2) {
+      aboutSections[1].querySelector('h3').textContent = t('contact');
+      aboutSections[1].querySelector('p:nth-child(3)').textContent = t('contactDesc');
+    }
+    if (aboutSections.length >= 3) {
+      aboutSections[2].querySelector('h3').textContent = t('license');
+      aboutSections[2].querySelector('p:nth-child(2)').textContent = t('copyrightLine');
+      aboutSections[2].querySelector('p:nth-child(3)').textContent = t('proprietary');
+      aboutSections[2].querySelector('p:nth-child(4)').textContent = t('noUnauthorized');
+    }
+    if (aboutSections.length >= 4) {
+      aboutSections[3].querySelector('h3').textContent = t('thirdParty');
+    }
+    if (aboutSections.length >= 5) {
+      aboutSections[4].querySelector('h3').textContent = t('copyright');
+    }
+
+    // Save dialog
+    document.getElementById('save-dialog-title').textContent = t('saveChanges');
+    document.getElementById('save-dialog-save').textContent = t('save');
+    document.getElementById('save-dialog-discard').textContent = t('dontSave');
+    document.getElementById('save-dialog-cancel').textContent = t('cancel');
+
+    // Find panels
+    setPlaceholder('find-input', t('find') + '...');
+    setPlaceholder('replace-input', t('replace') + '...');
+    document.querySelector('#find-panel .find-option:nth-child(2)') && (document.querySelector('#find-panel .find-option:nth-child(2)').childNodes[1] && (document.querySelector('#find-panel .find-option:nth-child(2)').childNodes[1].textContent = ' ' + t('caseSensitive')));
+    document.querySelector('#find-panel .find-option:nth-child(3)') && (document.querySelector('#find-panel .find-option:nth-child(3)').childNodes[1] && (document.querySelector('#find-panel .find-option:nth-child(3)').childNodes[1].textContent = ' ' + t('regex')));
+    document.getElementById('find-next').textContent = t('findNext');
+    document.getElementById('find-prev').textContent = t('findPrev');
+    document.getElementById('replace-one').textContent = t('replace');
+    document.getElementById('replace-all').textContent = t('replaceAll');
+    setPlaceholder('preview-find-input', t('findInPreview') + '...');
   }
 
   loadSettings() {
@@ -171,6 +661,7 @@ class MarkdownEditor {
     document.getElementById('set-language').addEventListener('change', (e) => {
       this.settings.language = e.target.value;
       this.saveSettings();
+      this.applyLanguage();
     });
 
     this.applySettings();
@@ -241,7 +732,7 @@ class MarkdownEditor {
     }
 
     if (headings.length === 0) {
-      outlineContent.innerHTML = '<div class="outline-empty">暂无标题</div>';
+      outlineContent.innerHTML = `<div class="outline-empty">${this.t('noHeadings')}</div>`;
       return;
     }
 
@@ -254,10 +745,12 @@ class MarkdownEditor {
         const id = item.dataset.id;
         const target = this.preview.querySelector(`#${CSS.escape(id)}`);
         if (target) {
-          const top = target.getBoundingClientRect().top
-                  - this.preview.getBoundingClientRect().top
-                  + this.preview.scrollTop;
-          this.preview.scrollTo({ top, behavior: 'smooth' });
+          const previewHeight = this.preview.clientHeight;
+          const targetRect = target.getBoundingClientRect();
+          const previewRect = this.preview.getBoundingClientRect();
+          const top = targetRect.top - previewRect.top + this.preview.scrollTop
+                    - (previewHeight / 2) + (targetRect.height / 2);
+          this.preview.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
         }
         outlineContent.querySelectorAll('.outline-item').forEach(el => el.classList.remove('active'));
         item.classList.add('active');
@@ -387,7 +880,7 @@ class MarkdownEditor {
     document.getElementById('set-language').value = defaults.language;
 
     this.applySettings();
-    this.setStatus('已恢复默认设置');
+    this.setStatus(this.t('settingsReset'));
   }
 
   getDefaultShortcuts() {
@@ -400,6 +893,9 @@ class MarkdownEditor {
       findReplace: { key: 'Ctrl+H', label: '查找和替换' },
       nextTab: { key: 'Ctrl+Tab', label: '下一个标签页' },
       prevTab: { key: 'Ctrl+Shift+Tab', label: '上一个标签页' },
+      bold: { key: 'Ctrl+B', label: '加粗' },
+      italic: { key: 'Ctrl+I', label: '斜体' },
+      insertLink: { key: 'Ctrl+K', label: '插入链接' },
     };
   }
 
@@ -422,7 +918,7 @@ class MarkdownEditor {
     localStorage.removeItem('tizumark-shortcuts');
     this.renderShortcutsList();
     this.applyShortcuts();
-    this.setStatus('已恢复默认快捷键');
+    this.setStatus(this.t('shortcutsReset'));
   }
 
   formatShortcutDisplay(key) {
@@ -432,15 +928,19 @@ class MarkdownEditor {
 
   renderShortcutsList() {
     const container = document.getElementById('shortcuts-list');
+    const labels = this.t('shortcutLabel');
     const actions = [
-      { id: 'newFile', label: '新建文件' },
-      { id: 'openFile', label: '打开文件' },
-      { id: 'saveFile', label: '保存文件' },
-      { id: 'closeTab', label: '关闭标签页' },
-      { id: 'find', label: '查找' },
-      { id: 'findReplace', label: '查找和替换' },
-      { id: 'nextTab', label: '下一个标签页' },
-      { id: 'prevTab', label: '上一个标签页' },
+      { id: 'newFile', label: labels.newFile },
+      { id: 'openFile', label: labels.openFile },
+      { id: 'saveFile', label: labels.saveFile },
+      { id: 'closeTab', label: labels.closeTab },
+      { id: 'find', label: labels.find },
+      { id: 'findReplace', label: labels.findReplace },
+      { id: 'nextTab', label: labels.nextTab },
+      { id: 'prevTab', label: labels.prevTab },
+      { id: 'bold', label: labels.bold || 'Bold' },
+      { id: 'italic', label: labels.italic || 'Italic' },
+      { id: 'insertLink', label: labels.insertLink || 'Insert Link' },
     ];
 
     container.innerHTML = actions.map(action => {
@@ -557,6 +1057,9 @@ class MarkdownEditor {
       closeTab: () => this.closeTab(this.activeTabIndex),
       find: () => this.toggleFindPanel(),
       findReplace: () => this.toggleFindPanel(true),
+      bold: () => this.wrapSelection('**', '**'),
+      italic: () => this.wrapSelection('*', '*'),
+      insertLink: () => this.insertAtCursor('[链接文本](https://example.com)', 1),
     };
 
     const extraKeys = this.cm.getOption('extraKeys');
@@ -699,7 +1202,7 @@ class MarkdownEditor {
 
     const tab = this.tabs[index];
     if (tab.isModified) {
-      const result = await this.showSaveDialog('保存更改', `${tab.name} 已修改，是否保存？`);
+      const result = await this.showSaveDialog(this.t('saveChanges'), `${tab.name} ${this.t('fileModified')}`);
       if (result === 'cancel') return;
       if (result === 'save') {
         const savedIndex = this.tabs.indexOf(tab);
@@ -763,6 +1266,8 @@ class MarkdownEditor {
 
     tabBar.replaceChildren(fragment);
     if (addBtn) tabBar.appendChild(addBtn);
+    // Refresh scroll arrows after tabs change
+    if (this.updateTabScrollArrows) this.updateTabScrollArrows();
   }
 
   updateTabDisplay() {
@@ -1351,10 +1856,12 @@ class MarkdownEditor {
       if (href.startsWith('#')) {
         const target = this.preview.querySelector(href);
         if (target) {
-          const top = target.getBoundingClientRect().top
-                  - this.preview.getBoundingClientRect().top
-                  + this.preview.scrollTop;
-          this.preview.scrollTo({ top, behavior: 'smooth' });
+          const previewHeight = this.preview.clientHeight;
+          const targetRect = target.getBoundingClientRect();
+          const previewRect = this.preview.getBoundingClientRect();
+          const top = targetRect.top - previewRect.top + this.preview.scrollTop
+                    - (previewHeight / 2) + (targetRect.height / 2);
+          this.preview.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
         }
         return;
       }
@@ -1407,9 +1914,9 @@ class MarkdownEditor {
             this.addTab(name, content, filePath);
             this.updateWordCount();
             this.updateOutline();
-            this.setStatus(`已打开: ${name}`);
+            this.setStatus(`${this.t('opened')}: ${name}`);
           } catch (err) {
-            this.setStatus(`打开失败: ${err}`);
+            this.setStatus(`${this.t('openFailed')}: ${err}`);
           }
         }
       });
@@ -1446,9 +1953,9 @@ class MarkdownEditor {
               reader.readAsText(file);
             });
             this.addTab(file.name, content, null);
-            this.setStatus(`已打开: ${file.name}`);
+            this.setStatus(`${this.t('opened')}: ${file.name}`);
           } catch (err) {
-            this.setStatus(`打开失败: ${err}`);
+            this.setStatus(`${this.t('openFailed')}: ${err}`);
           }
         }
       });
@@ -1458,8 +1965,8 @@ class MarkdownEditor {
   showSaveDialog(title, message) {
     return new Promise((resolve) => {
       const dialog = document.getElementById('save-dialog');
-      document.getElementById('save-dialog-title').textContent = title;
-      document.getElementById('save-dialog-message').textContent = message;
+      document.getElementById('save-dialog-title').textContent = title || this.t('saveChanges');
+      document.getElementById('save-dialog-message').textContent = message || this.t('saveDialogMessage');
       dialog.classList.remove('hidden');
 
       const onSave = async () => {
@@ -1488,14 +1995,10 @@ class MarkdownEditor {
     });
   }
 
-  async newFile() {
-    if (this.activeTab.isModified) {
-      const result = await this.showSaveDialog('保存更改', `${this.activeTab.name} 已修改，是否保存？`);
-      if (result === 'cancel') return;
-    }
+  newFile() {
     this.setViewMode('edit');
-    this.addTab('未命名', '', null);
-    this.setStatus('新文件已创建');
+    this.addTab(this.t('untitled'), '', null);
+    this.setStatus(this.t('newFileCreated'));
   }
 
   async openFile() {
@@ -1526,9 +2029,9 @@ class MarkdownEditor {
       this.viewMode = 'preview';
       this.applyViewMode();
       this.updateWordCount();
-      this.setStatus(openedCount > 0 ? `已打开 ${openedCount} 个文件` : '文件已在打开中');
+      this.setStatus(openedCount > 0 ? this.t('openedFiles', { n: openedCount }) : this.t('alreadyOpen'));
     } catch (error) {
-      this.setStatus(`打开失败: ${error}`);
+      this.setStatus(`${this.t('openFailed')}: ${error}`);
     }
   }
 
@@ -1549,9 +2052,9 @@ class MarkdownEditor {
       await invoke('write_file', { path: this.activeTab.filePath, content: this.activeTab.content });
       this.activeTab.savedContent = this.activeTab.content;
       this.updateTabDisplay();
-      this.setStatus(`已保存: ${this.activeTab.filePath}`);
+      this.setStatus(`${this.t('saved')}: ${this.activeTab.filePath}`);
     } catch (error) {
-      this.setStatus(`保存失败: ${error}`);
+      this.setStatus(`${this.t('saveFailed')}: ${error}`);
     }
   }
 
@@ -1571,9 +2074,9 @@ class MarkdownEditor {
       this.activeTab.name = path.split(/[/\\]/).pop();
       this.activeTab.savedContent = this.activeTab.content;
       this.updateTabBar();
-      this.setStatus(`已另存为: ${path}`);
+      this.setStatus(`${this.t('savedAs')}: ${path}`);
     } catch (error) {
-      this.setStatus(`保存失败: ${error}`);
+      this.setStatus(`${this.t('saveFailed')}: ${error}`);
     }
   }
 
@@ -1617,21 +2120,21 @@ ${htmlContent}
 </html>`;
 
       await invoke('write_file', { path, content: fullHTML });
-      this.setStatus(`已导出 HTML: ${path}`);
+      this.setStatus(`${this.t('exportedHTML')}: ${path}`);
     } catch (error) {
-      this.setStatus(`导出失败: ${error}`);
+      this.setStatus(`${this.t('exportFailed')}: ${error}`);
     }
   }
 
   async exportImage() {
     if (typeof html2canvas === 'undefined') {
-      this.setStatus('导出失败: html2canvas 未加载');
+      this.setStatus(`${this.t('exportFailed')}: html2canvas not loaded`);
       return;
     }
 
     let clone = null;
     try {
-      this.setStatus('正在生成长图...');
+      this.setStatus(this.t('generatingImg'));
 
       clone = this.preview.cloneNode(true);
       clone.style.position = 'fixed';
@@ -1661,7 +2164,7 @@ ${htmlContent}
           img.src = `data:${mime};base64,${base64}`;
         } catch (e) {
           img.style.border = '1px solid red';
-          img.alt = '[图片加载失败]';
+          img.alt = this.t('imageLoadFailed');
         }
       });
 
@@ -1697,9 +2200,9 @@ ${htmlContent}
       const arr = Array.from(bytes);
       await invoke('write_binary_file', { path: result, contents: arr });
 
-      this.setStatus(`已导出长图: ${result}`);
+      this.setStatus(`${this.t('exportedImg')}: ${result}`);
     } catch (error) {
-      this.setStatus(`导出失败: ${error}`);
+      this.setStatus(`${this.t('exportFailed')}: ${error}`);
     } finally {
       if (clone && clone.parentNode) {
         clone.parentNode.removeChild(clone);
@@ -1735,6 +2238,7 @@ ${htmlContent}
 
       // Each processing step is independently guarded so one failure
       // never cascades and destroys the rest of the preview.
+      try { await this.processImages(); } catch (e) { console.warn('[preview] Images error:', e); }
       try { this.processEmojiShortcodes(); } catch (e) { console.warn('[preview] Emoji error:', e); }
       try { this.processDisplayMath(); } catch (e) { console.warn('[preview] Display math error:', e); }
       try { this.processInlineMath(); } catch (e) { console.warn('[preview] Inline math error:', e); }
@@ -1753,6 +2257,35 @@ ${htmlContent}
       const msg = String(error).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       this.preview.innerHTML = `<p style="color: red;">预览错误: ${msg}</p>`;
     }
+  }
+
+  async processImages() {
+    const filePath = this.activeTab.filePath;
+    if (!filePath) return;
+    const dir = filePath.replace(/[/\\][^/\\]*$/, '');
+    const images = this.preview.querySelectorAll('img');
+    const promises = Array.from(images).map(async (img) => {
+      let src = img.getAttribute('src');
+      if (!src || src.startsWith('data:') || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('file://')) return;
+      // Resolve relative path against the markdown file's directory
+      if (src.startsWith('/')) {
+        src = src.slice(1);
+      }
+      const absPath = dir + '/' + src;
+      try {
+        const base64 = await invoke('fetch_image_as_base64', { url: absPath });
+        const ext = src.split('.').pop().toLowerCase();
+        let mime = 'image/png';
+        if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
+        else if (ext === 'gif') mime = 'image/gif';
+        else if (ext === 'svg') mime = 'image/svg+xml';
+        else if (ext === 'webp') mime = 'image/webp';
+        img.src = `data:${mime};base64,${base64}`;
+      } catch (e) {
+        console.warn('[preview] Failed to load image:', absPath, e);
+      }
+    });
+    await Promise.allSettled(promises);
   }
 
   processEmojiShortcodes() {
@@ -1922,18 +2455,18 @@ ${htmlContent}
 
       const btn = document.createElement('button');
       btn.className = 'copy-btn';
-      btn.textContent = '复制';
-      btn.title = '复制代码';
+      btn.textContent = this.t('copy');
+      btn.title = this.t('copyCode');
 
       btn.addEventListener('click', async () => {
         const code = pre.querySelector('code');
         const text = code ? code.textContent : pre.textContent;
         try {
           await navigator.clipboard.writeText(text);
-          btn.textContent = '已复制';
+          btn.textContent = this.t('copied');
           btn.classList.add('copied');
           setTimeout(() => {
-            btn.textContent = '复制';
+            btn.textContent = this.t('copy');
             btn.classList.remove('copied');
           }, 2000);
         } catch (err) {
@@ -1943,10 +2476,10 @@ ${htmlContent}
           textarea.select();
           document.execCommand('copy');
           document.body.removeChild(textarea);
-          btn.textContent = '已复制';
+          btn.textContent = this.t('copied');
           btn.classList.add('copied');
           setTimeout(() => {
-            btn.textContent = '复制';
+            btn.textContent = this.t('copy');
             btn.classList.remove('copied');
           }, 2000);
         }
@@ -1961,7 +2494,7 @@ ${htmlContent}
     this.statusText.textContent = text;
     setTimeout(() => {
       if (this.statusText.textContent === text) {
-        this.statusText.textContent = '就绪';
+        this.statusText.textContent = this.t('ready');
       }
     }, 3000);
   }
@@ -1972,9 +2505,9 @@ ${htmlContent}
     const words = text ? text.split(/\s+/).length : 0;
     const chars = content.length;
     const lines = content ? content.split('\n').length : 0;
-    this.wordCountEl.textContent = `字数: ${words}`;
-    this.charCountEl.textContent = `字符: ${chars}`;
-    this.lineCountEl.textContent = `行数: ${lines}`;
+    this.wordCountEl.textContent = `${this.t('words')}: ${words}`;
+    this.charCountEl.textContent = `${this.t('chars')}: ${chars}`;
+    this.lineCountEl.textContent = `${this.t('lines')}: ${lines}`;
   }
 
   toggleTheme() {
@@ -1997,7 +2530,7 @@ ${htmlContent}
         : 'lib/highlight.js/github.min.css';
     }
     
-    this.setStatus(`已切换到${this.isDark ? '深色' : '浅色'}主题`);
+    this.setStatus(this.t('themeSwitched', { theme: this.isDark ? this.t('themeDark') : this.t('themeLight') }));
   }
 
   updateThemeIcon() {
@@ -2006,10 +2539,10 @@ ${htmlContent}
     if (!svg) return;
     if (this.isDark) {
       svg.innerHTML = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>';
-      if (text) text.textContent = '暗黑';
+      if (text) text.textContent = this.t('themeDark');
     } else {
       svg.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';
-      if (text) text.textContent = '明亮';
+      if (text) text.textContent = this.t('themeLight');
     }
   }
 
@@ -2140,17 +2673,17 @@ ${htmlContent}
       if (!resp.ok) throw new Error(resp.statusText);
       const content = await resp.text();
       const langLink = isEn
-        ? '\n\n> [切换中文](#switch-lang)\n'
-        : '\n\n> [Switch to English](#switch-lang)\n';
+        ? this.t('guideSwitchZh')
+        : this.t('guideSwitchEn');
       const fullContent = content + langLink;
       this.addTab(tabName, fullContent, null);
       this.activeTab.savedContent = fullContent;
       this.activeTab.isGuide = true;
       this.updateTabDisplay();
       this.setupGuideLangLink();
-      this.setStatus(isEn ? 'Opened User Guide' : '已打开使用说明');
+      this.setStatus(isEn ? this.t('openedGuideEn') : this.t('openedGuide'));
     } catch (error) {
-      this.setStatus(isEn ? 'Failed to open guide' : `打开使用说明失败: ${error}`);
+      this.setStatus(isEn ? this.t('failedGuideEn') : `${this.t('failedGuide')}: ${error}`);
     }
   }
 
@@ -2178,8 +2711,8 @@ ${htmlContent}
       if (!resp.ok) throw new Error(resp.statusText);
       const content = await resp.text();
       const langLink = newLang === 'en'
-        ? '\n\n> [切换中文](#switch-lang)\n'
-        : '\n\n> [Switch to English](#switch-lang)\n';
+        ? this.t('guideSwitchZh')
+        : this.t('guideSwitchEn');
       const fullContent = content + langLink;
       currentTab.name = newTabName;
       currentTab.content = fullContent;
@@ -2189,9 +2722,9 @@ ${htmlContent}
       this.updateTabDisplay();
       this.updatePreview();
       this.setupGuideLangLink();
-      this.setStatus(newLang === 'en' ? 'Switched to English' : '已切换到中文');
+      this.setStatus(newLang === 'en' ? this.t('switchedEn') : this.t('switchedZh'));
     } catch (error) {
-      this.setStatus(`切换语言失败: ${error}`);
+      this.setStatus(`${this.t('switchFailed')}: ${error}`);
     }
   }
 
@@ -2559,15 +3092,31 @@ ${htmlContent}
     if (index < 0 || index >= this.tabs.length) return;
     const tab = this.tabs[index];
     if (!tab.filePath) {
-      this.setStatus('该文件尚未保存');
+      this.setStatus(this.t('notSaved'));
       return;
     }
     try {
       await navigator.clipboard.writeText(tab.filePath);
-      this.setStatus('已复制文件路径');
+      this.setStatus(this.t('pathCopied'));
     } catch {
-      this.setStatus('复制失败');
+      this.setStatus(this.t('copyFailed'));
     }
+  }
+
+  async handleAppClose() {
+    const { getCurrentWindow } = window.__TAURI__.window;
+    for (let i = 0; i < this.tabs.length; i++) {
+      const tab = this.tabs[i];
+      if (!tab.isModified) continue;
+      this.switchTab(i);
+      await new Promise(r => setTimeout(r, 50));
+      const result = await this.showSaveDialog(
+        this.t('saveChanges'),
+        `${tab.name}${tab.filePath ? ' (' + tab.filePath + ')' : ''} ${this.t('fileModified')}`
+      );
+      if (result === 'cancel') return;
+    }
+    await getCurrentWindow().close();
   }
 
   // ========== 顶部插入菜单 ==========
@@ -2671,6 +3220,58 @@ ${htmlContent}
       });
     });
   }
+
+  // ========== 标签栏滚动 ==========
+
+  initTabScroll() {
+    this.scrollContainer = document.getElementById('tab-bar-scroll');
+    this.scrollLeftBtn = document.getElementById('tab-scroll-left');
+    this.scrollRightBtn = document.getElementById('tab-scroll-right');
+
+    if (!this.scrollContainer) return;
+
+    const updateArrows = () => {
+      const maxScroll = this.scrollContainer.scrollWidth - this.scrollContainer.clientWidth;
+      if (maxScroll <= 1) {
+        this.scrollLeftBtn.classList.add('hidden');
+        this.scrollRightBtn.classList.add('hidden');
+      } else {
+        this.scrollLeftBtn.classList.toggle('hidden', this.scrollContainer.scrollLeft <= 1);
+        this.scrollRightBtn.classList.toggle('hidden', this.scrollContainer.scrollLeft >= maxScroll - 1);
+      }
+    };
+
+    this.scrollContainer.addEventListener('scroll', updateArrows, { passive: true });
+
+    this.scrollContainer.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        this.scrollContainer.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    this.scrollLeftBtn.addEventListener('click', () => {
+      this.scrollContainer.scrollBy({ left: -200, behavior: 'smooth' });
+    });
+
+    this.scrollRightBtn.addEventListener('click', () => {
+      this.scrollContainer.scrollBy({ left: 200, behavior: 'smooth' });
+    });
+
+    // Update arrows after tab bar changes or window resize
+    const observer = new ResizeObserver(updateArrows);
+    observer.observe(this.scrollContainer);
+
+    // Also observe the tab bar itself for changes when tabs are added/removed
+    const tabBar = document.getElementById('tab-bar');
+    if (tabBar) {
+      const tabObserver = new ResizeObserver(updateArrows);
+      tabObserver.observe(tabBar);
+    }
+
+    // Store updateArrows for external calls (e.g. after updateTabBar)
+    this.updateTabScrollArrows = updateArrows;
+  }
 }
 
 function initEula() {
@@ -2708,6 +3309,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   await initEula();
 
   window.editor = new MarkdownEditor();
+
+  // 关闭窗口前检查未保存文件
+  await window.__TAURI__.event.listen('close-requested', async () => {
+    await window.editor.handleAppClose();
+  });
 
   // 当系统已有一个 TizuMark 实例运行时，再次双击 .md 文件会在当前窗口打开新标签页
   await window.__TAURI__.event.listen('file-open', async (event) => {
