@@ -407,6 +407,23 @@ class MarkdownEditor {
     this.applyLanguage();
   }
 
+  showLoading() {
+    this._loadingStart = Date.now();
+    const overlay = document.getElementById('loading-overlay');
+    overlay.classList.remove('hidden');
+    // 强制浏览器重绘，确保遮罩层在后续阻塞操作前已渲染
+    overlay.offsetHeight;
+  }
+
+  async hideLoading() {
+    const elapsed = Date.now() - (this._loadingStart || 0);
+    const minDuration = 200;
+    if (elapsed < minDuration) {
+      await new Promise(r => setTimeout(r, minDuration - elapsed));
+    }
+    document.getElementById('loading-overlay').classList.add('hidden');
+  }
+
   t(key, params = {}) {
     const lang = this.settings.language === 'en' ? 'en' : 'zh';
     let text = I18N[lang][key];
@@ -1901,23 +1918,28 @@ class MarkdownEditor {
 
       window.__TAURI__.event.listen('tauri://drag-drop', async (event) => {
         app.classList.remove('drag-over');
-        const paths = event.payload.paths || [];
-        for (const filePath of paths) {
-          try {
-            const content = await invoke('read_file', { path: filePath });
-            const name = filePath.split(/[/\\]/).pop();
-            const existingIndex = this.tabs.findIndex(t => t.filePath === filePath);
-            if (existingIndex !== -1) {
-              this.switchTab(existingIndex);
-              continue;
+        this.showLoading();
+        try {
+          const paths = event.payload.paths || [];
+          for (const filePath of paths) {
+            try {
+              const content = await invoke('read_file', { path: filePath });
+              const name = filePath.split(/[/\\]/).pop();
+              const existingIndex = this.tabs.findIndex(t => t.filePath === filePath);
+              if (existingIndex !== -1) {
+                this.switchTab(existingIndex);
+                continue;
+              }
+              this.addTab(name, content, filePath);
+              this.updateWordCount();
+              this.updateOutline();
+              this.setStatus(`${this.t('opened')}: ${name}`);
+            } catch (err) {
+              this.setStatus(`${this.t('openFailed')}: ${err}`);
             }
-            this.addTab(name, content, filePath);
-            this.updateWordCount();
-            this.updateOutline();
-            this.setStatus(`${this.t('opened')}: ${name}`);
-          } catch (err) {
-            this.setStatus(`${this.t('openFailed')}: ${err}`);
           }
+        } finally {
+          this.hideLoading();
         }
       });
 
@@ -2002,6 +2024,7 @@ class MarkdownEditor {
   }
 
   async openFile() {
+    this.showLoading();
     try {
       const selected = await dialogOpen({
         multiple: true,
@@ -2032,6 +2055,8 @@ class MarkdownEditor {
       this.setStatus(openedCount > 0 ? this.t('openedFiles', { n: openedCount }) : this.t('alreadyOpen'));
     } catch (error) {
       this.setStatus(`${this.t('openFailed')}: ${error}`);
+    } finally {
+      this.hideLoading();
     }
   }
 
@@ -3320,24 +3345,29 @@ window.addEventListener('DOMContentLoaded', async () => {
     const args = event.payload;
     if (!args || args.length === 0) return;
 
-    for (const filePath of args) {
-      if (filePath.startsWith('-')) continue;
+    window.editor.showLoading();
+    try {
+      for (const filePath of args) {
+        if (filePath.startsWith('-')) continue;
 
-      const existingIndex = window.editor.tabs.findIndex(t => t.filePath === filePath);
-      if (existingIndex !== -1) {
-        window.editor.switchTab(existingIndex);
-        continue;
+        const existingIndex = window.editor.tabs.findIndex(t => t.filePath === filePath);
+        if (existingIndex !== -1) {
+          window.editor.switchTab(existingIndex);
+          continue;
+        }
+        try {
+          const content = await invoke('read_file', { path: filePath });
+          const name = filePath.split(/[/\\]/).pop();
+          window.editor.addTab(name, content, filePath);
+          window.editor.updateWordCount();
+          window.editor.updateOutline();
+          window.editor.setStatus(`已打开: ${name}`);
+        } catch (_) {
+          // 文件不存在或无法访问，静默忽略
+        }
       }
-      try {
-        const content = await invoke('read_file', { path: filePath });
-        const name = filePath.split(/[/\\]/).pop();
-        window.editor.addTab(name, content, filePath);
-        window.editor.updateWordCount();
-        window.editor.updateOutline();
-        window.editor.setStatus(`已打开: ${name}`);
-      } catch (_) {
-        // 文件不存在或无法访问，静默忽略
-      }
+    } finally {
+      window.editor.hideLoading();
     }
 
     try {

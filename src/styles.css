@@ -22,7 +22,7 @@
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.18);
   --heading-color: var(--text-primary);
   --heading-h2-color: #1e1e22;
-  --heading-h1-color: var(--accent-color);
+  --heading-h1-color: var(--text-primary);
   --toc-bg: linear-gradient(135deg, #eff3ff 0%, #e8effe 100%);
   --toc-border: #d0d9f0;
   --scrollbar-track: #f6f5f4;
@@ -56,7 +56,7 @@
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.45);
   --heading-color: var(--text-primary);
   --heading-h2-color: #c0c0c6;
-  --heading-h1-color: var(--accent-color);
+  --heading-h1-color: var(--text-primary);
   --toc-bg: linear-gradient(135deg, #1c2333 0%, #182130 100%);
   --toc-border: #2a3448;
   --scrollbar-track: #1a1b1e;
@@ -1968,4 +1968,44 @@ body.is-resizing .preview-pane {
   .dropdown-arrow {
     display: none;
   }
+}
+
+/* ========== 加载遮罩 ========== */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: wait;
+}
+.loading-overlay.hidden {
+  display: none;
+}
+.loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 32px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+}
+.loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+.loading-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
