@@ -2659,6 +2659,9 @@ ${htmlContent}
       this.syncingScroll = true;
       this.preview.innerHTML = finalHtml;
 
+      const blocks = this.parseBlocks(content);
+      this.buildLinePositionMap(blocks);
+
       this.preview.querySelectorAll('details:not([open])').forEach(el => el.open = true);
 
       try { await this.processImages(); } catch (e) { console.warn('[preview] Images error:', e); }
@@ -2679,26 +2682,14 @@ ${htmlContent}
         } catch (e) { console.warn('[preview] HLJS error:', e); }
       }
 
-      // Set scroll position after all async content loads (images/mermaid may change height)
-      if (this.settings.scrollSync) {
-        const content = this.activeTab.content;
-        const lines = content.split('\n');
+      // 基于块位置映射恢复滚动位置
+      if (this.settings.scrollSync && this._linePositions.length > 1) {
         const info = this.cm.getScrollInfo();
         const viewportCenter = info.top + info.clientHeight / 2;
         const centerLine = this.cm.lineAtHeight(viewportCenter);
-        let charPos = 0;
-        for (let i = 0; i < centerLine && i < lines.length; i++) {
-          charPos += lines[i].length + 1;
-        }
-        if (centerLine < lines.length) {
-          const lineCoords = this.cm.charCoords({ line: centerLine, ch: 0 }, 'local');
-          const lineH = (lineCoords.bottom - lineCoords.top) || 1;
-          const inLineFrac = Math.max(0, Math.min(1, (viewportCenter - lineCoords.top) / lineH));
-          charPos += lines[centerLine].length * inLineFrac;
-        }
-        const charFraction = content.length > 0 ? Math.min(charPos / content.length, 1) : 0;
+        const previewTop = this.getPreviewTopForLine(centerLine);
         const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
-        this.preview.scrollTop = charFraction * previewMax;
+        this.preview.scrollTop = Math.min(previewTop, previewMax);
       } else {
         const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
         if (this.preview.scrollTop > maxScroll) this.preview.scrollTop = maxScroll;
