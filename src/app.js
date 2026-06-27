@@ -1316,25 +1316,12 @@ class MarkdownEditor {
       if (container.classList.contains('preview-collapsed') || container.classList.contains('preview-mode')) return;
       this.syncingScroll = true;
 
-      // 基于字符位置的滚动同步：预览滚动分数 → 编辑器对应行居中
-      const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 1);
-      const scrollFraction = Math.min(this.preview.scrollTop / previewMax, 1);
-      const content = this.activeTab.content;
-      const lines = content.split('\n');
-      const targetCharPos = scrollFraction * content.length;
-      let runningPos = 0;
-      for (let i = 0; i < lines.length; i++) {
-        const lineLen = lines[i].length + 1;
-        if (runningPos + lineLen > targetCharPos || i === lines.length - 1) {
-          const scrollInfo = this.cm.getScrollInfo();
-          const lineCoords = this.cm.charCoords({ line: i, ch: 0 }, 'local');
-          const lineH = (lineCoords.bottom - lineCoords.top) || 1;
-          const targetScroll = lineCoords.top - scrollInfo.clientHeight / 2 + lineH / 2;
-          this.cm.scrollTo(0, Math.max(0, targetScroll));
-          break;
-        }
-        runningPos += lineLen;
-      }
+      const targetLine = this.getLineForPreviewTop(this.preview.scrollTop);
+      const scrollInfo = this.cm.getScrollInfo();
+      const maxLine = this.cm.lineCount() - 1;
+      const lineCoords = this.cm.charCoords({ line: Math.min(targetLine, maxLine), ch: 0 }, 'local');
+      const lineH = (lineCoords.bottom - lineCoords.top) || 1;
+      this.cm.scrollTo(0, Math.max(0, lineCoords.top - scrollInfo.clientHeight / 2 + lineH / 2));
 
       requestAnimationFrame(() => { this.syncingScroll = false; });
     });
