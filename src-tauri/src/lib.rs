@@ -1393,3 +1393,19 @@ $$\n\
         assert!(html.contains("$$"), "Math $$ should be preserved");
         assert!(!html.contains("<p>$$"), "Math block should NOT be wrapped in <p>");
     }
+
+    #[test]
+    fn test_full_demo_md_for_code_wrap() {
+        let content = std::fs::read_to_string("../demo.md")
+            .expect("Could not read demo.md");
+        let html = render_markdown(content);
+        // Check for <code> immediately before $$
+        let count = html.match_indices("<code>$$").count();
+        eprintln!("Found {count} occurrences of '<code>$$' in full demo.md output");
+        // Also check the specific complexity formula
+        if html.contains("<code>\n$$\nO(1)") || html.contains("<code>$$\nO(1)") {
+            eprintln!("BUG: Complexity formula is wrapped in <code>!");
+        } else {
+            eprintln!("OK: Complexity formula is NOT wrapped in <code>");
+        }
+    }

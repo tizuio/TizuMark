@@ -2287,6 +2287,14 @@ ${htmlContent}
       this.syncingScroll = true;
       this.preview.innerHTML = finalHtml;
 
+      // DEBUG: check if complexity formula is in <code> right after innerHTML
+      const codeNodes = this.preview.querySelectorAll('code');
+      codeNodes.forEach(c => {
+        if (c.textContent.includes('O(1) < O(\\log n)')) {
+          console.warn('[DEBUG] Formula IS inside <code> after innerHTML! code parent:', c.parentElement?.tagName);
+        }
+      });
+
       // 默认展开所有 <details>
       this.preview.querySelectorAll('details:not([open])').forEach(el => el.open = true);
 
