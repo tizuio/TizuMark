@@ -1861,6 +1861,11 @@ body.is-resizing .preview-pane {
   z-index: 1000;
 }
 
+/* 保存确认对话框必须在其他对话框之上 */
+#save-dialog.dialog-overlay {
+  z-index: 1001;
+}
+
 .dialog-overlay.hidden {
   display: none;
 }

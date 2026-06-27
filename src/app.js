@@ -891,8 +891,10 @@ class MarkdownEditor {
     if (typeof mermaid === 'undefined') return;
     const containers = this.preview.querySelectorAll('.mermaid-container');
     if (containers.length === 0) return;
+    const codes = [];
     containers.forEach(container => {
       const code = container.getAttribute('data-code') || container.textContent;
+      codes.push(code);
       container.setAttribute('data-code', code);
       container.innerHTML = '';
       container.textContent = code;
@@ -907,6 +909,12 @@ class MarkdownEditor {
       await mermaid.run({ nodes: Array.from(containers) });
     } catch (e) {
       console.error('Mermaid re-render error:', e);
+      // 渲染失败时保留源码，避免空白
+      containers.forEach((container, i) => {
+        if (!container.querySelector('svg')) {
+          container.textContent = codes[i] || '';
+        }
+      });
     }
   }
 
@@ -956,6 +964,7 @@ class MarkdownEditor {
     document.getElementById('set-language').value = defaults.language;
 
     this.applySettings();
+    await this.rerenderMermaid();
     this.setStatus(this.t('settingsReset'));
   }
 
