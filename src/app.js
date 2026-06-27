@@ -137,6 +137,11 @@ const I18N = {
     done: '完成',
     confirm: '确认',
     themeSwitched: '已切换到{theme}主题',
+    basic: '基本',
+    fontScheme: '字体方案',
+    fontSchemeSystemSans: '系统无衬线',
+    fontSchemeReadingSans: '阅读无衬线',
+    fontSchemeClassicSerif: '经典衬线',
     scrollTop: 'TOP',
     collapseEditor: '折叠编辑器',
     collapsePreview: '折叠预览',
@@ -318,6 +323,11 @@ const I18N = {
     done: 'Done',
     confirm: 'Confirm',
     themeSwitched: 'Switched to {theme} theme',
+    basic: 'Basic',
+    fontScheme: 'Font Scheme',
+    fontSchemeSystemSans: 'System Sans',
+    fontSchemeReadingSans: 'Reading Sans',
+    fontSchemeClassicSerif: 'Classic Serif',
     scrollTop: 'TOP',
     collapseEditor: 'Collapse Editor',
     collapsePreview: 'Collapse Preview',
@@ -426,6 +436,7 @@ class MarkdownEditor {
     this.initInsertMenu();
     this.initTabScroll();
     this.loadTheme();
+    this.applyFontScheme();
     this.updatePreview();
     this.applyViewMode();
     this.updateMaximizeIcon();
@@ -539,22 +550,27 @@ class MarkdownEditor {
 
     // Settings dialog
     document.querySelector('#settings-dialog .dialog-header h2').textContent = t('settings');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) h3').textContent = t('editor');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(1) label').textContent = t('fontSize');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(2) label').textContent = t('tabSize');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(3) label').textContent = t('lineWrap');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(4) label').textContent = t('lineNumbers');
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) h3').textContent = t('previewSection');
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(1) label').textContent = t('previewFontSize');
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(2) label').textContent = t('lineHeight');
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(3) label').textContent = t('maxWidth');
-    document.querySelector('#settings-dialog .settings-section:nth-child(3) h3').textContent = t('language');
-    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row label').textContent = t('language');
+    // 基本
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) h3').textContent = t('basic');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(1) label').textContent = t('language');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(2) label').textContent = t('themeMode');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(3) label').textContent = t('colorScheme');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(4) label').textContent = t('fontScheme');
+    // 编辑器
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) h3').textContent = t('editor');
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(1) label').textContent = t('fontSize');
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(2) label').textContent = t('tabSize');
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(3) label').textContent = t('lineWrap');
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(4) label').textContent = t('lineNumbers');
+    // 预览
+    document.querySelector('#settings-dialog .settings-section:nth-child(3) h3').textContent = t('previewSection');
+    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row:nth-child(1) label').textContent = t('previewFontSize');
+    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row:nth-child(2) label').textContent = t('lineHeight');
+    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row:nth-child(3) label').textContent = t('maxWidth');
+    // 行为
     document.querySelector('#settings-dialog .settings-section:nth-child(4) h3').textContent = t('behavior');
-    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(1) label').textContent = t('themeMode');
-    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(2) label').textContent = t('colorScheme');
-    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(3) label').textContent = t('defaultView');
-    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(4) label').textContent = t('scrollSync');
+    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(1) label').textContent = t('defaultView');
+    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(2) label').textContent = t('scrollSync');
     document.getElementById('settings-reset').textContent = t('resetDefault');
     document.getElementById('settings-cancel-btn').textContent = t('cancel');
     document.getElementById('settings-save-btn').textContent = t('save');
@@ -565,10 +581,17 @@ class MarkdownEditor {
     const csSelect = document.getElementById('set-color-scheme');
     if (csSelect) {
       csSelect.options[0].text = t('schemeDefault');
-      csSelect.options[1].text = t('schemeForest');
-      csSelect.options[2].text = t('schemeNord');
-      csSelect.options[3].text = t('schemeDusk');
-      csSelect.options[4].text = t('schemeSunset');
+      csSelect.options[1].text = t('schemeSunset');
+      csSelect.options[2].text = t('schemeForest');
+      csSelect.options[3].text = t('schemeNord');
+      csSelect.options[4].text = t('schemeDusk');
+    }
+    // Update font scheme options text
+    const fsSelect = document.getElementById('set-font-scheme');
+    if (fsSelect) {
+      fsSelect.options[0].text = t('fontSchemeSystemSans');
+      fsSelect.options[1].text = t('fontSchemeReadingSans');
+      fsSelect.options[2].text = t('fontSchemeClassicSerif');
     }
 
     // Update tab bar
@@ -633,12 +656,24 @@ class MarkdownEditor {
       maxWidth: 0,
       themeMode: 'light',
       colorScheme: 'default',
+      fontScheme: 'system-sans',
       defaultView: 'preview',
       scrollSync: true,
       language: 'zh',
     };
     try {
       const saved = JSON.parse(localStorage.getItem('tizumark-settings'));
+      // 向后兼容：旧版本没有 fontScheme 时，从配色方案推断
+      if (saved && saved.fontScheme === undefined) {
+        const colorSchemeFontMap = {
+          default: 'system-sans',
+          forest: 'reading-sans',
+          nord: 'system-sans',
+          dusk: 'reading-sans',
+          sunset: 'classic-serif',
+        };
+        saved.fontScheme = colorSchemeFontMap[saved.colorScheme] || 'system-sans';
+      }
       return { ...defaults, ...saved };
     } catch {
       return defaults;
@@ -649,7 +684,7 @@ class MarkdownEditor {
     localStorage.setItem('tizumark-settings', JSON.stringify(this.settings));
   }
 
-  initSettings() {
+  async initSettings() {
     document.getElementById('btn-settings').addEventListener('click', () => this.showSettings());
     document.getElementById('settings-close-x').addEventListener('click', () => this.hideSettings());
     document.getElementById('settings-save-btn').addEventListener('click', () => this.hideSettings());
@@ -669,6 +704,7 @@ class MarkdownEditor {
     document.getElementById('set-max-width').value = s.maxWidth;
     document.getElementById('set-theme-mode').value = s.themeMode;
     document.getElementById('set-color-scheme').value = s.colorScheme || 'default';
+    document.getElementById('set-font-scheme').value = s.fontScheme || 'system-sans';
     document.getElementById('set-default-view').value = s.defaultView;
     document.getElementById('set-scroll-sync').checked = s.scrollSync;
     document.getElementById('set-language').value = s.language || 'zh';
@@ -717,14 +753,19 @@ class MarkdownEditor {
       }
       this.saveSettings();
     });
-    document.getElementById('set-theme-mode').addEventListener('change', (e) => {
+    document.getElementById('set-theme-mode').addEventListener('change', async (e) => {
       this.settings.themeMode = e.target.value;
-      this.applyThemeMode();
+      await this.applyThemeMode();
       this.saveSettings();
     });
-    document.getElementById('set-color-scheme').addEventListener('change', (e) => {
+    document.getElementById('set-color-scheme').addEventListener('change', async (e) => {
       this.settings.colorScheme = e.target.value;
-      this.applyThemeMode();
+      await this.applyThemeMode();
+      this.saveSettings();
+    });
+    document.getElementById('set-font-scheme').addEventListener('change', (e) => {
+      this.settings.fontScheme = e.target.value;
+      this.applyFontScheme();
       this.saveSettings();
     });
     document.getElementById('set-default-view').addEventListener('change', (e) => {
@@ -853,7 +894,15 @@ class MarkdownEditor {
     return div.innerHTML;
   }
 
-  applySettings() {
+  applyFontScheme() {
+    document.documentElement.setAttribute('data-font-scheme', this.settings.fontScheme || 'system-sans');
+    // 更新 mermaid 字体
+    if (typeof mermaid !== 'undefined') {
+      this.rerenderMermaid();
+    }
+  }
+
+  async applySettings() {
     const s = this.settings;
     this.cm.getWrapperElement().style.fontSize = s.fontSize + 'px';
     this.cm.setOption('tabSize', s.tabSize);
@@ -870,10 +919,11 @@ class MarkdownEditor {
       this.preview.style.margin = '';
       this.preview.classList.remove('max-width-active');
     }
-    this.applyThemeMode();
+    await this.applyThemeMode();
+    this.applyFontScheme();
   }
 
-  applyThemeMode() {
+  async applyThemeMode() {
     const mode = this.settings.themeMode;
     if (mode === 'light') {
       this.isDark = false;
@@ -892,37 +942,56 @@ class MarkdownEditor {
         ? 'lib/highlight.js/github-dark.min.css'
         : 'lib/highlight.js/github.min.css';
     }
-    this.rerenderMermaid();
+    await this.rerenderMermaid();
   }
 
   async rerenderMermaid() {
     if (typeof mermaid === 'undefined') return;
     const containers = this.preview.querySelectorAll('.mermaid-container');
     if (containers.length === 0) return;
+
+    // 保存代码并创建全新容器（避免复用旧容器的渲染状态）
     const codes = [];
+    const containerData = [];
     containers.forEach(container => {
       const code = container.getAttribute('data-code') || container.textContent;
       codes.push(code);
-      container.setAttribute('data-code', code);
-      container.innerHTML = '';
-      container.textContent = code;
+      containerData.push({
+        code,
+        nextSibling: container.nextSibling,
+        parent: container.parentNode,
+      });
     });
+
+    // 重建容器
+    containerData.forEach((data, i) => {
+      const newContainer = document.createElement('div');
+      newContainer.className = 'mermaid-container';
+      newContainer.id = 'mermaid-' + Date.now() + '-' + i;
+      newContainer.setAttribute('data-code', data.code);
+      newContainer.textContent = data.code;
+      if (data.nextSibling) {
+        data.parent.insertBefore(newContainer, data.nextSibling);
+      } else {
+        data.parent.appendChild(newContainer);
+      }
+    });
+
+    // 移除旧容器
+    containers.forEach(c => c.remove());
+
     try {
+      const newContainers = this.preview.querySelectorAll('.mermaid-container');
+      if (newContainers.length === 0) return;
       mermaid.initialize({
         startOnLoad: false,
         theme: this.isDark ? 'dark' : 'default',
         securityLevel: 'loose',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+        fontFamily: getComputedStyle(document.documentElement).getPropertyValue('--font-preview').trim() || '-apple-system, sans-serif',
       });
-      await mermaid.run({ nodes: Array.from(containers) });
+      await mermaid.run({ nodes: Array.from(newContainers) });
     } catch (e) {
       console.error('Mermaid re-render error:', e);
-      // 渲染失败时保留源码，避免空白
-      containers.forEach((container, i) => {
-        if (!container.querySelector('svg')) {
-          container.textContent = codes[i] || '';
-        }
-      });
     }
   }
 
@@ -951,6 +1020,7 @@ class MarkdownEditor {
       maxWidth: 0,
       themeMode: 'light',
       colorScheme: 'default',
+      fontScheme: 'system-sans',
       defaultView: 'preview',
       scrollSync: true,
       language: 'zh',
@@ -967,12 +1037,12 @@ class MarkdownEditor {
     document.getElementById('set-max-width').value = defaults.maxWidth;
     document.getElementById('set-theme-mode').value = defaults.themeMode;
     document.getElementById('set-color-scheme').value = defaults.colorScheme;
+    document.getElementById('set-font-scheme').value = defaults.fontScheme;
     document.getElementById('set-default-view').value = defaults.defaultView;
     document.getElementById('set-scroll-sync').checked = defaults.scrollSync;
     document.getElementById('set-language').value = defaults.language;
 
-    this.applySettings();
-    await this.rerenderMermaid();
+    await this.applySettings();
     this.setStatus(this.t('settingsReset'));
   }
 
@@ -2672,7 +2742,7 @@ ${htmlContent}
         startOnLoad: false,
         theme: this.isDark ? 'dark' : 'default',
         securityLevel: 'loose',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+        fontFamily: getComputedStyle(document.documentElement).getPropertyValue('--font-preview').trim() || '-apple-system, sans-serif',
       });
       await mermaid.run({ nodes: Array.from(containers) });
     } catch (e) {
@@ -2742,7 +2812,7 @@ ${htmlContent}
     this.lineCountEl.textContent = `${this.t('lines')}: ${lines}`;
   }
 
-  toggleTheme() {
+  async toggleTheme() {
     if (this.settings.themeMode !== 'light' && this.settings.themeMode !== 'dark') {
       this.settings.themeMode = this.isDark ? 'light' : 'dark';
       document.getElementById('set-theme-mode').value = this.settings.themeMode;
@@ -2763,6 +2833,7 @@ ${htmlContent}
         : 'lib/highlight.js/github.min.css';
     }
 
+    await this.rerenderMermaid();
     this.setStatus(this.t('themeSwitched', { theme: this.isDark ? this.t('themeDark') : this.t('themeLight') }));
   }
 

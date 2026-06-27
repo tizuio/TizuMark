@@ -1,5 +1,6 @@
 /* ========== 主题系统 ========== */
 /* 配色方案由 data-color-scheme 控制：default | forest | nord | dusk | sunset */
+/* 字体方案由 data-font-scheme 控制：system-sans | reading-sans | classic-serif */
 /* data-theme="light|dark" 控制明暗 */
 
 /* --- 全局语义色（所有主题共用） --- */
@@ -9,6 +10,28 @@
   --alert-important-rgb: 139, 92, 246;
   --alert-warning-rgb: 245, 158, 11;
   --alert-caution-rgb: 239, 68, 68;
+}
+
+/* ========== 字体方案 ========== */
+/* data-font-scheme 控制：system-sans | reading-sans | classic-serif */
+
+/* 系统无衬线（默认） */
+[data-font-scheme="system-sans"],
+:root {
+  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
+  --font-preview: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* 阅读无衬线 */
+[data-font-scheme="reading-sans"] {
+  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
+  --font-preview: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* 经典衬线 */
+[data-font-scheme="classic-serif"] {
+  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
+  --font-preview: "IBM Plex Serif", Georgia, "Times New Roman", "Songti SC", serif;
 }
 
 /* ========== 基准（默认）浅色 ========== */
@@ -47,8 +70,6 @@
   --preview-bg: #f8f7f4;
   --code-bg: #eeedec;
   --find-bg: #eeedec;
-  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
-  --font-preview: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ========== 翠林风 浅色 ========== */
@@ -86,8 +107,6 @@
   --preview-bg: #f4f7f2;
   --code-bg: #eaefe6;
   --find-bg: #eaefe6;
-  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
-  --font-preview: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ========== 极夜风 浅色 ========== */
@@ -125,8 +144,6 @@
   --preview-bg: #f4f6fa;
   --code-bg: #eaecf2;
   --find-bg: #eaecf2;
-  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
-  --font-preview: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ========== 暮紫风 浅色 ========== */
@@ -164,8 +181,6 @@
   --preview-bg: #f7f5fa;
   --code-bg: #eeecf2;
   --find-bg: #eeecf2;
-  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
-  --font-preview: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ========== 暖橙风 浅色 ========== */
@@ -203,8 +218,6 @@
   --preview-bg: #fcf7f2;
   --code-bg: #f4eee6;
   --find-bg: #f4eee6;
-  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
-  --font-preview: "IBM Plex Serif", Georgia, "Times New Roman", serif;
 }
 
 /* ========== 基准（默认）深色 ========== */
@@ -243,8 +256,6 @@
   --preview-bg: #1a1c20;
   --code-bg: #1f2126;
   --find-bg: #1f2126;
-  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
-  --font-preview: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ========== 翠林风 深色 ========== */
@@ -282,8 +293,6 @@
   --preview-bg: #162018;
   --code-bg: #1b261d;
   --find-bg: #1b261d;
-  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
-  --font-preview: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ========== 极夜风 深色 ========== */
@@ -321,8 +330,6 @@
   --preview-bg: #202530;
   --code-bg: #262b38;
   --find-bg: #262b38;
-  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
-  --font-preview: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ========== 暮紫风 深色 ========== */
@@ -360,8 +367,6 @@
   --preview-bg: #1d1728;
   --code-bg: #231d30;
   --find-bg: #231d30;
-  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
-  --font-preview: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ========== 暖橙风 深色 ========== */
@@ -399,8 +404,6 @@
   --preview-bg: #241912;
   --code-bg: #2a1f18;
   --find-bg: #2a1f18;
-  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
-  --font-preview: "IBM Plex Serif", Georgia, "Times New Roman", serif;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
