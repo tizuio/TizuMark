@@ -2657,7 +2657,9 @@ ${htmlContent}
     if (upper.top === lower.top) return lower.line;
 
     const frac = (targetTop - lower.top) / (upper.top - lower.top);
-    return Math.round(lower.line + frac * (upper.line - lower.line));
+    const raw = lower.line + frac * (upper.line - lower.line);
+    const maxLine = positions[positions.length - 1].line;
+    return Math.max(0, Math.min(maxLine, Math.round(raw)));
   }
 
   async updatePreview() {
