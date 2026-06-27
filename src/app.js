@@ -2287,14 +2287,6 @@ ${htmlContent}
       this.syncingScroll = true;
       this.preview.innerHTML = finalHtml;
 
-      // DEBUG: check if complexity formula is in <code> right after innerHTML
-      const codeNodes = this.preview.querySelectorAll('code');
-      codeNodes.forEach(c => {
-        if (c.textContent.includes('O(1) < O(\\log n)')) {
-          console.warn('[DEBUG] Formula IS inside <code> after innerHTML! code parent:', c.parentElement?.tagName);
-        }
-      });
-
       // 默认展开所有 <details>
       this.preview.querySelectorAll('details:not([open])').forEach(el => el.open = true);
 
@@ -2402,23 +2394,6 @@ ${htmlContent}
       console.warn('[math] renderMathInElement not loaded');
       return;
     }
-
-    // Debug: dump all text nodes containing $$ to diagnose position-specific issues
-    const walker = document.createTreeWalker(this.preview, NodeFilter.SHOW_TEXT, null, false);
-    const dumpNodes = [];
-    let n;
-    while (n = walker.nextNode()) {
-      if (n.textContent.includes('$$')) {
-        const parent = n.parentElement;
-        dumpNodes.push({
-          tag: parent ? parent.tagName : 'null',
-          class: parent ? (parent.className || '(none)') : '',
-          id: parent ? (parent.id || '(none)') : '',
-          text: n.textContent.substring(0, 100).replace(/\n/g, '\\n')
-        });
-      }
-    }
-    console.table(dumpNodes);
 
     try {
       renderMathInElement(this.preview, {

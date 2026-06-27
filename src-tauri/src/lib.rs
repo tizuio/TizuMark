@@ -664,8 +664,28 @@ fn process_inline_markdown(line: &str) -> String {
                         } else {
                             &inner
                         };
-                        result.push_str(&format!("<code>{}</code>", escape_html(code_content)));
-                        i = j + open_count;
+                        let safe_content = escape_html(code_content);
+                        // If the code content ends with a backslash, it would
+                        // combine with </code> to form \< which pulldown-cmark
+                        // consumes as a backslash escape, destroying the tag.
+                        let safe_content = if safe_content.ends_with('\\') {
+                            let mut chars: Vec<char> = safe_content.chars().collect();
+                            chars.pop();
+                            let mut s: String = chars.into_iter().collect();
+                            s.push_str("&#92;");
+                            s
+                        } else {
+                            safe_content
+                        };
+                        result.push_str(&format!("<code>{}</code>", safe_content));
+                        // Consume all matching backticks; extras → &#96; so they
+                        // don't accidentally start new inline code spans
+                        i = j + match_count;
+                        if match_count > open_count {
+                            for _ in 0..(match_count - open_count) {
+                                result.push_str("&#96;");
+                            }
+                        }
                         break;
                     }
                     j += match_count;
@@ -1398,14 +1418,44 @@ $$\n\
     fn test_full_demo_md_for_code_wrap() {
         let content = std::fs::read_to_string("../demo.md")
             .expect("Could not read demo.md");
-        let html = render_markdown(content);
-        // Check for <code> immediately before $$
-        let count = html.match_indices("<code>$$").count();
-        eprintln!("Found {count} occurrences of '<code>$$' in full demo.md output");
-        // Also check the specific complexity formula
-        if html.contains("<code>\n$$\nO(1)") || html.contains("<code>$$\nO(1)") {
-            eprintln!("BUG: Complexity formula is wrapped in <code>!");
-        } else {
-            eprintln!("OK: Complexity formula is NOT wrapped in <code>");
+        let html = render_markdown(content.clone());
+
+        // Complexity formula must NOT be wrapped in <code>
+        assert!(
+            !html.contains("<code>\n$$\nO(1)") && !html.contains("<code>$$\nO(1)"),
+            "Complexity formula should NOT be wrapped in <code>"
+        );
+
+        // All <code> tags must be balanced
+        let mut tag_stack: Vec<()> = Vec::new();
+        let mut pos = 0;
+        let chars: Vec<char> = html.chars().collect();
+        let len = chars.len();
+        while pos < len {
+            if chars[pos] == '<' && pos + 1 < len {
+                if chars[pos + 1] == '/' {
+                    let mut tag_end = pos + 2;
+                    while tag_end < len && chars[tag_end] != '>' { tag_end += 1; }
+                    let tag_name: String = chars[pos + 2..tag_end].iter().collect();
+                    if tag_name == "code" {
+                        assert!(tag_stack.pop().is_some(), "Orphan </code> in HTML output");
+                    }
+                    pos = tag_end + 1;
+                    continue;
+                }
+                if chars[pos + 1].is_ascii_alphabetic() {
+                    let mut tag_end = pos + 1;
+                    while tag_end < len && chars[tag_end] != '>' && chars[tag_end] != ' ' { tag_end += 1; }
+                    let tag_name: String = chars[pos + 1..tag_end].iter().collect();
+                    if tag_name == "code" {
+                        tag_stack.push(());
+                    }
+                    while tag_end < len && chars[tag_end] != '>' { tag_end += 1; }
+                    pos = tag_end + 1;
+                    continue;
+                }
+            }
+            pos += 1;
         }
+        assert!(tag_stack.is_empty(), "Unclosed <code> tags in HTML output: {}", tag_stack.len());
     }
