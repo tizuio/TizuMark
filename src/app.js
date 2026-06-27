@@ -124,6 +124,12 @@ const I18N = {
     language: '界面语言',
     behavior: '行为',
     themeMode: '主题模式',
+    colorScheme: '配色方案',
+    schemeDefault: '基准',
+    schemeForest: '翠林风',
+    schemeNord: '极夜风',
+    schemeDusk: '暮紫风',
+    schemeSunset: '暖橙风',
     defaultView: '默认视图',
     scrollSync: '滚动同步',
     followSystem: '跟随系统',
@@ -298,6 +304,12 @@ const I18N = {
     language: 'Language',
     behavior: 'Behavior',
     themeMode: 'Theme Mode',
+    colorScheme: 'Color Scheme',
+    schemeDefault: 'Default',
+    schemeForest: 'Forest',
+    schemeNord: 'Nord',
+    schemeDusk: 'Dusk',
+    schemeSunset: 'Sunset',
     defaultView: 'Default View',
     scrollSync: 'Scroll Sync',
     followSystem: 'Follow System',
@@ -538,10 +550,20 @@ class MarkdownEditor {
     document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row label').textContent = t('language');
     document.querySelector('#settings-dialog .settings-section:nth-child(4) h3').textContent = t('behavior');
     document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(1) label').textContent = t('themeMode');
-    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(2) label').textContent = t('defaultView');
-    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(3) label').textContent = t('scrollSync');
+    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(2) label').textContent = t('colorScheme');
+    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(3) label').textContent = t('defaultView');
+    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(4) label').textContent = t('scrollSync');
     document.getElementById('settings-reset').textContent = t('resetDefault');
     document.getElementById('settings-close-btn').textContent = t('done');
+    // Update color scheme options text
+    const csSelect = document.getElementById('set-color-scheme');
+    if (csSelect) {
+      csSelect.options[0].text = t('schemeDefault');
+      csSelect.options[1].text = t('schemeForest');
+      csSelect.options[2].text = t('schemeNord');
+      csSelect.options[3].text = t('schemeDusk');
+      csSelect.options[4].text = t('schemeSunset');
+    }
 
     // Update tab bar
     this.updateTabBar();
@@ -604,6 +626,7 @@ class MarkdownEditor {
       lineHeight: 1.7,
       maxWidth: 0,
       themeMode: 'light',
+      colorScheme: 'default',
       defaultView: 'preview',
       scrollSync: true,
       language: 'zh',
@@ -637,6 +660,7 @@ class MarkdownEditor {
     document.getElementById('set-line-height').value = s.lineHeight;
     document.getElementById('set-max-width').value = s.maxWidth;
     document.getElementById('set-theme-mode').value = s.themeMode;
+    document.getElementById('set-color-scheme').value = s.colorScheme || 'default';
     document.getElementById('set-default-view').value = s.defaultView;
     document.getElementById('set-scroll-sync').checked = s.scrollSync;
     document.getElementById('set-language').value = s.language || 'zh';
@@ -687,6 +711,11 @@ class MarkdownEditor {
     });
     document.getElementById('set-theme-mode').addEventListener('change', (e) => {
       this.settings.themeMode = e.target.value;
+      this.applyThemeMode();
+      this.saveSettings();
+    });
+    document.getElementById('set-color-scheme').addEventListener('change', (e) => {
+      this.settings.colorScheme = e.target.value;
       this.applyThemeMode();
       this.saveSettings();
     });
@@ -846,6 +875,7 @@ class MarkdownEditor {
       this.isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
     document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-color-scheme', this.settings.colorScheme || 'default');
     this.cm.setOption('theme', this.isDark ? 'material-darker' : 'default');
     this.updateThemeIcon();
     const highlightTheme = document.getElementById('highlight-theme');
@@ -904,6 +934,7 @@ class MarkdownEditor {
       lineHeight: 1.7,
       maxWidth: 0,
       themeMode: 'light',
+      colorScheme: 'default',
       defaultView: 'preview',
       scrollSync: true,
       language: 'zh',
@@ -919,6 +950,7 @@ class MarkdownEditor {
     document.getElementById('set-line-height').value = defaults.lineHeight;
     document.getElementById('set-max-width').value = defaults.maxWidth;
     document.getElementById('set-theme-mode').value = defaults.themeMode;
+    document.getElementById('set-color-scheme').value = defaults.colorScheme;
     document.getElementById('set-default-view').value = defaults.defaultView;
     document.getElementById('set-scroll-sync').checked = defaults.scrollSync;
     document.getElementById('set-language').value = defaults.language;
@@ -2677,16 +2709,17 @@ ${htmlContent}
     document.getElementById('set-theme-mode').value = this.settings.themeMode;
     this.saveSettings();
     document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-color-scheme', this.settings.colorScheme || 'default');
     this.cm.setOption('theme', this.isDark ? 'material-darker' : 'default');
     this.updateThemeIcon();
-    
+
     const highlightTheme = document.getElementById('highlight-theme');
     if (highlightTheme) {
-      highlightTheme.href = this.isDark 
-        ? 'lib/highlight.js/github-dark.min.css' 
+      highlightTheme.href = this.isDark
+        ? 'lib/highlight.js/github-dark.min.css'
         : 'lib/highlight.js/github.min.css';
     }
-    
+
     this.setStatus(this.t('themeSwitched', { theme: this.isDark ? this.t('themeDark') : this.t('themeLight') }));
   }
 
