@@ -192,6 +192,11 @@ const I18N = {
     shortcutsReset: '已恢复默认快捷键',
     saveDialogMessage: '文件已修改，是否保存？',
     imageLoadFailed: '[图片加载失败]',
+    dropFileHere: '拖放文件到此处打开',
+    allFiles: '所有文件',
+    confirmResetSettings: '确认恢复默认设置？',
+    tablistLabel: '标签页',
+    closeAria: '关闭',
   },
   en: {
     file: 'File',
@@ -361,15 +366,22 @@ const I18N = {
     shortcutsReset: 'Shortcuts reset to defaults',
     saveDialogMessage: 'File has been modified. Save?',
     imageLoadFailed: '[Image failed to load]',
+    dropFileHere: 'Drop file here to open',
+    allFiles: 'All Files',
+    confirmResetSettings: 'Restore default settings?',
+    tablistLabel: 'Tabs',
+    closeAria: 'Close',
   }
 };
 
 class MarkdownEditor {
   constructor() {
-    this.tabs = [new Tab()];
+    this.untitledCounter = 1;
+    this.tabs = [new Tab(`未命名${this.untitledCounter++}`)];
     this.activeTabIndex = 0;
     this.cm = null;
     this.debounceTimer = null;
+    this._renderGeneration = 0;
     this.isDark = false;
     this.viewMode = 'preview';
 
@@ -378,6 +390,7 @@ class MarkdownEditor {
     this.recordingAction = null;
 
     this.preview = document.getElementById('preview');
+    if (this.preview) this.preview.style.scrollBehavior = 'auto';
     this.statusText = document.getElementById('status-text');
     this.cursorPosition = document.getElementById('cursor-position');
     this.wordCountEl = document.getElementById('word-count');
@@ -495,6 +508,16 @@ class MarkdownEditor {
     document.getElementById('char-count').textContent = t('chars') + ': 0';
     document.getElementById('line-count').textContent = t('lines') + ': 0';
 
+    // Drag overlay
+    setText('drag-overlay', t('dropFileHere'));
+
+    // ARIA labels
+    const tabBar = document.getElementById('tab-bar');
+    if (tabBar) tabBar.setAttribute('aria-label', t('tablistLabel'));
+    document.querySelectorAll('.dialog-close').forEach(btn => {
+      btn.setAttribute('aria-label', t('closeAria'));
+    });
+
     // Pane headers & outline
     document.querySelector('#editor-pane .pane-header span').textContent = t('paneEdit');
     document.querySelector('#preview-pane .pane-header span').textContent = t('panePreview');
@@ -584,7 +607,6 @@ class MarkdownEditor {
       defaultView: 'preview',
       scrollSync: true,
       language: 'zh',
-      enableAbbr: true,
     };
     try {
       const saved = JSON.parse(localStorage.getItem('tizumark-settings'));
@@ -675,12 +697,6 @@ class MarkdownEditor {
     document.getElementById('set-scroll-sync').addEventListener('change', (e) => {
       this.settings.scrollSync = e.target.checked;
       this.saveSettings();
-    });
-    document.getElementById('set-enable-abbr').checked = s.enableAbbr !== false;
-    document.getElementById('set-enable-abbr').addEventListener('change', (e) => {
-      this.settings.enableAbbr = e.target.checked;
-      this.saveSettings();
-      if (this.activeTab) this.updatePreview();
     });
     document.getElementById('set-language').addEventListener('change', (e) => {
       this.settings.language = e.target.value;
@@ -774,7 +790,7 @@ class MarkdownEditor {
           const previewRect = this.preview.getBoundingClientRect();
           const top = targetRect.top - previewRect.top + this.preview.scrollTop
                     - (previewHeight / 2) + (targetRect.height / 2);
-          this.preview.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+          this.preview.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
         }
         outlineContent.querySelectorAll('.outline-item').forEach(el => el.classList.remove('active'));
         item.classList.add('active');
@@ -785,9 +801,7 @@ class MarkdownEditor {
   headingToId(text) {
     let id = '';
     for (const ch of text) {
-      if (ch >= '\u4e00' && ch <= '\u9fa5') {
-        id += ch;
-      } else if (/[a-zA-Z0-9]/.test(ch)) {
+      if (/[\p{L}\p{N}]/u.test(ch)) {
         id += ch.toLowerCase();
       } else if (ch === ' ' || ch === '-' || ch === '_') {
         id += '-';
@@ -874,7 +888,13 @@ class MarkdownEditor {
     document.getElementById('settings-dialog').classList.add('hidden');
   }
 
-  resetSettings() {
+  async resetSettings() {
+    const result = await this.showSaveDialog(
+      this.t('settings'),
+      this.t('confirmResetSettings')
+    );
+    if (result === 'cancel') return;
+
     const defaults = {
       fontSize: 14,
       tabSize: 2,
@@ -1211,6 +1231,10 @@ class MarkdownEditor {
   }
 
   addTab(name = '未命名', content = '', filePath = null) {
+    const defaultName = this.t('untitled');
+    if (!name || name === '未命名' || name === defaultName) {
+      name = `${defaultName}${this.untitledCounter++}`;
+    }
     content = content.replace(/\r\n/g, '\n');
     const tab = new Tab(name, content, filePath);
     this.tabs.push(tab);
@@ -1233,7 +1257,7 @@ class MarkdownEditor {
             const path = await dialogSave({
               filters: [
                 { name: 'Markdown', extensions: ['md'] },
-                { name: '所有文件', extensions: ['*'] }
+                { name: this.t('allFiles'), extensions: ['*'] }
               ]
             });
             if (!path) return;
@@ -1254,10 +1278,14 @@ class MarkdownEditor {
     if (removeIndex === -1) return;
 
     this.tabs.splice(removeIndex, 1);
-    if (removeIndex < this.activeTabIndex) {
-      this.activeTabIndex--;
-    } else if (removeIndex >= this.activeTabIndex) {
-      if (this.activeTabIndex >= this.tabs.length) {
+    if (this.tabs.length === 0) {
+      this.tabs.push(new Tab(`${this.t('untitled')}${this.untitledCounter++}`));
+      this.activeTabIndex = 0;
+      this.cm.setValue('');
+    } else {
+      if (removeIndex < this.activeTabIndex) {
+        this.activeTabIndex--;
+      } else if (this.activeTabIndex >= this.tabs.length) {
         this.activeTabIndex = this.tabs.length - 1;
       }
     }
@@ -1279,6 +1307,8 @@ class MarkdownEditor {
       const tabEl = document.createElement('div');
       tabEl.className = `tab${i === this.activeTabIndex ? ' active' : ''}${tab.isModified ? ' modified' : ''}`;
       tabEl.dataset.index = i;
+      tabEl.setAttribute('role', 'tab');
+      tabEl.setAttribute('aria-selected', i === this.activeTabIndex ? 'true' : 'false');
 
       const nameSpan = document.createElement('span');
       nameSpan.className = 'tab-name';
@@ -1289,6 +1319,8 @@ class MarkdownEditor {
         const closeBtn = document.createElement('span');
         closeBtn.className = 'tab-close';
         closeBtn.textContent = '\u00d7';
+        closeBtn.setAttribute('role', 'button');
+        closeBtn.setAttribute('aria-label', this.t('closeAria'));
         closeBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           this.closeTab(i);
@@ -1565,7 +1597,7 @@ class MarkdownEditor {
         let pos = 0;
         while ((pos = lower.indexOf(q, pos)) !== -1) { count++; pos += q.length; }
       }
-      findCount.textContent = count > 0 ? `${count} 个结果` : '无结果';
+      findCount.textContent = count > 0 ? count + this.t('matches') : this.t('noMatches');
     };
 
     findInput.addEventListener('input', updateCount);
@@ -1790,7 +1822,7 @@ class MarkdownEditor {
           const sel = window.getSelection();
           sel.removeAllRanges();
           sel.addRange(range);
-          range.startContainer.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          range.startContainer.parentElement.scrollIntoView({ behavior: 'auto', block: 'center' });
           return;
         }
         charCount += nodeLen;
@@ -1874,7 +1906,7 @@ class MarkdownEditor {
       }
     });
     scrollTopBtn.addEventListener('click', () => {
-      this.preview.scrollTo({ top: 0, behavior: 'smooth' });
+      this.preview.scrollTo({ top: 0, behavior: 'auto' });
     });
   }
 
@@ -1890,25 +1922,37 @@ class MarkdownEditor {
       if (!href) return;
 
       if (href.startsWith('#')) {
-        const target = this.preview.querySelector(href);
+        const id = href.substring(1);
+        const target = this.preview.querySelector(`[id="${id}"]`);
         if (target) {
           const previewHeight = this.preview.clientHeight;
           const targetRect = target.getBoundingClientRect();
           const previewRect = this.preview.getBoundingClientRect();
           const top = targetRect.top - previewRect.top + this.preview.scrollTop
                     - (previewHeight / 2) + (targetRect.height / 2);
-          this.preview.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+          this.preview.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+          target.classList.add('footnote-flash');
+          setTimeout(() => target.classList.remove('footnote-flash'), 1300);
         }
         return;
       }
 
       if (href.endsWith('.md')) {
         try {
-          const resp = await fetch(href);
-          if (resp.ok) {
-            const content = await resp.text();
-            const name = href.split('/').pop();
-            this.addTab(name, content, null);
+          if (href.startsWith('http://') || href.startsWith('https://')) {
+            const resp = await fetch(href);
+            if (resp.ok) {
+              const content = await resp.text();
+              const name = href.split('/').pop();
+              this.addTab(name, content, null);
+              this.activeTab.savedContent = content;
+              this.updateTabDisplay();
+              return;
+            }
+          } else if (window.__TAURI__) {
+            const content = await invoke('read_file', { path: href });
+            const name = href.split(/[/\\]/).pop();
+            this.addTab(name, content, href);
             this.activeTab.savedContent = content;
             this.updateTabDisplay();
             return;
@@ -1935,22 +1979,26 @@ class MarkdownEditor {
 
   initDragDrop() {
     const app = document.getElementById('app');
+    const dragOverlay = document.getElementById('drag-overlay');
 
     if (window.__TAURI__ && window.__TAURI__.event) {
       window.__TAURI__.event.listen('tauri://drag-enter', (e) => {
         if (e.payload && e.payload.paths && e.payload.paths.length > 0) {
           app.classList.add('drag-over');
+          dragOverlay.classList.remove('hidden');
         }
       });
 
       window.__TAURI__.event.listen('tauri://drag-over', (e) => {
         if (e.payload && e.payload.paths && e.payload.paths.length > 0) {
           app.classList.add('drag-over');
+          dragOverlay.classList.remove('hidden');
         }
       });
 
       window.__TAURI__.event.listen('tauri://drag-drop', async (event) => {
         app.classList.remove('drag-over');
+        dragOverlay.classList.add('hidden');
         this.showLoading();
         try {
           const paths = event.payload.paths || [];
@@ -1978,24 +2026,28 @@ class MarkdownEditor {
 
       window.__TAURI__.event.listen('tauri://drag-leave', () => {
         app.classList.remove('drag-over');
+        dragOverlay.classList.add('hidden');
       });
     } else {
       app.addEventListener('dragover', (e) => {
         e.preventDefault();
         if (e.dataTransfer.types.includes('Files')) {
           app.classList.add('drag-over');
+          dragOverlay.classList.remove('hidden');
         }
       });
 
       app.addEventListener('dragleave', (e) => {
         if (!app.contains(e.relatedTarget)) {
           app.classList.remove('drag-over');
+          dragOverlay.classList.add('hidden');
         }
       });
 
       app.addEventListener('drop', async (e) => {
         e.preventDefault();
         app.classList.remove('drag-over');
+        dragOverlay.classList.add('hidden');
         const files = e.dataTransfer.files;
         if (!files || files.length === 0) return;
 
@@ -2062,7 +2114,7 @@ class MarkdownEditor {
         multiple: true,
         filters: [
           { name: 'Markdown', extensions: ['md', 'markdown', 'txt'] },
-          { name: '所有文件', extensions: ['*'] }
+          { name: this.t('allFiles'), extensions: ['*'] }
         ]
       });
 
@@ -2094,19 +2146,22 @@ class MarkdownEditor {
 
   async saveFile() {
     try {
-      if (!this.activeTab.filePath) {
-        const path = await dialogSave({
+      let path = this.activeTab.filePath;
+      if (!path) {
+        path = await dialogSave({
           filters: [
             { name: 'Markdown', extensions: ['md'] },
-            { name: '所有文件', extensions: ['*'] }
+            { name: this.t('allFiles'), extensions: ['*'] }
           ]
         });
         if (!path) return;
+      }
+
+      await invoke('write_file', { path, content: this.activeTab.content });
+      if (!this.activeTab.filePath) {
         this.activeTab.filePath = path;
         this.activeTab.name = path.split(/[/\\]/).pop();
       }
-
-      await invoke('write_file', { path: this.activeTab.filePath, content: this.activeTab.content });
       this.activeTab.savedContent = this.activeTab.content;
       this.updateTabDisplay();
       this.setStatus(`${this.t('saved')}: ${this.activeTab.filePath}`);
@@ -2121,7 +2176,7 @@ class MarkdownEditor {
         defaultPath: this.activeTab.filePath || `${this.activeTab.name}`,
         filters: [
           { name: 'Markdown', extensions: ['md'] },
-          { name: '所有文件', extensions: ['*'] }
+          { name: this.t('allFiles'), extensions: ['*'] }
         ]
       });
       if (!path) return;
@@ -2147,7 +2202,7 @@ class MarkdownEditor {
       });
       if (!path) return;
 
-      const htmlContent = await invoke('render_markdown', { content: this.activeTab.content, enableAbbr: this.settings.enableAbbr !== false });
+      const htmlContent = await invoke('render_markdown', { content: this.activeTab.content });
       const escapedTitle = this.activeTab.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       const fullHTML = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -2269,10 +2324,11 @@ ${htmlContent}
 
   debounceUpdatePreview() {
     clearTimeout(this.debounceTimer);
-    this.debounceTimer = setTimeout(() => this.updatePreview(), 150);
+    this.debounceTimer = setTimeout(() => this.updatePreview(), 30);
   }
 
   async updatePreview() {
+    const gen = ++this._renderGeneration;
     try {
       const content = this.activeTab.content;
 
@@ -2280,32 +2336,30 @@ ${htmlContent}
       let tocHtml = '';
       if (hasToc) {
         tocHtml = await invoke('generate_toc', { content });
+        if (gen !== this._renderGeneration) return;
       }
 
-      const html = await invoke('render_markdown', { content, enableAbbr: this.settings.enableAbbr !== false });
+      const html = await invoke('render_markdown', { content });
+      if (gen !== this._renderGeneration) return;
 
       let finalHtml = html;
       if (tocHtml) {
         finalHtml = finalHtml.replace(/<p>\[TOC\]<\/p>|<p>\[toc\]<\/p>/gi, tocHtml);
       }
 
-      // 渲染期间保存预览滚动位置 + 阻断同步，防止跳动
-      const prevScrollTop = this.preview.scrollTop;
       this.syncingScroll = true;
       this.preview.innerHTML = finalHtml;
 
-      // 默认展开所有 <details>
       this.preview.querySelectorAll('details:not([open])').forEach(el => el.open = true);
 
-      // Each processing step is independently guarded so one failure
-      // never cascades and destroys the rest of the preview.
       try { await this.processImages(); } catch (e) { console.warn('[preview] Images error:', e); }
+      if (gen !== this._renderGeneration) { this.syncingScroll = false; return; }
       try { this.processEmojiShortcodes(); } catch (e) { console.warn('[preview] Emoji error:', e); }
       try { this.processMath(); } catch (e) { console.warn('[preview] Math error:', e); }
       try { this.processAbbreviations(); } catch (e) { console.warn('[preview] Abbr error:', e); }
       try { this.processHeadings(); } catch (e) { console.warn('[preview] Headings error:', e); }
-      try { this.processFootnotes(); } catch (e) { console.warn('[preview] Footnotes error:', e); }
       try { await this.processMermaid(); } catch (e) { console.warn('[preview] Mermaid error:', e); }
+      if (gen !== this._renderGeneration) { this.syncingScroll = false; return; }
       try { this.addCopyButtons(); } catch (e) { console.warn('[preview] Copy btn error:', e); }
 
       if (typeof hljs !== 'undefined') {
@@ -2316,10 +2370,22 @@ ${htmlContent}
         } catch (e) { console.warn('[preview] HLJS error:', e); }
       }
 
-      // 恢复预览滚动位置，解除同步锁
-      this.preview.scrollTop = prevScrollTop;
-      this.syncingScroll = false;
+      // Set scroll position after all async content loads (images/mermaid may change height)
+      if (this.settings.scrollSync) {
+        const info = this.cm.getScrollInfo();
+        const editorMax = info.height - info.clientHeight || 1;
+        const scrollPercent = Math.min(info.top / editorMax, 1);
+        const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+        this.preview.scrollTop = scrollPercent * previewMax;
+      } else {
+        const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+        if (this.preview.scrollTop > maxScroll) this.preview.scrollTop = maxScroll;
+      }
+      requestAnimationFrame(() => {
+        this.syncingScroll = false;
+      });
     } catch (error) {
+      if (gen !== this._renderGeneration) return;
       this.syncingScroll = false;
       const msg = String(error).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       this.preview.innerHTML = `<p style="color: red;">预览错误: ${msg}</p>`;
@@ -2400,7 +2466,6 @@ ${htmlContent}
   // Abbreviation definitions (*[TERM]: definition) are parsed by the Rust
   // backend and embedded as a hidden <div id="abbr-data" data-abbrs="[...]">.
   processAbbreviations() {
-    if (this.settings.enableAbbr === false) return;
     const dataDiv = this.preview.querySelector('#abbr-data');
     if (!dataDiv) return;
     try {
@@ -2507,35 +2572,6 @@ ${htmlContent}
         idCount[id] = 1;
         heading.id = id;
       }
-    });
-  }
-
-  processFootnotes() {
-    // Intercept footnote reference clicks to scroll the definition to viewport center
-    this.preview.querySelectorAll('.footnote-reference a[href^="#"]').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const id = link.getAttribute('href').substring(1);
-        const def = this.preview.querySelector(`.footnote-definition[id="${CSS.escape(id)}"]`);
-        if (def) {
-          def.scrollIntoView({ block: 'center', behavior: 'smooth' });
-          def.classList.add('footnote-flash');
-          setTimeout(() => def.classList.remove('footnote-flash'), 1300);
-        }
-      });
-    });
-    // Intercept footnote backlink clicks to scroll the reference to viewport center
-    this.preview.querySelectorAll('.footnote-definition a[href^="#"]').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const id = link.getAttribute('href').substring(1);
-        const ref = this.preview.querySelector(`[id="${CSS.escape(id)}"]`);
-        if (ref) {
-          ref.scrollIntoView({ block: 'center', behavior: 'smooth' });
-          ref.classList.add('footnote-flash');
-          setTimeout(() => ref.classList.remove('footnote-flash'), 1300);
-        }
-      });
     });
   }
 
@@ -2760,7 +2796,6 @@ ${htmlContent}
       sideRight.classList.toggle('side-active', isCollapsed);
     }
 
-    this.preview.style.scrollBehavior = 'auto';
     let restored = false;
     const doRefresh = () => {
       if (restored) return;
@@ -2770,13 +2805,12 @@ ${htmlContent}
       this.updateSideButtons();
       requestAnimationFrame(() => {
         this.syncingScroll = false;
-        this.preview.style.scrollBehavior = '';
       });
     };
     const targetPane = pane === 'editor' ? editorPane : previewPane;
     targetPane.addEventListener('transitionend', (e) => {
       if (e.propertyName === 'width') doRefresh();
-    });
+    }, { once: true });
     setTimeout(doRefresh, 400);
   }
 
@@ -2901,13 +2935,7 @@ ${htmlContent}
   }
 
   async closeWindow() {
-    try {
-      const { getCurrentWindow } = window.__TAURI__.window;
-      const appWindow = getCurrentWindow();
-      await appWindow.close();
-    } catch (e) {
-      console.warn('close failed:', e);
-    }
+    await this.handleAppClose();
   }
 
   // ========== Markdown 格式化辅助方法 ==========
@@ -3189,10 +3217,42 @@ ${htmlContent}
     }
   }
 
-  closeOtherTabs(keepIndex) {
+  async closeOtherTabs(keepIndex) {
     if (keepIndex < 0 || keepIndex >= this.tabs.length) return;
+    for (let i = this.tabs.length - 1; i >= 0; i--) {
+      if (i === keepIndex) continue;
+      const tab = this.tabs[i];
+      if (!tab.isModified) continue;
+      this.activeTabIndex = i;
+      this.cm.setValue(tab.content);
+      await new Promise(r => setTimeout(r, 50));
+      const result = await this.showSaveDialog(
+        this.t('saveChanges'),
+        `${tab.name}${tab.filePath ? ' (' + tab.filePath + ')' : ''} ${this.t('fileModified')}`
+      );
+      if (result === 'cancel') return; // 注意：前面已保存的文件状态不回滚（UX 限制）
+      if (result === 'save') {
+        try {
+          if (!tab.filePath) {
+            const path = await dialogSave({
+              filters: [
+                { name: 'Markdown', extensions: ['md'] },
+                { name: this.t('allFiles'), extensions: ['*'] }
+              ]
+            });
+            if (!path) return;
+            tab.filePath = path;
+            tab.name = path.split(/[/\\]/).pop();
+          }
+          await invoke('write_file', { path: tab.filePath, content: tab.content });
+          tab.savedContent = tab.content;
+        } catch (error) {
+          this.setStatus(`${this.t('saveFailed')}: ${error}`);
+          return;
+        }
+      }
+    }
     const tab = this.tabs[keepIndex];
-    if (tab.isModified) return;
     this.tabs = [tab];
     this.activeTabIndex = 0;
     this.cm.setValue(tab.content);
@@ -3201,8 +3261,40 @@ ${htmlContent}
     this.updatePreview();
   }
 
-  closeAllTabs() {
-    this.tabs = [new Tab()];
+  async closeAllTabs() {
+    for (let i = this.tabs.length - 1; i >= 0; i--) {
+      const tab = this.tabs[i];
+      if (!tab.isModified) continue;
+      this.activeTabIndex = i;
+      this.cm.setValue(tab.content);
+      await new Promise(r => setTimeout(r, 50));
+      const result = await this.showSaveDialog(
+        this.t('saveChanges'),
+        `${tab.name}${tab.filePath ? ' (' + tab.filePath + ')' : ''} ${this.t('fileModified')}`
+      );
+      if (result === 'cancel') return;
+      if (result === 'save') {
+        try {
+          if (!tab.filePath) {
+            const path = await dialogSave({
+              filters: [
+                { name: 'Markdown', extensions: ['md'] },
+                { name: this.t('allFiles'), extensions: ['*'] }
+              ]
+            });
+            if (!path) return;
+            tab.filePath = path;
+            tab.name = path.split(/[/\\]/).pop();
+          }
+          await invoke('write_file', { path: tab.filePath, content: tab.content });
+          tab.savedContent = tab.content;
+        } catch (error) {
+          this.setStatus(`${this.t('saveFailed')}: ${error}`);
+          return;
+        }
+      }
+    }
+    this.tabs = [new Tab(`${this.t('untitled')}${this.untitledCounter++}`)];
     this.activeTabIndex = 0;
     this.cm.setValue('');
     this.updateTabBar();
@@ -3225,40 +3317,50 @@ ${htmlContent}
   }
 
   async handleAppClose() {
-    const { getCurrentWindow } = window.__TAURI__.window;
-    for (let i = 0; i < this.tabs.length; i++) {
-      const tab = this.tabs[i];
-      if (!tab.isModified) continue;
-      this.switchTab(i);
-      await new Promise(r => setTimeout(r, 50));
-      const result = await this.showSaveDialog(
-        this.t('saveChanges'),
-        `${tab.name}${tab.filePath ? ' (' + tab.filePath + ')' : ''} ${this.t('fileModified')}`
-      );
-      if (result === 'cancel') return;
-      if (result === 'save') {
-        try {
-          if (!tab.filePath) {
-            const path = await dialogSave({
-              filters: [
-                { name: 'Markdown', extensions: ['md'] },
-                { name: '所有文件', extensions: ['*'] }
-              ]
-            });
-            if (!path) return;
-            tab.filePath = path;
-            tab.name = path.split(/[/\\]/).pop();
+    try {
+      const { getCurrentWindow } = window.__TAURI__.window;
+      for (let i = 0; i < this.tabs.length; i++) {
+        const tab = this.tabs[i];
+        if (!tab.isModified) continue;
+        this.switchTab(i);
+        await new Promise(r => setTimeout(r, 50));
+        const result = await this.showSaveDialog(
+          this.t('saveChanges'),
+          `${tab.name}${tab.filePath ? ' (' + tab.filePath + ')' : ''} ${this.t('fileModified')}`
+        );
+        if (result === 'cancel') return;
+        if (result === 'save') {
+          try {
+            if (!tab.filePath) {
+              const path = await dialogSave({
+                filters: [
+                  { name: 'Markdown', extensions: ['md'] },
+                  { name: this.t('allFiles'), extensions: ['*'] }
+                ]
+              });
+              if (!path) return;
+              tab.filePath = path;
+              tab.name = path.split(/[/\\]/).pop();
+            }
+            await invoke('write_file', { path: tab.filePath, content: tab.content });
+            tab.savedContent = tab.content;
+            this.setStatus(`${this.t('saved')}: ${tab.filePath}`);
+          } catch (error) {
+            this.setStatus(`${this.t('saveFailed')}: ${error}`);
+            return;
           }
-          await invoke('write_file', { path: tab.filePath, content: tab.content });
-          tab.savedContent = tab.content;
-          this.setStatus(`${this.t('saved')}: ${tab.filePath}`);
-        } catch (error) {
-          this.setStatus(`${this.t('saveFailed')}: ${error}`);
-          return;
         }
       }
+      await getCurrentWindow().destroy();
+    } catch (error) {
+      console.error('handleAppClose error:', error);
+      try {
+        if (window.__TAURI__) {
+          const { getCurrentWindow } = window.__TAURI__.window;
+          await getCurrentWindow().destroy();
+        }
+      } catch { /* 浏览器环境下降级 */ }
     }
-    await getCurrentWindow().destroy();
   }
 
   initInsertMenu() {
@@ -3391,11 +3493,11 @@ ${htmlContent}
     }, { passive: false });
 
     this.scrollLeftBtn.addEventListener('click', () => {
-      this.scrollContainer.scrollBy({ left: -200, behavior: 'smooth' });
+      this.scrollContainer.scrollBy({ left: -200, behavior: 'auto' });
     });
 
     this.scrollRightBtn.addEventListener('click', () => {
-      this.scrollContainer.scrollBy({ left: 200, behavior: 'smooth' });
+      this.scrollContainer.scrollBy({ left: 200, behavior: 'auto' });
     });
 
     // Update arrows after tab bar changes or window resize

@@ -25,6 +25,7 @@ fn sanitize_html(html: &str) -> String {
         if chars[i] == '<' && i + 1 < len {
             if chars[i + 1] == '/' {
                 let end = find_char(&chars, i, '>');
+                if end == chars.len() || end <= i + 3 { i = end; continue; }
                 let inner: String = chars[i + 2..end - 1].iter().collect();
                 let tag_name = inner.split_whitespace().next().unwrap_or("").to_ascii_lowercase();
                 if dangerous_tags.contains(&tag_name.as_str()) {
@@ -46,6 +47,7 @@ fn sanitize_html(html: &str) -> String {
                 i = end;
             } else {
                 let end = find_char(&chars, i, '>');
+                if end == chars.len() || end <= i + 2 { i = end; continue; }
                 let inner: String = chars[i + 1..end - 1].iter().collect();
                 let tag_name = inner.split_whitespace().next().unwrap_or("").to_ascii_lowercase();
                 if dangerous_tags.contains(&tag_name.as_str()) {
@@ -83,6 +85,50 @@ fn find_str(chars: &[char], start: usize, pattern: &str) -> usize {
         }
     }
     chars.len()
+}
+
+fn decode_numeric_entities(s: &str) -> String {
+    let chars: Vec<char> = s.chars().collect();
+    let mut result = String::with_capacity(s.len());
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '&' && i + 1 < chars.len() && chars[i + 1] == '#' {
+            i += 2;
+            let mut value: u32 = 0;
+            let mut consumed = false;
+            if i < chars.len() && (chars[i] == 'x' || chars[i] == 'X') {
+                i += 1;
+                while i < chars.len() && chars[i].is_ascii_hexdigit() {
+                    value = value * 16 + chars[i].to_digit(16).unwrap();
+                    i += 1;
+                    consumed = true;
+                }
+            } else {
+                while i < chars.len() && chars[i].is_ascii_digit() {
+                    value = value * 10 + chars[i].to_digit(10).unwrap();
+                    i += 1;
+                    consumed = true;
+                }
+            }
+            if i < chars.len() && chars[i] == ';' && consumed {
+                i += 1;
+                if let Some(c) = char::from_u32(value) {
+                    result.push(c);
+                }
+            }
+        } else {
+            result.push(chars[i]);
+            i += 1;
+        }
+    }
+    result
+}
+
+fn contains_dangerous_protocol(s: &str) -> bool {
+    let lower = s.to_lowercase();
+    if lower.contains("javascript:") { return true; }
+    let decoded = decode_numeric_entities(&lower);
+    decoded.contains("javascript:")
 }
 
 fn sanitize_tag_attributes(tag_content: &str) -> String {
@@ -130,10 +176,7 @@ fn sanitize_tag_attributes(tag_content: &str) -> String {
                 // Reconstruct from original to preserve exact quoting
                 let raw: String = chars[attr_start..i].iter().collect();
                 let raw_lower = raw.to_lowercase();
-                if raw_lower.starts_with("on") {
-                    continue;
-                }
-                if raw_lower.contains("javascript:") {
+                if raw_lower.starts_with("on") || contains_dangerous_protocol(&raw) {
                     continue;
                 }
                 result.push(' ');
@@ -145,10 +188,7 @@ fn sanitize_tag_attributes(tag_content: &str) -> String {
                 }
                 let raw: String = chars[attr_start..i].iter().collect();
                 let raw_lower = raw.to_lowercase();
-                if raw_lower.starts_with("on") {
-                    continue;
-                }
-                if raw_lower.contains("javascript:") {
+                if raw_lower.starts_with("on") || contains_dangerous_protocol(&raw) {
                     continue;
                 }
                 result.push(' ');
@@ -158,10 +198,7 @@ fn sanitize_tag_attributes(tag_content: &str) -> String {
             // Boolean attribute (no value)
             let raw: String = chars[attr_start..i].iter().collect();
             let raw_lower = raw.to_lowercase();
-            if raw_lower.starts_with("on") {
-                continue;
-            }
-            if raw_lower.contains("javascript:") {
+            if raw_lower.starts_with("on") || contains_dangerous_protocol(&raw) {
                 continue;
             }
             result.push(' ');
@@ -197,7 +234,12 @@ async fn fetch_image_as_base64(url: String) -> Result<String, String> {
         let resp = reqwest::get(&url).await.map_err(|e| e.to_string())?;
         resp.bytes().await.map_err(|e| e.to_string())?.to_vec()
     } else {
-        std::fs::read(&url).map_err(|e| format!("Cannot read local file {}: {}", url, e))?
+        let path = std::path::Path::new(&url);
+        let canonical = path.canonicalize().map_err(|e| format!("Cannot resolve path {}: {}", url, e))?;
+        if !canonical.is_file() {
+            return Err(format!("Not a regular file: {}", url));
+        }
+        std::fs::read(&canonical).map_err(|e| format!("Cannot read local file {}: {}", url, e))?
     };
     use base64::Engine;
     let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
@@ -273,11 +315,15 @@ fn generate_toc(content: String) -> String {
 fn heading_to_id(text: &str) -> String {
     let mut id = String::new();
     for c in text.chars() {
-        if c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == ' ' || c >= '\u{4e00}' && c <= '\u{9fa5}' {
+        if c.is_alphanumeric() || c == '-' || c == '_' || c == ' ' {
             if c == ' ' || c == '-' || c == '_' {
                 id.push('-');
             } else {
-                id.push(c.to_ascii_lowercase());
+                // to_lowercase() may yield multiple chars for some Unicode (e.g. İ → i\u{0307}),
+                // but heading chars are single-width in practice; take only the first.
+                if let Some(lower_c) = c.to_lowercase().next() {
+                    id.push(lower_c);
+                }
             }
         }
     }
@@ -311,20 +357,16 @@ fn embed_abbr_data(html: &str, abbreviations: &[(String, String)]) -> String {
         return html.to_string();
     }
     let json = serde_json::to_string(abbreviations).unwrap_or_default();
-    format!("{html}<div id=\"abbr-data\" style=\"display:none\" data-abbrs='{json}'></div>")
+    let safe_json = json.replace('\'', "&#x27;");
+    format!("{html}<div id=\"abbr-data\" style=\"display:none\" data-abbrs='{safe_json}'></div>")
 }
 
 #[tauri::command]
-fn render_markdown(content: String, enable_abbr: Option<bool>) -> String {
-    let enable_abbr = enable_abbr.unwrap_or(true);
+fn render_markdown(content: String) -> String {
     use pulldown_cmark::{Parser, Options, html};
 
-    let abbreviations = if enable_abbr {
-        extract_abbreviations(&content)
-    } else {
-        Vec::new()
-    };
-    let preprocessed = preprocess_markdown(content, enable_abbr);
+    let abbreviations = extract_abbreviations(&content);
+    let preprocessed = preprocess_markdown(content);
     let (guarded, placeholders) = guard_math_blocks(&preprocessed);
 
     let mut options = Options::empty();
@@ -423,8 +465,10 @@ fn guard_math_blocks(content: &str) -> (String, Vec<String>) {
         }
 
         if !in_backtick && i + 1 < len && chars[i] == '$' && chars[i + 1] == '$' {
+            // Display math: $$...$$
             let start = i;
             i += 2;
+            let mut found_end = false;
             while i + 1 < len {
                 if chars[i] == '$' && chars[i + 1] == '$' {
                     i += 2;
@@ -432,9 +476,34 @@ fn guard_math_blocks(content: &str) -> (String, Vec<String>) {
                     let idx = placeholders.len();
                     placeholders.push(math_block);
                     result.push_str(&format!("<!--MATHBLOCK_{}-->", idx));
+                    found_end = true;
                     break;
                 }
                 i += 1;
+            }
+            if !found_end {
+                for j in start..i { result.push(chars[j]); }
+            }
+        } else if !in_backtick && chars[i] == '$' && i + 1 < len && !chars[i + 1].is_whitespace() && chars[i + 1] != '$' {
+            // Inline math: $...$ (single dollar); note display math $$...$$ is caught
+            // in the prior else-if so the `i == start + 1` guard below is unreachable.
+            let start = i;
+            i += 1;
+            let mut found_end = false;
+            while i < len {
+                if chars[i] == '$' && (i == start + 1 || !chars[i - 1].is_whitespace()) {
+                    i += 1;
+                    let math_block: String = chars[start..i].iter().collect();
+                    let idx = placeholders.len();
+                    placeholders.push(math_block);
+                    result.push_str(&format!("<!--MATHBLOCK_{}-->", idx));
+                    found_end = true;
+                    break;
+                }
+                i += 1;
+            }
+            if !found_end {
+                for j in start..i { result.push(chars[j]); }
             }
         } else {
             result.push(chars[i]);
@@ -457,7 +526,7 @@ fn restore_math_blocks(html: &str, placeholders: &[String]) -> String {
     result
 }
 
-fn preprocess_markdown(content: String, enable_abbr: bool) -> String {
+fn preprocess_markdown(content: String) -> String {
     let lines: Vec<&str> = content.lines().collect();
     let len = lines.len();
     let mut in_code_block = false;
@@ -509,7 +578,7 @@ fn preprocess_markdown(content: String, enable_abbr: bool) -> String {
         }
         
         // *[TERM]: definition → abbreviation
-        if enable_abbr && line.starts_with("*[") {
+        if line.starts_with("*[") {
             if let Some(bracket_end) = line.find("]: ") {
                 let term = &line[2..bracket_end]; // between *[ and ]:
                 if !term.is_empty() {
@@ -570,8 +639,9 @@ fn preprocess_markdown(content: String, enable_abbr: bool) -> String {
             if let Some(alert_content) = parse_alert(line) {
                 result.push_str(&alert_content);
                 i += 1;
-                while i < len && (lines[i].starts_with("> ") || lines[i] == ">") {
-                    let content_line = if lines[i] == "> " { "" } else { &lines[i][2..] };
+                while i < len && lines[i].starts_with('>') {
+                    let stripped = lines[i].strip_prefix('>').unwrap_or("");
+                    let content_line = stripped.strip_prefix(' ').unwrap_or(stripped);
                     result.push_str(&process_inline_markdown(content_line));
                     result.push('\n');
                     i += 1;
@@ -589,12 +659,12 @@ fn preprocess_markdown(content: String, enable_abbr: bool) -> String {
             result.push_str("<dl>\n");
             while i < len && line_types[i] == LineType::DefTerm {
                 let processed = process_inline_markdown(lines[i]);
-                result.push_str(&format!("<dt>{}</dt>\n", escape_html(&processed)));
+                result.push_str(&format!("<dt>{}</dt>\n", processed));
                 i += 1;
                 while i < len && line_types[i] == LineType::Def {
                     let def_text = lines[i].strip_prefix(": ").unwrap_or("");
                     let processed_def = process_inline_markdown(def_text);
-                    result.push_str(&format!("<dd>{}</dd>\n", escape_html(&processed_def)));
+                    result.push_str(&format!("<dd>{}</dd>\n", processed_def));
                     i += 1;
                 }
             }
@@ -858,7 +928,13 @@ fn process_inline_markdown(line: &str) -> String {
                     let url: String = chars[i..i+url_len].iter().collect();
                     let mut clean_url = url.trim_end_matches('.');
                     clean_url = clean_url.trim_end_matches(',');
-                    clean_url = clean_url.trim_end_matches(')');
+                    if clean_url.ends_with(')') {
+                        let open_parens = clean_url[prefix_len..].chars().filter(|&c| c == '(').count();
+                        let close_parens = clean_url[prefix_len..clean_url.len()-1].chars().filter(|&c| c == ')').count();
+                        if close_parens < open_parens {
+                            clean_url = clean_url.trim_end_matches(')');
+                        }
+                    }
                     let clean_len = clean_url.len();
                     let actual_url: String = chars[i..i+clean_len].iter().collect();
                     result.push_str(&format!("<a href=\"{}\" target=\"_blank\">{}</a>", escape_html(&actual_url), escape_html(&actual_url)));
@@ -956,15 +1032,16 @@ fn process_inline_markdown(line: &str) -> String {
 }
 
 fn parse_alert(line: &str) -> Option<String> {
-    if line.starts_with("> [!INFO]") || line.starts_with("> [!NOTE]") {
+    let lower = line.to_lowercase();
+    if lower.starts_with("> [!info]") || lower.starts_with("> [!note]") {
         Some(r#"<div class="alert alert-note"><div class="alert-title"><svg class="alert-icon" viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="7" x2="8" y2="11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="5" r="0.8" fill="currentColor"/></svg>Note</div><div class="alert-content">"#.to_string())
-    } else if line.starts_with("> [!TIP]") {
+    } else if lower.starts_with("> [!tip]") {
         Some(r#"<div class="alert alert-tip"><div class="alert-title"><svg class="alert-icon" viewBox="0 0 16 16" width="16" height="16"><path d="M8 1.5c-2.5 0-4.5 2-4.5 4.5 0 1.8 1 3 2.2 3.8.3.2.3.5.3.8v1.4h4v-1.4c0-.3.1-.6.3-.8 1.2-.8 2.2-2 2.2-3.8 0-2.5-2-4.5-4.5-4.5z" fill="none" stroke="currentColor" stroke-width="1.3"/><line x1="6" y1="14" x2="10" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Tip</div><div class="alert-content">"#.to_string())
-    } else if line.starts_with("> [!IMPORTANT]") {
+    } else if lower.starts_with("> [!important]") {
         Some(r#"<div class="alert alert-important"><div class="alert-title"><svg class="alert-icon" viewBox="0 0 16 16" width="16" height="16"><path d="M8 1.5L1.5 13.5h13L8 1.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.2" r="0.7" fill="currentColor"/></svg>Important</div><div class="alert-content">"#.to_string())
-    } else if line.starts_with("> [!WARNING]") {
+    } else if lower.starts_with("> [!warning]") {
         Some(r#"<div class="alert alert-warning"><div class="alert-title"><svg class="alert-icon" viewBox="0 0 16 16" width="16" height="16"><path d="M8 1.5L1.5 13.5h13L8 1.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="8" y1="6" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.2" r="0.7" fill="currentColor"/></svg>Warning</div><div class="alert-content">"#.to_string())
-    } else if line.starts_with("> [!CAUTION]") {
+    } else if lower.starts_with("> [!caution]") {
         Some(r#"<div class="alert alert-caution"><div class="alert-title"><svg class="alert-icon" viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.3"/><line x1="8" y1="4.5" x2="8" y2="8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="10.5" r="0.8" fill="currentColor"/></svg>Caution</div><div class="alert-content">"#.to_string())
     } else {
         None
@@ -1018,7 +1095,7 @@ mod tests {
     #[test]
     fn test_render_markdown_xss_in_heading() {
         let input = "# <script>alert(1)</script>".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(!html.contains("<script>"));
         assert!(html.contains("alert(1)"));
     }
@@ -1026,7 +1103,7 @@ mod tests {
     #[test]
     fn test_render_markdown_xss_in_text() {
         let input = "Hello <img src=x onerror=alert(1)>".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(!html.contains("onerror"));
         assert!(html.contains("<img"));
     }
@@ -1034,7 +1111,7 @@ mod tests {
     #[test]
     fn test_render_markdown_script_tag_stripped() {
         let input = "Text <script>document.cookie</script> more".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         eprintln!("script output: {:?}", html);
         assert!(!html.contains("<script>"));
         assert!(!html.contains("</script>"));
@@ -1045,7 +1122,7 @@ mod tests {
     #[test]
     fn test_render_markdown_iframe_stripped() {
         let input = "Text <iframe src=\"evil.com\"></iframe> more".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         eprintln!("iframe output: {:?}", html);
         assert!(!html.contains("<iframe"));
         assert!(!html.contains("</iframe>"));
@@ -1054,7 +1131,7 @@ mod tests {
     #[test]
     fn test_render_markdown_img_preserved() {
         let input = "![alt](https://example.com/img.png)".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("<img"));
         assert!(html.contains("src="));
     }
@@ -1062,7 +1139,7 @@ mod tests {
     #[test]
     fn test_render_markdown_normal() {
         let input = "# Hello\n\nThis is **bold** and *italic*.".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("<h1>"));
         assert!(html.contains("<strong>bold</strong>"));
         assert!(html.contains("<em>italic</em>"));
@@ -1089,7 +1166,7 @@ mod tests {
     #[test]
     fn test_preprocess_alert_xss() {
         let input = "> [!NOTE]\n> <script>alert(1)</script>".to_string();
-        let result = preprocess_markdown(input, true);
+        let result = preprocess_markdown(input);
         assert!(!result.contains("<script>"), "Raw script tag should not appear in: {}", result);
         // After > escaping fix: < is escaped to &lt;, but > is preserved for markdown syntax
         assert!(result.contains("&lt;script"), "Script tag should be escaped in: {}", result);
@@ -1098,7 +1175,7 @@ mod tests {
     #[test]
     fn test_preprocess_alert_normal() {
         let input = "> [!TIP]\n> This is a tip".to_string();
-        let result = preprocess_markdown(input, true);
+        let result = preprocess_markdown(input);
         assert!(result.contains("This is a tip"));
         assert!(result.contains("alert-tip"));
     }
@@ -1106,7 +1183,7 @@ mod tests {
     #[test]
     fn test_render_markdown_table() {
         let input = "| A | B |\n|---|---|\n| 1 | 2 |".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("<table>"));
         assert!(html.contains("<td>1</td>"));
     }
@@ -1114,7 +1191,7 @@ mod tests {
     #[test]
     fn test_render_markdown_code_block() {
         let input = "```javascript\nconsole.log('hello');\n```".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("<code"));
         assert!(html.contains("console.log"));
     }
@@ -1122,7 +1199,7 @@ mod tests {
     #[test]
     fn test_sanitize_preserves_chinese() {
         let input = "# 你好世界\n\n这是**中文**测试。".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("你好世界"));
         assert!(html.contains("中文"));
         assert!(html.contains("<strong>中文</strong>"));
@@ -1131,7 +1208,7 @@ mod tests {
     #[test]
     fn test_sanitize_chinese_with_html() {
         let input = "# 标题\n\n<bold>加粗</bold>文字".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("标题"));
         assert!(html.contains("加粗"));
         assert!(html.contains("文字"));
@@ -1140,7 +1217,7 @@ mod tests {
     #[test]
     fn test_render_markdown_math_block() {
         let input = "$$\n\\begin{bmatrix} a_{11} & a_{12} \\\\ a_{21} & a_{22} \\end{bmatrix}\n$$".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("\\begin{bmatrix}"));
         assert!(html.contains("\\end{bmatrix}"));
         assert!(html.contains("$$"), "Display math $$ delimiters should be preserved for frontend KaTeX");
@@ -1149,14 +1226,14 @@ mod tests {
     #[test]
     fn test_render_markdown_inline_math() {
         let input = "行内公式：$E = mc^2$".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("$E = mc^2$"));
     }
 
     #[test]
     fn test_render_markdown_blockquote() {
         let input = "> 智能标点自动转换".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("<blockquote"), "Blockquote should be present in: {}", html);
         assert!(html.contains("智能标点自动转换"));
     }
@@ -1164,14 +1241,14 @@ mod tests {
     #[test]
     fn test_render_markdown_nested_blockquote() {
         let input = "> 第一层\n> > 第二层".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("<blockquote"), "Blockquote should be present in: {}", html);
     }
 
     #[test]
     fn test_render_markdown_task_list() {
         let input = "- [x] 完成项目文档\n- [ ] 发布版本".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("checkbox"), "Task list checkbox should be present in: {}", html);
         assert!(html.contains("完成项目文档"));
         assert!(html.contains("发布版本"));
@@ -1180,14 +1257,14 @@ mod tests {
     #[test]
     fn test_render_markdown_horizontal_rule() {
         let input = "text before\n\n---\n\ntext after".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("<hr"), "Horizontal rule should be present in: {}", html);
     }
 
     #[test]
     fn test_render_markdown_heading_with_math_section() {
         let input = "### 行内公式\n\n勾股定理：$a^2 + b^2 = c^2$".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("行内公式"), "Heading text should be present in: {}", html);
         assert!(!html.contains("###"), "Raw ### should not be present in: {}", html);
     }
@@ -1195,7 +1272,7 @@ mod tests {
     #[test]
     fn test_render_markdown_heading_after_alert() {
         let input = "> [!NOTE]\n> 提示内容\n\n### 独立公式块\n\n内容".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("独立公式块"), "Heading after alert should be present in: {}", html);
         assert!(!html.contains("###"), "Raw ### should not be present in: {}", html);
     }
@@ -1204,7 +1281,7 @@ mod tests {
     fn test_render_markdown_smart_punctuation_hr() {
         // ENABLE_SMART_PUNCTUATION should not break thematic breaks
         let input = "text\n\n---\n\nmore text".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("<hr"), "Horizontal rule should be present with smart punctuation in: {}", html);
     }
 
@@ -1214,7 +1291,7 @@ mod tests {
         let input = "> [!NOTE]\n> 如 `$$` 符号\n\n### 行内公式\n\n$$
 真实公式
 $$".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("行内公式"), "Heading should be preserved in: {}", html);
         assert!(!html.contains("###"), "Raw ### should not be present in: {}", html);
         assert!(html.contains("真实公式"), "Real math should be preserved in: {}", html);
@@ -1240,7 +1317,7 @@ $$".to_string();
             "\\end{aligned}\n",
             "$$\n",
         ).to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("行内公式"), "Heading '行内公式' should be present in: {}", html);
         assert!(html.contains("独立公式块"), "Heading '独立公式块' should be present in: {}", html);
         assert!(!html.contains("### 行内公式"), "Raw markdown heading should not appear in: {}", html);
@@ -1257,7 +1334,7 @@ $$".to_string();
 let x = 1;
 ```
 ````".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("let x = 1"), "Inner code must be present");
         assert!(html.contains("```"), "Should render literal backticks");
     }
@@ -1265,7 +1342,7 @@ let x = 1;
     fn test_full_demo_md_file() {
         let content = std::fs::read_to_string("../demo.md")
             .expect("Could not read demo.md");
-        let html = render_markdown(content, None);
+        let html = render_markdown(content);
 
         // Find and print context around "### 行内公式"
         if let Some(pos) = html.find("### 行内公式") {
@@ -1325,7 +1402,7 @@ P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}
 $$
 "##.to_string();
 
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         eprintln!("\n========== FULL MATH SECTION OUTPUT ==========\n{}\n================================================\n", html);
 
         // Verify structure
@@ -1347,7 +1424,7 @@ $$
             "- [x] Review 代码\n",
             "- [ ] 发布 v0.2.0 版本\n",
         ).to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("checkbox"), "Task list should have checkboxes in: {}", html);
         assert!(html.contains("完成项目文档"));
     }
@@ -1355,7 +1432,7 @@ $$
     #[test]
     fn test_render_blockquote_and_hr() {
         let input = "> 单一引用：TizuMark 的设计哲学是\"简单就是力量\"。\n\n---\n\n## 流程图与图表\n\nTizuMark 内置 Mermaid 图表引擎。".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("<blockquote"), "Blockquote should be present in: {}", html);
         assert!(html.contains("<hr"), "Horizontal rule should be present in: {}", html);
         assert!(html.contains("流程图与图表"), "Heading should be present in: {}", html);
@@ -1386,7 +1463,7 @@ $$\n\
 \n\
 ---\n\
 ".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         eprintln!("\n========== MATRIX BLOCK OUTPUT (with \\\\) ==========\n{}\n======================================================\n", html);
 
         // Check: should have the matrix LaTeX content
@@ -1399,7 +1476,7 @@ $$\n\
     #[test]
     fn test_backslash_escape_asterisk() {
         let input = "\\*not italic\\*".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(!html.contains("<em>"), "Escaped * should not be emphasis");
         assert!(html.contains("not italic"), "Content should be preserved");
     }
@@ -1407,21 +1484,21 @@ $$\n\
     #[test]
     fn test_backslash_escape_bracket() {
         let input = "\\[not a link\\]".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("[not a link]"), "Escaped brackets as literal");
     }
 
     #[test]
     fn test_inline_code_space_trimming() {
         let input = "` code `".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("<code>code</code>"), "Spaces should be trimmed");
     }
 
     #[test]
     fn test_triple_emphasis() {
         let input = "***bold italic***".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("<em><strong>"), "Triple *** should give nested emphasis");
         assert!(html.contains("bold italic"), "Content preserved");
     }
@@ -1429,28 +1506,28 @@ $$\n\
     #[test]
     fn test_html_entity_copy() {
         let input = "&copy; 2025".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(!html.contains("&amp;copy;"), "Entity &copy; should not be double-escaped");
     }
 
     #[test]
     fn test_html_entity_amp() {
         let input = "&amp; is the & symbol".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(!html.contains("&amp;amp;"), "Entity &amp; should not be double-escaped");
     }
 
     #[test]
     fn test_plain_ampersand_escaped() {
         let input = "A & B".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(html.contains("&amp;"), "Plain & should be escaped");
     }
 
     #[test]
     fn test_math_before_alert() {
         let input = "如果你在写技术文档，可以自然地插入数学公式：\n\n$$\nO(1) < O(\\log n) < O(n) < O(n \\log n) < O(n^2) < O(2^n)\n$$\n\n> [!TIP]\n> **写作建议**：好的技术文档是\"分层\"的——正文讲核心逻辑，脚注补充细节，引用块标注出处，提示框强调要点。";
-        let html = render_markdown(input.to_string(), None);
+        let html = render_markdown(input.to_string());
         assert!(html.contains("$$"), "Math $$ should be preserved");
         assert!(!html.contains("<p>$$"), "Math block should NOT be wrapped in <p>");
     }
@@ -1459,7 +1536,7 @@ $$\n\
     fn test_full_demo_md_for_code_wrap() {
         let content = std::fs::read_to_string("../demo.md")
             .expect("Could not read demo.md");
-        let html = render_markdown(content.clone(), None);
+        let html = render_markdown(content.clone());
 
         // Complexity formula must NOT be wrapped in <code>
         assert!(
@@ -1513,7 +1590,7 @@ $$\n\
     #[test]
     fn test_abbr_defs_hidden_from_output() {
         let input = "*[HTML]: HyperText Markup Language\n\nHTML is a markup language.\n".to_string();
-        let html = render_markdown(input, None);
+        let html = render_markdown(input);
         assert!(!html.contains("*[HTML]:"), "Abbr definition lines should be hidden from output");
         assert!(html.contains("id=\"abbr-data\""), "Abbr data div should be embedded in output");
         assert!(html.contains("HTML is a markup language"), "Regular text should still appear in output");
@@ -1527,7 +1604,7 @@ $$\n\
         let abbrs = extract_abbreviations(&content);
         assert!(abbrs.iter().any(|(t, _)| t == "HTML"), "Line parser extracts all *[TERM]: lines");
         assert!(abbrs.iter().any(|(t, _)| t == "CSS"), "Legitimate abbreviation should also be extracted");
-        let html = render_markdown(content, None);
+        let html = render_markdown(content);
         // Code block content IS preserved verbatim (including *[HTML]: text)
         // The real abbreviation definition *[CSS]: should be hidden
         // Data div should be embedded
@@ -1535,4 +1612,54 @@ $$\n\
         assert!(html.contains("*[HTML]:"), "Code block content should be preserved verbatim");
         assert!(!html.contains("*[CSS]:"), "Abbr definition outside code should be hidden");
         assert!(html.contains("id=\"abbr-data\""), "Data div should be embedded");
+    }
+
+    #[test]
+    fn test_decode_numeric_entities() {
+        assert_eq!(decode_numeric_entities("&#x6A;"), "j"); // hex 'j'
+        assert_eq!(decode_numeric_entities("&#106;"), "j"); // decimal 'j'
+        assert_eq!(decode_numeric_entities("&#x6A"), ""); // No closing ; → stripped
+        assert_eq!(decode_numeric_entities("hello&#65;world"), "helloAworld");
+        assert_eq!(decode_numeric_entities("&#x6A;&#x61;"), "ja"); // Multiple
+        assert_eq!(decode_numeric_entities("no entities"), "no entities");
+        assert_eq!(decode_numeric_entities("&#X6A;"), "j"); // Uppercase X
+        assert_eq!(decode_numeric_entities("&#x6A;avascript:"), "javascript:"); // Decode 'j'
+    }
+
+    #[test]
+    fn test_contains_dangerous_protocol() {
+        assert!(contains_dangerous_protocol("javascript:alert(1)"));
+        assert!(contains_dangerous_protocol("JAVASCRIPT:alert(1)"));
+        assert!(contains_dangerous_protocol("&#x6A;avascript:alert(1)"));
+        assert!(contains_dangerous_protocol("&#106;avascript:alert(1)"));
+        assert!(contains_dangerous_protocol("&#X6A;avascript:alert(1)"));
+        assert!(!contains_dangerous_protocol("https://example.com"));
+        assert!(!contains_dangerous_protocol("javascript-alert"));
+        assert!(!contains_dangerous_protocol("onclick"));
+    }
+
+    #[test]
+    fn test_xss_numeric_entity_bypass() {
+        // &#x6A; = 'j', so &#x6A;avascript: = javascript:
+        let input = "<a href=\"&#x6A;avascript:alert(1)\">click</a>";
+        let html = render_markdown(input.to_string());
+        assert!(!html.contains("javascript:"), "Numeric entity bypass should be blocked");
+        assert!(html.contains("click"), "Link text should be preserved");
+    }
+
+    #[test]
+    fn test_xss_decimal_entity_bypass() {
+        // &#106; = 'j', so &#106;avascript: = javascript:
+        let input = "<a href=\"&#106;avascript:alert(1)\">click</a>";
+        let html = render_markdown(input.to_string());
+        assert!(!html.contains("javascript:"), "Decimal entity bypass should be blocked");
+        assert!(html.contains("click"), "Link text should be preserved");
+    }
+
+    #[test]
+    fn test_boolean_attribute_xss() {
+        // Boolean attribute with dangerous protocol
+        let input = "<div javascript:>test</div>";
+        let html = render_markdown(input.to_string());
+        assert!(!html.contains("javascript:"), "Boolean attribute with javascript: should be stripped");
     }

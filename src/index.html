@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
   <title>TizuMark</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="lib/codemirror/codemirror.css">
@@ -13,6 +14,7 @@
 </head>
 <body>
   <div id="app">
+    <div id="drag-overlay" class="hidden"></div>
     <header class="header">
       <div class="toolbar">
         <div class="toolbar-left">
@@ -264,9 +266,9 @@
       <div class="tab-bar-wrapper">
         <button id="tab-scroll-left" class="tab-scroll-arrow hidden" title="向左滚动">&#9664;</button>
         <div class="tab-bar-scroll" id="tab-bar-scroll">
-          <div id="tab-bar" class="tab-bar">
+          <div id="tab-bar" class="tab-bar" role="tablist" aria-label="标签页">
             <div class="tab active" data-index="0">
-              <span class="tab-name">未命名</span>
+              <span class="tab-name">未命名1</span>
               <span class="tab-close">&times;</span>
             </div>
             <button id="btn-add-tab" class="tab-add" title="新建标签页">+</button>
@@ -374,11 +376,11 @@
   <script src="lib/mermaid/mermaid.min.js"></script>
   <script src="lib/html2canvas.min.js"></script>
   <!-- 关于对话框 -->
-  <div id="about-dialog" class="dialog-overlay hidden">
+  <div id="about-dialog" class="dialog-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="about-title">
     <div class="dialog">
       <div class="dialog-header">
-        <h2>关于 TizuMark</h2>
-        <button class="dialog-close" id="about-close">&times;</button>
+        <h2 id="about-title">关于 TizuMark</h2>
+        <button class="dialog-close" id="about-close" aria-label="关闭">&times;</button>
       </div>
       <div class="dialog-content">
         <div class="about-section">
@@ -467,10 +469,10 @@
   </div>
 
   <!-- GPL 许可协议对话框 -->
-  <div id="eula-dialog" class="dialog-overlay hidden">
+  <div id="eula-dialog" class="dialog-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="eula-title">
     <div class="dialog eula-dialog">
       <div class="dialog-header">
-        <h2>开源许可协议</h2>
+        <h2 id="eula-title">开源许可协议</h2>
       </div>
       <div class="dialog-content">
         <div class="eula-scroll">
@@ -498,7 +500,7 @@
     </div>
   </div>
 
-  <div id="save-dialog" class="dialog-overlay hidden">
+  <div id="save-dialog" class="dialog-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="save-dialog-title">
     <div class="dialog save-dialog">
       <div class="dialog-header">
         <h2 id="save-dialog-title">保存更改</h2>
@@ -514,11 +516,11 @@
     </div>
   </div>
 
-  <div id="shortcuts-dialog" class="dialog-overlay hidden">
+  <div id="shortcuts-dialog" class="dialog-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
     <div class="dialog shortcuts-dialog">
       <div class="dialog-header">
-        <h2>快捷键设置</h2>
-        <button class="dialog-close" id="shortcuts-close">&times;</button>
+        <h2 id="shortcuts-title">快捷键设置</h2>
+        <button class="dialog-close" id="shortcuts-close" aria-label="关闭">&times;</button>
       </div>
       <div class="dialog-content shortcuts-content">
         <div id="shortcuts-list" class="shortcuts-list"></div>
@@ -530,10 +532,10 @@
     </div>
   </div>
 
-  <div id="settings-dialog" class="dialog-overlay hidden">
+  <div id="settings-dialog" class="dialog-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="dialog settings-dialog">
       <div class="dialog-header">
-        <h2>设置</h2>
+        <h2 id="settings-title">设置</h2>
       </div>
       <div class="dialog-content settings-content">
         <div class="settings-section">
@@ -629,10 +631,6 @@
           <div class="settings-row">
             <label>滚动同步</label>
             <label class="toggle"><input type="checkbox" id="set-scroll-sync" checked><span class="toggle-slider"></span></label>
-          </div>
-          <div class="settings-row">
-            <label>缩写提示（*[术语]: 定义）</label>
-            <label class="toggle"><input type="checkbox" id="set-enable-abbr" checked><span class="toggle-slider"></span></label>
           </div>
         </div>
       </div>

@@ -20,6 +20,7 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.18);
+  --shadow-up-sm: 0 -1px 3px rgba(0, 0, 0, 0.08);
   --heading-color: var(--text-primary);
   --heading-h2-color: #1e1e22;
   --heading-h1-color: var(--text-primary);
@@ -27,6 +28,7 @@
   --toc-border: #d0d9f0;
   --scrollbar-track: #f6f5f4;
   --scrollbar-thumb: #c6c5c4;
+  --scrollbar-thumb-hover: #a8a7a6;
   --preview-bg: #ffffff;
   --code-bg: #f0efee;
   --find-bg: #f0efee;
@@ -54,6 +56,7 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --shadow-up-sm: 0 -1px 3px rgba(0, 0, 0, 0.25);
   --heading-color: var(--text-primary);
   --heading-h2-color: #c0c0c6;
   --heading-h1-color: var(--text-primary);
@@ -61,6 +64,7 @@
   --toc-border: #2a3448;
   --scrollbar-track: #1a1b1e;
   --scrollbar-thumb: #3a3d42;
+  --scrollbar-thumb-hover: #4e5258;
   --preview-bg: #1a1b1e;
   --code-bg: #212327;
   --find-bg: #212327;
@@ -92,7 +96,7 @@ body {
   flex-direction: column;
   background-color: var(--bg-toolbar);
   border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 1px 3px var(--shadow-sm);
+  box-shadow: var(--shadow-sm);
 }
 
 .toolbar {
@@ -239,7 +243,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.15s ease;
   flex-shrink: 0;
 }
 
@@ -276,7 +280,7 @@ body {
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
-  transition: all 0.2s ease;
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.2s ease;
   border-radius: 16px;
   -webkit-app-region: no-drag;
 }
@@ -343,7 +347,7 @@ body {
   font-size: 12px;
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.15s ease;
 }
 
 .dropdown-item .icon {
@@ -360,7 +364,7 @@ body {
   font-size: 12px;
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.12s ease;
   white-space: nowrap;
 }
 
@@ -462,7 +466,7 @@ body {
   max-width: 180px;
   flex-shrink: 0;
   overflow: hidden;
-  transition: all 0.2s ease;
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.2s ease;
   -webkit-app-region: no-drag;
 }
 
@@ -539,7 +543,7 @@ body {
   font-size: 11px;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.15s ease;
 }
 
 .find-btn:hover { background: var(--border-color); }
@@ -593,8 +597,7 @@ body.is-resizing .preview-pane {
   animation: drag-pulse 1.5s ease-in-out infinite;
 }
 
-#app.drag-over::before {
-  content: '拖放文件到此处打开';
+#drag-overlay {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -609,6 +612,10 @@ body.is-resizing .preview-pane {
   z-index: 10000;
   pointer-events: none;
   animation: drag-float 1.5s ease-in-out infinite;
+}
+
+#drag-overlay.hidden {
+  display: none;
 }
 
 @keyframes drag-pulse {
@@ -688,7 +695,6 @@ body.is-resizing .preview-pane {
   background-color: var(--preview-bg);
   line-height: 1.7;
   word-wrap: break-word;
-  scroll-behavior: smooth;
   -webkit-user-select: text;
   user-select: text;
   transition: max-width 0.2s ease;
@@ -716,7 +722,7 @@ body.is-resizing .preview-pane {
   justify-content: center;
   gap: 5px;
   box-shadow: var(--shadow-sm);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 100;
 }
 
@@ -851,7 +857,7 @@ body.is-resizing .preview-pane {
   position: relative;
   top: -1px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.15s ease;
 }
 .preview-content li input[type="checkbox"]:hover {
   border-color: var(--color-success);
@@ -1250,7 +1256,7 @@ body.is-resizing .preview-pane {
   padding: 3px 12px;
   background-color: var(--bg-toolbar);
   border-top: 1px solid var(--border-color);
-  box-shadow: 0 -1px 3px var(--shadow-sm);
+  box-shadow: var(--shadow-up-sm);
   font-size: 11px;
   color: var(--text-secondary);
   min-height: 22px;
@@ -1269,7 +1275,7 @@ body.is-resizing .preview-pane {
 ::-webkit-scrollbar { width: 7px; height: 7px; }
 ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
 ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 6px; }
-::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb); }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
 .editor-container.preview-mode .editor-pane,
 .editor-container.preview-mode .resizer { display: none; }
@@ -1454,7 +1460,7 @@ body.is-resizing .preview-pane {
   font-size: 12px;
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.12s ease;
   white-space: nowrap;
 }
 
@@ -1604,7 +1610,7 @@ body.is-resizing .preview-pane {
   color: var(--text-primary);
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.15s ease;
 }
 
 .dialog-btn:hover {
@@ -1798,9 +1804,18 @@ body.is-resizing .preview-pane {
 }
 
 .toggle input {
+  position: absolute;
   opacity: 0;
-  width: 0;
-  height: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.toggle input:focus-visible + .toggle-slider {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
 }
 
 .toggle-slider {
@@ -1831,29 +1846,6 @@ body.is-resizing .preview-pane {
   transform: translateX(16px);
 }
 
-.info-tip:hover {
-  background-color: var(--accent-color);
-  color: var(--accent-text);
-}
-
-.info-tip:hover::after {
-  content: attr(title);
-  position: fixed;
-  bottom: auto;
-  left: auto;
-  transform: none;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-weight: 400;
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 2000;
-  pointer-events: none;
-}
 
 .shortcuts-dialog {
   max-width: 520px;
@@ -1874,7 +1866,7 @@ body.is-resizing .preview-pane {
   align-items: center;
   justify-content: space-between;
   padding: 8px 20px;
-  transition: all 0.15s ease;
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.15s ease;
 }
 
 .shortcut-row:hover {
@@ -1921,7 +1913,7 @@ body.is-resizing .preview-pane {
   background: var(--bg-primary);
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.15s;
 }
 
 .shortcut-record-btn:hover {
@@ -1949,7 +1941,7 @@ body.is-resizing .preview-pane {
   background: var(--bg-primary);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color, color, border-color, opacity, transform, box-shadow 0.15s;
 }
 
 .shortcut-clear-btn:hover {
