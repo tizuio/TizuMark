@@ -2404,13 +2404,13 @@ ${htmlContent}
         const parent = n.parentElement;
         dumpNodes.push({
           tag: parent ? parent.tagName : 'null',
-          className: parent ? (parent.className || '') : '',
-          id: parent ? (parent.id || '') : '',
-          preview: n.textContent.substring(0, 80)
+          class: parent ? (parent.className || '(none)') : '',
+          id: parent ? (parent.id || '(none)') : '',
+          text: n.textContent.substring(0, 100).replace(/\n/g, '\\n')
         });
       }
     }
-    console.log('[math] Text nodes containing $$:', dumpNodes.length, dumpNodes);
+    console.table(dumpNodes);
 
     try {
       renderMathInElement(this.preview, {
