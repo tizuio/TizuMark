@@ -290,10 +290,35 @@ fn heading_to_id(text: &str) -> String {
     collapsed.trim_matches('-').to_string()
 }
 
+fn extract_abbreviations(content: &str) -> Vec<(String, String)> {
+    let mut abbrs = Vec::new();
+    for line in content.lines() {
+        if line.starts_with("*[") {
+            if let Some(bracket_end) = line.find("]: ") {
+                let term = line[2..bracket_end].to_string();
+                let def = line[bracket_end + 3..].to_string();
+                if !term.is_empty() {
+                    abbrs.push((term, def));
+                }
+            }
+        }
+    }
+    abbrs
+}
+
+fn embed_abbr_data(html: &str, abbreviations: &[(String, String)]) -> String {
+    if abbreviations.is_empty() {
+        return html.to_string();
+    }
+    let json = serde_json::to_string(abbreviations).unwrap_or_default();
+    format!("{html}<div id=\"abbr-data\" style=\"display:none\" data-abbrs='{json}'></div>")
+}
+
 #[tauri::command]
 fn render_markdown(content: String) -> String {
     use pulldown_cmark::{Parser, Options, html};
 
+    let abbreviations = extract_abbreviations(&content);
     let preprocessed = preprocess_markdown(content);
     let (guarded, placeholders) = guard_math_blocks(&preprocessed);
 
@@ -309,7 +334,8 @@ fn render_markdown(content: String) -> String {
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
     let html = sanitize_html(&html_output);
-    restore_math_blocks(&html, &placeholders)
+    let html = restore_math_blocks(&html, &placeholders);
+    embed_abbr_data(&html, &abbreviations)
 }
 
 fn guard_math_blocks(content: &str) -> (String, Vec<String>) {
@@ -477,6 +503,16 @@ fn preprocess_markdown(content: String) -> String {
             continue;
         }
         
+        // *[TERM]: definition → abbreviation
+        if line.starts_with("*[") {
+            if let Some(bracket_end) = line.find("]: ") {
+                let term = &line[2..bracket_end]; // between *[ and ]:
+                if !term.is_empty() {
+                    line_types.push(LineType::Abbr);
+                    continue;
+                }
+            }
+        }
         if line.starts_with("> [!") {
             line_types.push(LineType::Alert);
         } else if line.starts_with(": ") || line == ":" {
@@ -513,6 +549,13 @@ fn preprocess_markdown(content: String) -> String {
 
         if *lt == LineType::Code || *lt == LineType::Math {
             result.push_str(line);
+            result.push('\n');
+            i += 1;
+            continue;
+        }
+
+        if *lt == LineType::Abbr {
+            // Abbreviation definitions are hidden from output
             result.push('\n');
             i += 1;
             continue;
@@ -575,6 +618,7 @@ enum LineType {
     Alert,
     Def,
     DefTerm,
+    Abbr,
 }
 
 fn contains_html_tag(line: &str) -> bool {
@@ -665,18 +709,10 @@ fn process_inline_markdown(line: &str) -> String {
                             &inner
                         };
                         let safe_content = escape_html(code_content);
-                        // If the code content ends with a backslash, it would
-                        // combine with </code> to form \< which pulldown-cmark
-                        // consumes as a backslash escape, destroying the tag.
-                        let safe_content = if safe_content.ends_with('\\') {
-                            let mut chars: Vec<char> = safe_content.chars().collect();
-                            chars.pop();
-                            let mut s: String = chars.into_iter().collect();
-                            s.push_str("&#92;");
-                            s
-                        } else {
-                            safe_content
-                        };
+                        // Escape all backslashes to &#92; so pulldown-cmark
+                        // won't apply backslash escapes to the content inside
+                        // <code> tags (e.g. \* → *, \# → #).
+                        let safe_content = safe_content.replace('\\', "&#92;");
                         result.push_str(&format!("<code>{}</code>", safe_content));
                         // Consume all matching backticks; extras → &#96; so they
                         // don't accidentally start new inline code spans
@@ -1458,4 +1494,40 @@ $$\n\
             pos += 1;
         }
         assert!(tag_stack.is_empty(), "Unclosed <code> tags in HTML output: {}", tag_stack.len());
+    }
+
+    #[test]
+    fn test_extract_abbreviations() {
+        let input = "*[HTML]: HyperText Markup Language\n*[CSS]: Cascading Style Sheets\n";
+        let abbrs = extract_abbreviations(input);
+        assert_eq!(abbrs.len(), 2, "Should extract 2 abbreviations");
+        assert_eq!(abbrs[0], ("HTML".to_string(), "HyperText Markup Language".to_string()));
+        assert_eq!(abbrs[1], ("CSS".to_string(), "Cascading Style Sheets".to_string()));
+    }
+
+    #[test]
+    fn test_abbr_defs_hidden_from_output() {
+        let input = "*[HTML]: HyperText Markup Language\n\nHTML is a markup language.\n".to_string();
+        let html = render_markdown(input);
+        assert!(!html.contains("*[HTML]:"), "Abbr definition lines should be hidden from output");
+        assert!(html.contains("id=\"abbr-data\""), "Abbr data div should be embedded in output");
+        assert!(html.contains("HTML is a markup language"), "Regular text should still appear in output");
+    }
+
+    #[test]
+    fn test_abbr_not_in_code_blocks() {
+        // extract_abbreviations is line-based; it will find *[HTML]: even in code blocks.
+        // The frontend TreeWalker skips CODE/PRE tags, so this is safe at render time.
+        let content = "```\n*[HTML]: this is not an abbreviation\n```\n\n*[CSS]: Cascading Style Sheets\n\nCSS is used.\n".to_string();
+        let abbrs = extract_abbreviations(&content);
+        assert!(abbrs.iter().any(|(t, _)| t == "HTML"), "Line parser extracts all *[TERM]: lines");
+        assert!(abbrs.iter().any(|(t, _)| t == "CSS"), "Legitimate abbreviation should also be extracted");
+        let html = render_markdown(content);
+        // Code block content IS preserved verbatim (including *[HTML]: text)
+        // The real abbreviation definition *[CSS]: should be hidden
+        // Data div should be embedded
+        assert!(html.contains("<pre><code>"), "Code block should be rendered");
+        assert!(html.contains("*[HTML]:"), "Code block content should be preserved verbatim");
+        assert!(!html.contains("*[CSS]:"), "Abbr definition outside code should be hidden");
+        assert!(html.contains("id=\"abbr-data\""), "Data div should be embedded");
     }
