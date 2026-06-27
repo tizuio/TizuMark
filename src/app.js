@@ -2497,6 +2497,64 @@ ${htmlContent}
     this.debounceTimer = setTimeout(() => this.updatePreview(), 30);
   }
 
+  // 将 markdown 源码按空行切分为逻辑块，跟踪围栏代码块
+  parseBlocks(content) {
+    const lines = content.split('\n');
+    const blocks = [];
+    let inFence = false;
+    let fenceChar = '';
+    let fenceCount = 0;
+    let blockStart = -1;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (!inFence && (trimmed.startsWith('```') || trimmed.startsWith('~~~'))) {
+        const fc = trimmed[0];
+        const match = trimmed.match(new RegExp('^\\' + fc + '{3,}'));
+        if (match) {
+          inFence = true;
+          fenceChar = fc;
+          fenceCount = match[0].length;
+          if (blockStart >= 0) {
+            blocks.push({ startLine: blockStart, endLine: i - 1 });
+            blockStart = -1;
+          }
+          blockStart = i;
+          continue;
+        }
+      }
+
+      if (inFence) {
+        if (trimmed.startsWith(fenceChar)) {
+          const match = trimmed.match(new RegExp('^\\' + fenceChar + '{' + fenceCount + ',}'));
+          if (match && trimmed.replace(match[0], '').trim() === '') {
+            blocks.push({ startLine: blockStart, endLine: i });
+            blockStart = -1;
+            inFence = false;
+          }
+        }
+        continue;
+      }
+
+      if (trimmed === '') {
+        if (blockStart >= 0) {
+          blocks.push({ startLine: blockStart, endLine: i - 1 });
+          blockStart = -1;
+        }
+      } else if (blockStart < 0) {
+        blockStart = i;
+      }
+    }
+
+    if (blockStart >= 0) {
+      blocks.push({ startLine: blockStart, endLine: lines.length - 1 });
+    }
+
+    return blocks;
+  }
+
   async updatePreview() {
     const gen = ++this._renderGeneration;
     try {
