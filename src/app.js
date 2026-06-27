@@ -2617,6 +2617,49 @@ ${htmlContent}
     this._linePositions = deduped;
   }
 
+  // 根据编辑器行号，用二分查找和内插计算预览的目标 scrollTop（居中）
+  getPreviewTopForLine(line) {
+    const positions = this._linePositions;
+    if (positions.length < 2) return 0;
+
+    let lo = 0, hi = positions.length - 1;
+    while (lo < hi - 1) {
+      const mid = (lo + hi) >> 1;
+      if (positions[mid].line <= line) lo = mid;
+      else hi = mid;
+    }
+
+    const lower = positions[lo];
+    const upper = positions[hi];
+    if (upper.line === lower.line) return lower.top;
+
+    const frac = (line - lower.line) / (upper.line - lower.line);
+    const targetTop = lower.top + frac * (upper.top - lower.top);
+    return Math.max(0, targetTop - this.preview.clientHeight / 2);
+  }
+
+  // 根据预览 scrollTop，用二分查找和内插计算编辑器目标行号（居中）
+  getLineForPreviewTop(scrollTop) {
+    const positions = this._linePositions;
+    if (positions.length < 2) return 0;
+
+    const targetTop = scrollTop + this.preview.clientHeight / 2;
+
+    let lo = 0, hi = positions.length - 1;
+    while (lo < hi - 1) {
+      const mid = (lo + hi) >> 1;
+      if (positions[mid].top <= targetTop) lo = mid;
+      else hi = mid;
+    }
+
+    const lower = positions[lo];
+    const upper = positions[hi];
+    if (upper.top === lower.top) return lower.line;
+
+    const frac = (targetTop - lower.top) / (upper.top - lower.top);
+    return Math.round(lower.line + frac * (upper.line - lower.line));
+  }
+
   async updatePreview() {
     const gen = ++this._renderGeneration;
     try {
