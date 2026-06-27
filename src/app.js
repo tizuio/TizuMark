@@ -2295,6 +2295,7 @@ ${htmlContent}
       try { await this.processImages(); } catch (e) { console.warn('[preview] Images error:', e); }
       try { this.processEmojiShortcodes(); } catch (e) { console.warn('[preview] Emoji error:', e); }
       try { this.processMath(); } catch (e) { console.warn('[preview] Math error:', e); }
+      try { this.processAbbreviations(); } catch (e) { console.warn('[preview] Abbr error:', e); }
       try { this.processHeadings(); } catch (e) { console.warn('[preview] Headings error:', e); }
       try { await this.processMermaid(); } catch (e) { console.warn('[preview] Mermaid error:', e); }
       try { this.addCopyButtons(); } catch (e) { console.warn('[preview] Copy btn error:', e); }
@@ -2385,6 +2386,71 @@ ${htmlContent}
       }
       if (newText !== text) textNode.textContent = newText;
     });
+  }
+
+  // Replace abbreviation terms with <abbr title="..."> tags.
+  // Abbreviation definitions (*[TERM]: definition) are parsed by the Rust
+  // backend and embedded as a hidden <div id="abbr-data" data-abbrs="[...]">.
+  processAbbreviations() {
+    const dataDiv = this.preview.querySelector('#abbr-data');
+    if (!dataDiv) return;
+    try {
+      const abbrs = JSON.parse(dataDiv.getAttribute('data-abbrs'));
+      if (!abbrs || !abbrs.length) { dataDiv.remove(); return; }
+
+      // Sort by term length descending to avoid partial matches
+      abbrs.sort((a, b) => b[0].length - a[0].length);
+
+      const skipTags = ['CODE', 'PRE', 'ABBR', 'SCRIPT', 'STYLE', 'TEXTAREA', 'A'];
+      const walker = document.createTreeWalker(
+        this.preview,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: (node) => {
+            let p = node.parentElement;
+            while (p) {
+              if (skipTags.includes(p.tagName)) return NodeFilter.FILTER_REJECT;
+              if (p.classList && p.classList.contains('katex')) return NodeFilter.FILTER_REJECT;
+              p = p.parentElement;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        },
+        false
+      );
+
+      const replacements = [];
+      let node;
+      while (node = walker.nextNode()) {
+        let text = node.textContent;
+        let modified = false;
+
+        for (const [term, def] of abbrs) {
+          if (!text.includes(term)) continue;
+          const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`(?<![a-zA-Z0-9])${escaped}(?![a-zA-Z0-9])`, 'g');
+          if (regex.test(text)) {
+            modified = true;
+            const safeDef = def.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            text = text.replace(regex, `<abbr title="${safeDef}">${term}</abbr>`);
+          }
+        }
+
+        if (modified) replacements.push({ node, html: text });
+      }
+
+      // Replace text nodes with parsed HTML
+      for (const { node, html } of replacements) {
+        const span = document.createElement('span');
+        span.innerHTML = html;
+        node.replaceWith(...span.childNodes);
+      }
+
+      dataDiv.remove();
+    } catch (e) {
+      console.warn('[preview] Abbreviations error:', e);
+      dataDiv.remove();
+    }
   }
 
   // Render both display math ($$...$$) and inline math ($...$ / \(...\))
