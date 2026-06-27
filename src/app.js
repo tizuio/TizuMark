@@ -1301,24 +1301,11 @@ class MarkdownEditor {
       if (container.classList.contains('preview-collapsed') || container.classList.contains('preview-mode')) return;
       this.syncingScroll = true;
 
-      // 基于字符位置的滚动同步：找到编辑器视口中央的字符位置，映射到预览
       const viewportCenter = info.top + info.clientHeight / 2;
       const centerLine = this.cm.lineAtHeight(viewportCenter);
-      const content = this.activeTab.content;
-      const lines = content.split('\n');
-      let charPos = 0;
-      for (let i = 0; i < centerLine && i < lines.length; i++) {
-        charPos += lines[i].length + 1;
-      }
-      if (centerLine < lines.length) {
-        const lineCoords = this.cm.charCoords({ line: centerLine, ch: 0 }, 'local');
-        const lineH = (lineCoords.bottom - lineCoords.top) || 1;
-        const inLineFrac = Math.max(0, Math.min(1, (viewportCenter - lineCoords.top) / lineH));
-        charPos += lines[centerLine].length * inLineFrac;
-      }
-      const charFraction = content.length > 0 ? Math.min(charPos / content.length, 1) : 0;
+      const previewTop = this.getPreviewTopForLine(centerLine);
       const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
-      this.preview.scrollTop = charFraction * previewMax;
+      this.preview.scrollTop = Math.min(previewTop, previewMax);
 
       requestAnimationFrame(() => { this.syncingScroll = false; });
     });
