@@ -2294,6 +2294,7 @@ ${htmlContent}
       // never cascades and destroys the rest of the preview.
       try { await this.processImages(); } catch (e) { console.warn('[preview] Images error:', e); }
       try { this.processEmojiShortcodes(); } catch (e) { console.warn('[preview] Emoji error:', e); }
+      try { this.processDisplayMath(); } catch (e) { console.warn('[preview] Display math error:', e); }
       try { this.processInlineMath(); } catch (e) { console.warn('[preview] Inline math error:', e); }
       try { this.processHeadings(); } catch (e) { console.warn('[preview] Headings error:', e); }
       try { await this.processMermaid(); } catch (e) { console.warn('[preview] Mermaid error:', e); }
