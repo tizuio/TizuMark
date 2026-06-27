@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo check *)",
+      "Bash(cargo test *)",
+      "Bash(xxd \"D:/project/tizu-mark/demo.md\")",
+      "Bash(git checkout *)",
+      "Bash(npm run *)",
+      "Bash(cargo tauri *)",
+      "Bash(npx tauri *)",
+      "Bash(npm ls *)",
+      "Bash(npm install *)",
+      "Bash(node -e \"require\\('fs'\\).readFileSync\\('src/app.js', 'utf8'\\); console.log\\('JS file readable, no syntax check'\\)\")",
+      "Bash(node --check src/app.js)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('src-tauri/tauri.conf.json', 'utf8'\\)\\); console.log\\('tauri.conf.json is valid JSON'\\)\")",
+      "Bash(cargo build *)",
+      "Bash(taskkill /f /im tizumark.exe)",
+      "Bash(tasklist /fi \"imagename eq tizumark.exe\")",
+      "Bash(cmd.exe *)",
+      "Bash(sed -i 's|^        if chars\\\\[i\\\\] == '\"'\"'\\\\\\\\['\"'\"' {$|        if chars[i] == '\"'\"'\\\\\\\\['\"'\"' && \\(i == 0 || chars[i - 1] != '\"'\"'!'\"'\"'\\) {|' \"D:/project/tizu-mark/src-tauri/src/lib.rs\")",
+      "Bash(grep -n \"chars\\\\[i\\\\] == '\"'\"'\\\\\\\\['\"'\"'\" \"D:/project/tizu-mark/src-tauri/src/lib.rs\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 *)",
+      "Bash(powershell.exe *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(xxd)",
+      "WebSearch"
+    ]
+  }
+}

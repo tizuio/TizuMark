@@ -34,3 +34,6 @@ Thumbs.db
 
 # Test files
 test.md
+.workbuddy/
+.agents/
+skills-lock.json
