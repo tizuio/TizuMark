@@ -2294,8 +2294,7 @@ ${htmlContent}
       // never cascades and destroys the rest of the preview.
       try { await this.processImages(); } catch (e) { console.warn('[preview] Images error:', e); }
       try { this.processEmojiShortcodes(); } catch (e) { console.warn('[preview] Emoji error:', e); }
-      try { this.processDisplayMath(); } catch (e) { console.warn('[preview] Display math error:', e); }
-      try { this.processInlineMath(); } catch (e) { console.warn('[preview] Inline math error:', e); }
+      try { this.processMath(); } catch (e) { console.warn('[preview] Math error:', e); }
       try { this.processHeadings(); } catch (e) { console.warn('[preview] Headings error:', e); }
       try { await this.processMermaid(); } catch (e) { console.warn('[preview] Mermaid error:', e); }
       try { this.addCopyButtons(); } catch (e) { console.warn('[preview] Copy btn error:', e); }
@@ -2388,73 +2387,14 @@ ${htmlContent}
     });
   }
 
-  // Render display math ($$...$$) by walking DOM text nodes.
-  // Uses TreeWalker to avoid false matches on $$ inside <code> tags
-  // or other HTML elements — each text node is checked independently.
-  // The Rust backend HTML-escapes & to &amp; in math blocks, which the
-  // browser correctly decodes back to & in text nodes before we process.
-  processDisplayMath() {
-    if (typeof katex === 'undefined') {
-      console.warn('[math] katex not loaded, skipping display math');
-      return;
-    }
-    const walker = document.createTreeWalker(this.preview, NodeFilter.SHOW_TEXT, null, false);
-    const textNodes = [];
-    let node;
-    while (node = walker.nextNode()) textNodes.push(node);
-
-    console.log('[math] TreeWalker found', textNodes.length, 'text nodes');
-
-    let count = 0;
-    textNodes.forEach(textNode => {
-      // Skip text nodes inside code/pre/inline-code etc.
-      const parent = textNode.parentElement;
-      if (parent) {
-        const tag = parent.tagName;
-        if (tag === 'CODE' || tag === 'PRE' || tag === 'SCRIPT' ||
-            tag === 'STYLE' || tag === 'TEXTAREA' || tag === 'NOSCRIPT') return;
-      }
-      const text = textNode.textContent;
-      const trimmed = text.trim();
-      if (!trimmed.startsWith('$$')) return;
-
-      console.log('[math] Found $$ text node, parent:', parent ? parent.tagName : 'null', 'text preview:', trimmed.substring(0, 60));
-
-      const match = trimmed.match(/^\$\$([\s\S]*?)\$\$\s*$/);
-      if (!match) {
-        console.warn('[math] Regex did not match, trimmed:', trimmed.substring(0, 100));
-        return;
-      }
-
-      const latex = match[1].trim();
-      if (!latex) {
-        console.warn('[math] Empty latex after trim');
-        return;
-      }
-
-      console.log('[math] Extracted latex:', latex.substring(0, 80));
-
-      try {
-        const rendered = katex.renderToString(latex, { displayMode: true, throwOnError: false });
-        console.log('[math] KaTeX rendered, length:', rendered.length);
-        const container = document.createElement('span');
-        container.innerHTML = rendered;
-        textNode.replaceWith(container);
-        count++;
-      } catch (e) {
-        console.warn('[math] Display render error:', e.message, latex.substring(0, 80));
-      }
-    });
-
-    console.log('[math] Rendered', count, 'display math block(s) via TreeWalker');
-  }
-
-  // Render inline math ($...$ and \\(...\\)) via KaTeX auto-render.
-  processInlineMath() {
+  // Render both display math ($$...$$) and inline math ($...$ / \(...\))
+  // using KaTeX's built-in auto-render, which correctly handles all edge cases.
+  processMath() {
     if (typeof renderMathInElement === 'undefined') return;
     try {
       renderMathInElement(this.preview, {
         delimiters: [
+          { left: '$$', right: '$$', display: true },
           { left: '$', right: '$', display: false },
           { left: '\\(', right: '\\)', display: false }
         ],
@@ -2462,7 +2402,7 @@ ${htmlContent}
         ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
       });
     } catch (e) {
-      console.warn('[math] Inline auto-render error:', e);
+      console.warn('[math] auto-render error:', e);
     }
   }
   processHeadings() {
