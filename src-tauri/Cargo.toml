@@ -1,6 +1,6 @@
 [package]
 name = "tizumark"
-version = "0.1.0"
+version = "1.0.0"
 description = "A lightweight cross-platform Markdown editor"
 authors = ["TizuMark"]
 edition = "2021"

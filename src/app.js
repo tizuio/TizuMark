@@ -147,7 +147,7 @@ const I18N = {
     thirdParty: '第三方组件',
     copyright: '版权声明',
     aboutTitle: '关于 TizuMark',
-    versionInfo: 'TizuMark v0.1.0',
+    versionInfo: 'TizuMark v1.0.0',
     versionDesc: '轻量级跨平台 Markdown 编辑器',
     buildInfo: '基于 Tauri v2.5 + Rust 构建',
     copyrightLine: 'Copyright (c) 2024-2026 TizuMark',
@@ -316,7 +316,7 @@ const I18N = {
     thirdParty: 'Third-Party Components',
     copyright: 'Copyright Notice',
     aboutTitle: 'About TizuMark',
-    versionInfo: 'TizuMark v0.1.0',
+    versionInfo: 'TizuMark v1.0.0',
     versionDesc: 'Lightweight cross-platform Markdown editor',
     buildInfo: 'Built with Tauri v2.5 + Rust',
     copyrightLine: 'Copyright (c) 2024-2026 TizuMark',
@@ -1079,21 +1079,23 @@ class MarkdownEditor {
       insertLink: () => this.insertAtCursor('[链接文本](https://example.com)', 1),
     };
 
+    const toCmKey = (k) => k.replace(/\+/g, '-');
+
     const extraKeys = this.cm.getOption('extraKeys');
     for (const [action, fn] of Object.entries(map)) {
       const key = s[action]?.key;
-      if (key) extraKeys[key] = fn;
+      if (key) extraKeys[toCmKey(key)] = fn;
     }
 
     if (s.nextTab?.key) {
-      const k = s.nextTab.key;
+      const k = toCmKey(s.nextTab.key);
       extraKeys[k] = () => {
         const next = (this.activeTabIndex + 1) % this.tabs.length;
         this.switchTab(next);
       };
     }
     if (s.prevTab?.key) {
-      const k = s.prevTab.key;
+      const k = toCmKey(s.prevTab.key);
       extraKeys[k] = () => {
         const prev = this.activeTabIndex > 0 ? this.activeTabIndex - 1 : this.tabs.length - 1;
         this.switchTab(prev);
@@ -1224,10 +1226,25 @@ class MarkdownEditor {
       if (result === 'save') {
         const savedIndex = this.tabs.indexOf(tab);
         if (savedIndex === -1) return;
-        this.activeTabIndex = savedIndex;
-        this.cm.setValue(tab.content);
-        this.activeTab.savedContent = this.activeTab.content;
-        this.updateTabDisplay();
+        try {
+          if (!tab.filePath) {
+            const path = await dialogSave({
+              filters: [
+                { name: 'Markdown', extensions: ['md'] },
+                { name: '所有文件', extensions: ['*'] }
+              ]
+            });
+            if (!path) return;
+            tab.filePath = path;
+            tab.name = path.split(/[/\\]/).pop();
+          }
+          await invoke('write_file', { path: tab.filePath, content: tab.content });
+          tab.savedContent = tab.content;
+          this.setStatus(`${this.t('saved')}: ${tab.filePath}`);
+        } catch (error) {
+          this.setStatus(`${this.t('saveFailed')}: ${error}`);
+          return;
+        }
       }
     }
 
@@ -1991,9 +2008,8 @@ class MarkdownEditor {
       document.getElementById('save-dialog-message').textContent = message || this.t('saveDialogMessage');
       dialog.classList.remove('hidden');
 
-      const onSave = async () => {
+      const onSave = () => {
         cleanup();
-        await this.saveFile();
         resolve('save');
       };
       const onDiscard = () => {
@@ -2260,6 +2276,9 @@ ${htmlContent}
       }
 
       this.preview.innerHTML = finalHtml;
+
+      // 默认展开所有 <details>
+      this.preview.querySelectorAll('details:not([open])').forEach(el => el.open = true);
 
       // Each processing step is independently guarded so one failure
       // never cascades and destroys the rest of the preview.
@@ -3140,6 +3159,27 @@ ${htmlContent}
         `${tab.name}${tab.filePath ? ' (' + tab.filePath + ')' : ''} ${this.t('fileModified')}`
       );
       if (result === 'cancel') return;
+      if (result === 'save') {
+        try {
+          if (!tab.filePath) {
+            const path = await dialogSave({
+              filters: [
+                { name: 'Markdown', extensions: ['md'] },
+                { name: '所有文件', extensions: ['*'] }
+              ]
+            });
+            if (!path) return;
+            tab.filePath = path;
+            tab.name = path.split(/[/\\]/).pop();
+          }
+          await invoke('write_file', { path: tab.filePath, content: tab.content });
+          tab.savedContent = tab.content;
+          this.setStatus(`${this.t('saved')}: ${tab.filePath}`);
+        } catch (error) {
+          this.setStatus(`${this.t('saveFailed')}: ${error}`);
+          return;
+        }
+      }
     }
     await getCurrentWindow().close();
   }

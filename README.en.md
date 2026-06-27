@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-0.1.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/Version-1.0.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/Windows-7%2B-brightgreen" alt="Windows">
   <img src="https://img.shields.io/badge/macOS-Coming%20Soon-lightgrey" alt="macOS">
   <img src="https://img.shields.io/badge/Linux-Coming%20Soon-lightgrey" alt="Linux">
@@ -131,25 +131,25 @@ npm run build    # production
 
 ## FAQ
 
-<details>
+<details open>
 <summary><b>Is TizuMark free?</b></summary>
 
 TizuMark is free forever. Core features have no restrictions. A premium tier may be introduced in the future, but existing features will remain unaffected.
 </details>
 
-<details>
+<details open>
 <summary><b>How do I restore default settings?</b></summary>
 
 Click "Restore Default" in `File → Settings` or `File → Keyboard Shortcuts`.
 </details>
 
-<details>
+<details open>
 <summary><b>What file formats are supported?</b></summary>
 
 `.md`, `.markdown`, `.txt`. More formats are planned.
 </details>
 
-<details>
+<details open>
 <summary><b>How do I report a bug or request a feature?</b></summary>
 
 - QQ Group: **1035294939** (Chinese community)
@@ -177,7 +177,7 @@ Every bit of support fuels continued development 🚀
 
 | Channel | Link |
 |---|---|
-| QQ Group | **1035294939** |
+| QQ Group | **1035294939** [@Click the link to join the group chat【Tizu交流群】](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=G0xAh9l042apAmjy9MAKOI6pSMWhV5jI&authKey=hWwxCXRZkWorgQZtiBNeRE6L12Ow6CLSo9K9dWzSjDFNuIEfmnmLAWH1T3qooH40&noverify=0&group_code=1035294939)|
 | GitHub | [@tizu](https://github.com/tizu) |
 | Gitee | [@tizu](https://gitee.com/tizu) |
 
