@@ -2556,31 +2556,31 @@ ${htmlContent}
     return result;
   }
 
-  // 基于块级元素比例映射构建行号→预览偏移的位置映射
+  // 基于像素比例构建行号→预览偏移的位置映射
+  // 每个 DOM 元素的实际渲染位置占总高度的比例，映射到源码的同一比例行号
   buildLinePositionMap(content) {
-    const blocks = this.parseBlocks(content);
     const elements = this.collectBlockElements(this.preview);
-    const positions = [];
 
-    if (elements.length === 0 || blocks.length === 0) {
+    if (elements.length === 0) {
       this._linePositions = [{ line: 0, top: 0 }];
       return;
     }
 
+    const totalLines = content.split('\n').length;
     const previewRect = this.preview.getBoundingClientRect();
     const scrollTop = this.preview.scrollTop;
+    const scrollHeight = this.preview.scrollHeight || 1;
 
-    for (let i = 0; i < elements.length; i++) {
-      const blockIdx = Math.min(Math.floor((i / elements.length) * blocks.length), blocks.length - 1);
-      const line = blocks[blockIdx].startLine;
-      const rect = elements[i].getBoundingClientRect();
-      positions.push({
-        line: line,
-        top: rect.top - previewRect.top + scrollTop,
-      });
+    const positions = [];
+    for (const el of elements) {
+      const rect = el.getBoundingClientRect();
+      const elTop = rect.top - previewRect.top + scrollTop;
+      const fraction = elTop / scrollHeight;
+      const line = Math.min(Math.floor(fraction * totalLines), totalLines - 1);
+      positions.push({ line, top: elTop });
     }
 
-    // 合并相同行号（只保留第一个，即该行块的最小 top 值）
+    // 合并相同行号（只保留第一个）
     const deduped = [];
     let lastLine = -1;
     for (const p of positions) {
@@ -2590,17 +2590,13 @@ ${htmlContent}
       }
     }
 
-    // 确保文档开头有标记
     if (deduped.length === 0 || deduped[0].line > 0) {
       deduped.unshift({ line: 0, top: 0 });
     }
 
-    // 末尾锚点
-    const lines = content.split('\n');
-    const lastLineVal = lines.length - 1;
-    const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
-    if (deduped[deduped.length - 1].line < lastLineVal) {
-      deduped.push({ line: lastLineVal, top: maxScroll + this.preview.clientHeight });
+    const maxScroll = Math.max(scrollHeight - this.preview.clientHeight, 0);
+    if (deduped[deduped.length - 1].line < totalLines - 1) {
+      deduped.push({ line: totalLines - 1, top: maxScroll + this.preview.clientHeight });
     }
 
     this._linePositions = deduped;
