@@ -1304,9 +1304,8 @@ class MarkdownEditor {
       clearTimeout(this._editorScrollTimer);
       this._editorScrollTimer = setTimeout(() => {
         const currentInfo = this.cm.getScrollInfo();
-        const viewportCenter = currentInfo.top + currentInfo.clientHeight / 2;
-        const centerLine = this.cm.coordsChar({ left: 0, top: viewportCenter }, 'local').line;
-        const previewTop = this.getPreviewTopForLine(centerLine);
+        const topLine = this.cm.coordsChar({ left: 0, top: currentInfo.top }, 'local').line;
+        const previewTop = this.getPreviewTopForLine(topLine);
         const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
         this.syncingScroll = true;
         this.preview.scrollTop = Math.min(previewTop, previewMax);
@@ -1323,12 +1322,10 @@ class MarkdownEditor {
       clearTimeout(this._previewScrollTimer);
       this._previewScrollTimer = setTimeout(() => {
         const targetLine = this.getLineForPreviewTop(this.preview.scrollTop);
-        const scrollInfo = this.cm.getScrollInfo();
         const maxLine = this.cm.lineCount() - 1;
         const lineCoords = this.cm.charCoords({ line: Math.min(targetLine, maxLine), ch: 0 }, 'local');
-        const lineH = (lineCoords.bottom - lineCoords.top) || 1;
         this.syncingScroll = true;
-        this.cm.scrollTo(0, Math.max(0, lineCoords.top - scrollInfo.clientHeight / 2 + lineH / 2));
+        this.cm.scrollTo(0, Math.max(0, lineCoords.top));
         requestAnimationFrame(() => { this.syncingScroll = false; });
       }, 150);
     });
@@ -2609,7 +2606,7 @@ ${htmlContent}
     this._linePositions = deduped;
   }
 
-  // 根据编辑器行号，用二分查找和内插计算预览的目标 scrollTop（居中）
+  // 根据编辑器行号，用二分查找和内插计算预览对应位置（顶部对齐）
   getPreviewTopForLine(line) {
     const positions = this._linePositions;
     if (!positions || positions.length < 2) return 0;
@@ -2626,21 +2623,18 @@ ${htmlContent}
     if (upper.line === lower.line) return lower.top;
 
     const frac = (line - lower.line) / (upper.line - lower.line);
-    const targetTop = lower.top + frac * (upper.top - lower.top);
-    return Math.max(0, targetTop - this.preview.clientHeight / 2);
+    return Math.max(0, lower.top + frac * (upper.top - lower.top));
   }
 
-  // 根据预览 scrollTop，用二分查找和内插计算编辑器目标行号（居中）
+  // 根据预览 scrollTop，用二分查找和内插计算编辑器目标行号（顶部对齐）
   getLineForPreviewTop(scrollTop) {
     const positions = this._linePositions;
     if (!positions || positions.length < 2) return 0;
 
-    const targetTop = scrollTop + this.preview.clientHeight / 2;
-
     let lo = 0, hi = positions.length - 1;
     while (lo < hi - 1) {
       const mid = (lo + hi) >> 1;
-      if (positions[mid].top <= targetTop) lo = mid;
+      if (positions[mid].top <= scrollTop) lo = mid;
       else hi = mid;
     }
 
@@ -2648,7 +2642,7 @@ ${htmlContent}
     const upper = positions[hi];
     if (upper.top === lower.top) return lower.line;
 
-    const frac = (targetTop - lower.top) / (upper.top - lower.top);
+    const frac = (scrollTop - lower.top) / (upper.top - lower.top);
     const raw = lower.line + frac * (upper.line - lower.line);
     const maxLine = positions[positions.length - 1].line;
     return Math.max(0, Math.min(maxLine, Math.round(raw)));
@@ -2701,13 +2695,12 @@ ${htmlContent}
       await new Promise(r => requestAnimationFrame(r));
       if (gen !== this._renderGeneration) { this.syncingScroll = false; return; }
 
-      // 构建标题锚点映射并恢复滚动位置
+      // 构建块位置映射并恢复滚动位置（顶部对齐）
       this.buildLinePositionMap(content);
       if (this.settings.scrollSync && this._linePositions.length > 1) {
         const info = this.cm.getScrollInfo();
-        const viewportCenter = info.top + info.clientHeight / 2;
-        const centerLine = this.cm.coordsChar({ left: 0, top: viewportCenter }, 'local').line;
-        const previewTop = this.getPreviewTopForLine(centerLine);
+        const topLine = this.cm.coordsChar({ left: 0, top: info.top }, 'local').line;
+        const previewTop = this.getPreviewTopForLine(topLine);
         const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
         this.preview.scrollTop = Math.min(previewTop, previewMax);
       } else {
