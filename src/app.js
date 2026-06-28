@@ -2562,33 +2562,27 @@ ${htmlContent}
     const previewRect = this.preview.getBoundingClientRect();
     const scrollTop = this.preview.scrollTop;
 
+    const totalLines = blocks[blocks.length - 1].endLine + 1;
+
     for (let i = 0; i < elements.length; i++) {
-      const blockIdx = Math.floor((i / elements.length) * blocks.length);
-      const line = blocks[blockIdx].startLine;
-      elements[i].dataset.mdLine = line;
+      // 将总行数均匀分配到所有元素上，每个元素获得唯一的估计行号
+      const estimatedLine = elements.length > 1
+        ? Math.floor((i / (elements.length - 1)) * (totalLines - 1))
+        : 0;
+      elements[i].dataset.mdLine = estimatedLine;
       const rect = elements[i].getBoundingClientRect();
       positions.push({
-        line: line,
+        line: estimatedLine,
         top: rect.top - previewRect.top + scrollTop,
       });
     }
 
-    // 合并相同行号的标记（去重，只保留第一个）
-    const deduped = [];
-    let lastLine = -1;
-    for (const p of positions) {
-      if (p.line !== lastLine) {
-        deduped.push(p);
-        lastLine = p.line;
-      }
-    }
-
     // 确保文档开头有标记
-    if (deduped.length === 0 || deduped[0].line > 0) {
-      deduped.unshift({ line: 0, top: 0 });
+    if (positions[0].line > 0) {
+      positions.unshift({ line: 0, top: 0 });
     }
 
-    this._linePositions = deduped;
+    this._linePositions = positions;
   }
 
   // 根据编辑器行号，用二分查找和内插计算预览的目标 scrollTop（居中）
@@ -2659,9 +2653,6 @@ ${htmlContent}
       this.syncingScroll = true;
       this.preview.innerHTML = finalHtml;
 
-      const blocks = this.parseBlocks(content);
-      this.buildLinePositionMap(blocks);
-
       this.preview.querySelectorAll('details:not([open])').forEach(el => el.open = true);
 
       try { await this.processImages(); } catch (e) { console.warn('[preview] Images error:', e); }
@@ -2681,6 +2672,9 @@ ${htmlContent}
           });
         } catch (e) { console.warn('[preview] HLJS error:', e); }
       }
+
+      const blocks = this.parseBlocks(content);
+      this.buildLinePositionMap(blocks);
 
       // 基于块位置映射恢复滚动位置
       if (this.settings.scrollSync && this._linePositions.length > 1) {
