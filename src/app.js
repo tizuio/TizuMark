@@ -2557,53 +2557,93 @@ ${htmlContent}
     return result;
   }
 
-  // 构建行号→预览位置映射
-  // 先用 parseBlocks 分析源码结构，再按像素比例分配每个块内的行号，
-  // 存储分数(fraction=0~1)而非绝对像素，以应对图片等异步加载导致的 scrollHeight 变化
-  buildLinePositionMap(content) {
-    const blocks = this.parseBlocks(content);
-    const elements = this.collectBlockElements(this.preview);
+  // 去掉 markdown 语法，提取用于匹配的纯文本关键词
+  cleanMarkdownForSearch(text) {
+    return text
+      .replace(/^#{1,6}\s*/, '')
+      .replace(/^[-*+]\s+/, '')
+      .replace(/^>\s*/, '')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/~~(.+?)~~/g, '$1')
+      .replace(/`(.+?)`/g, '$1')
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+      .replace(/!\[(.+?)\]\(.+?\)/g, '$1')
+      .replace(/^\d+\.\s+/, '')
+      .trim();
+  }
 
-    if (elements.length === 0 || blocks.length === 0) {
+  // 用文字内容匹配构建行号→预览位置映射
+  // 将每个预览 DOM 块元素的文字与源码行匹配，存储 fraction 用于 scrollHeight 变化时自适应
+  buildLinePositionMap(content) {
+    const elements = this.collectBlockElements(this.preview);
+    if (elements.length === 0) {
       this._linePositions = [{ line: 0, fraction: 0 }];
       return;
     }
 
-    const totalLines = content.split('\n').length;
+    const lines = content.split('\n');
+    const totalLines = lines.length;
     const previewRect = this.preview.getBoundingClientRect();
     const scrollTop = this.preview.scrollTop;
     const scrollHeight = this.preview.scrollHeight || 1;
 
-    // 将元素按比例分配到各个块，统计每个块内有多少元素
-    const blockElemCounts = new Array(blocks.length).fill(0);
-    const elemBlockMap = new Array(elements.length);
-    for (let i = 0; i < elements.length; i++) {
-      const blockIdx = Math.min(Math.floor((i / elements.length) * blocks.length), blocks.length - 1);
-      elemBlockMap[i] = blockIdx;
-      blockElemCounts[blockIdx]++;
+    // 为每个非空源码行生成搜索关键词
+    const lineKeys = [];
+    for (let i = 0; i < lines.length; i++) {
+      const key = this.cleanMarkdownForSearch(lines[i]);
+      if (key.length >= 3) {
+        lineKeys.push({ line: i, key });
+      }
     }
 
-    // 为每个元素分配行号：在所属块内均匀分布行号
+    // 对每个预览 DOM 元素，用文档顺序匹配源码行
     const positions = [];
-    const blockElemIdx = new Array(blocks.length).fill(0);
-    for (let i = 0; i < elements.length; i++) {
-      const blockIdx = elemBlockMap[i];
-      const block = blocks[blockIdx];
-      const lineCount = block.endLine - block.startLine + 1;
-      const j = blockElemIdx[blockIdx]++;
-      const count = blockElemCounts[blockIdx];
+    let searchFrom = 0;
+    for (const el of elements) {
+      const elText = (el.tagName === 'IMG' ? (el.alt || '') : el.textContent).trim();
+      if (elText.length < 3) continue;
 
-      const rect = elements[i].getBoundingClientRect();
+      const rect = el.getBoundingClientRect();
       const elTop = rect.top - previewRect.top + scrollTop;
 
-      const line = count <= 1
-        ? block.startLine
-        : block.startLine + Math.floor((j / (count - 1)) * (lineCount - 1));
+      // 从上次匹配位置往后找
+      let matched = null;
+      for (let i = searchFrom; i < lineKeys.length; i++) {
+        if (elText.includes(lineKeys[i].key) || lineKeys[i].key.includes(elText.substring(0, 60))) {
+          matched = lineKeys[i].line;
+          searchFrom = i + 1;
+          break;
+        }
+      }
+      // 没找到就从开头找
+      if (matched === null) {
+        for (let i = 0; i < lineKeys.length; i++) {
+          if (elText.includes(lineKeys[i].key) || lineKeys[i].key.includes(elText.substring(0, 60))) {
+            matched = lineKeys[i].line;
+            searchFrom = i + 1;
+            break;
+          }
+        }
+      }
 
-      positions.push({ line, fraction: elTop / scrollHeight });
+      if (matched !== null) {
+        positions.push({ line: matched, fraction: Math.min(elTop / scrollHeight, 1) });
+      }
     }
 
-    // 按行号排序后去重（同行的保留 fraction 最小的）
+    // 匹配点太少则退化为像素比例映射
+    if (positions.length < 3) {
+      for (const el of elements) {
+        const elText = (el.tagName === 'IMG' ? (el.alt || '') : el.textContent).trim();
+        const rect = el.getBoundingClientRect();
+        const elTop = rect.top - previewRect.top + scrollTop;
+        const line = Math.min(Math.floor((elTop / scrollHeight) * totalLines), totalLines - 1);
+        positions.push({ line, fraction: Math.min(elTop / scrollHeight, 1) });
+      }
+    }
+
+    // 去重
     positions.sort((a, b) => a.line - b.line);
     const deduped = [];
     let lastLine = -1;
