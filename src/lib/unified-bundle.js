@@ -23841,7 +23841,12 @@ var UnifiedRenderer = (() => {
                 const mathBlock = content3.substring(start, i);
                 const idx = placeholders.length;
                 placeholders.push({ text: mathBlock, line: lineNum, display: true });
+                const mathContent = content3.substring(start, i);
+                const newlineCount = (mathContent.match(/\n/g) || []).length;
                 result += '<div class="math-placeholder" data-math-idx="' + idx + '" data-source-line="' + lineNum + '"></div>';
+                for (let n = 0; n < newlineCount; n++) {
+                  result += "\n";
+                }
                 foundEnd = true;
                 break;
               }
@@ -23916,10 +23921,11 @@ var UnifiedRenderer = (() => {
             }
             const idx = alertBlocks.length;
             alertBlocks.push({ type: alertType, content: contentLines.join("\n") });
+            if (contentLines.length > 0) {
+              contentLines[contentLines.length - 1] += "<!--ALERTBLOCK_" + idx + "_END-->";
+            }
             result.push("<!--ALERTBLOCK_" + idx + "-->");
             result.push(contentLines.join("\n"));
-            result.push("<!--ALERTBLOCK_" + idx + "_END-->");
-            result.push("");
           } else {
             result.push(line);
             i++;
@@ -23957,7 +23963,7 @@ var UnifiedRenderer = (() => {
             const next2 = lines[i + 1];
             if ((next2.startsWith(": ") || next2 === ":") && trimmed !== "" && !trimmed.startsWith("#") && !trimmed.startsWith("-") && !trimmed.startsWith("*") && !trimmed.startsWith(">") && !trimmed.startsWith("|") && !trimmed.startsWith("`") && !trimmed.startsWith("[") && !trimmed.startsWith("<") && !trimmed.startsWith("!")) {
               const dlLine = i + 1;
-              result.push('<dl data-source-line="' + dlLine + '">');
+              const firstIdx = result.length;
               while (i < lines.length && !lines[i].trim().startsWith("#") && !lines[i].trim().startsWith(">") && lines[i].trim() !== "" && !lines[i].trim().startsWith("|") && !lines[i].trim().startsWith("`")) {
                 const termLine = i + 1;
                 const term = lines[i];
@@ -23972,8 +23978,10 @@ var UnifiedRenderer = (() => {
                   i++;
                 }
               }
-              result.push("</dl>");
-              result.push("");
+              if (result.length > firstIdx) {
+                result[firstIdx] = '<dl data-source-line="' + dlLine + '">' + result[firstIdx];
+                result[result.length - 1] += "</dl>";
+              }
               continue;
             }
           }
@@ -24129,6 +24137,7 @@ var UnifiedRenderer = (() => {
         return html7 + `<div id="abbr-data" style="display:none" data-abbrs='` + json + "'></div>";
       }
       function renderMarkdown(content3) {
+        content3 = content3.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
         const abbrResult = extractAbbreviations(content3);
         const abbreviations = abbrResult.abbreviations;
         const mathResult = guardMathBlocks(abbrResult.content);

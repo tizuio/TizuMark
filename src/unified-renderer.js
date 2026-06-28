@@ -138,7 +138,11 @@ function guardMathBlocks(content) {
           const idx = placeholders.length;
           placeholders.push({ text: mathBlock, line: lineNum, display: true });
           // 用块级 div 作为占位符，避免被 unified 包裹进 <p>
+          // 保留原始行数：占位符后补上数学块内的换行符
+          const mathContent = content.substring(start, i);
+          const newlineCount = (mathContent.match(/\n/g) || []).length;
           result += '<div class="math-placeholder" data-math-idx="' + idx + '" data-source-line="' + lineNum + '"></div>';
+          for (let n = 0; n < newlineCount; n++) { result += '\n'; }
           foundEnd = true;
           break;
         }
@@ -218,10 +222,12 @@ function convertAlerts(content) {
       }
       const idx = alertBlocks.length;
       alertBlocks.push({ type: alertType, content: contentLines.join('\n') });
+      // 将 END 标记附着到最后一行内容末尾，避免增加额外行
+      if (contentLines.length > 0) {
+        contentLines[contentLines.length - 1] += '<!--ALERTBLOCK_' + idx + '_END-->';
+      }
       result.push('<!--ALERTBLOCK_' + idx + '-->');
       result.push(contentLines.join('\n'));
-      result.push('<!--ALERTBLOCK_' + idx + '_END-->');
-      result.push('');
     } else {
       result.push(line);
       i++;
@@ -274,7 +280,7 @@ function convertDefLists(content) {
           !trimmed.startsWith('<') &&
           !trimmed.startsWith('!')) {
         const dlLine = i + 1;
-        result.push('<dl data-source-line="' + dlLine + '">');
+        const firstIdx = result.length; // 第一个 dt/dd 在 result 中的索引
         while (i < lines.length && !lines[i].trim().startsWith('#') && !lines[i].trim().startsWith('>') &&
                lines[i].trim() !== '' && !lines[i].trim().startsWith('|') &&
                !lines[i].trim().startsWith('`')) {
@@ -291,8 +297,11 @@ function convertDefLists(content) {
             i++;
           }
         }
-        result.push('</dl>');
-        result.push('');
+        // 将 <dl> 前置到第一个 dt/dd，将 </dl> 后置到最后一行，避免增加额外行
+        if (result.length > firstIdx) {
+          result[firstIdx] = '<dl data-source-line="' + dlLine + '">' + result[firstIdx];
+          result[result.length - 1] += '</dl>';
+        }
         continue;
       }
     }
@@ -456,6 +465,9 @@ function embedAbbrData(html, abbreviations) {
 // ---- main pipeline ----
 
 function renderMarkdown(content) {
+  // 0. 统一换行符为 LF，避免 CRLF 的 \r 污染后续行数统计
+  content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
   // 1. Extract abbreviations
   const abbrResult = extractAbbreviations(content);
   const abbreviations = abbrResult.abbreviations;
