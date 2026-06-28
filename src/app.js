@@ -2578,14 +2578,17 @@ ${htmlContent}
     return null;
   }
 
-  // 构建逐行密集位置映射 + 速度限制
-  // 逐行插值确保平滑，速度上限防止 Mermaid/脚注等极端像素比例的跳变
+  // 构建逐行密集位置映射（纯线性插值，无速度限制）
+  // 每个编辑器行都有精确的 previewTop 插值
   _computedPosition() {
     const allElements = this.preview.querySelectorAll('[data-source-line]');
     const anchors = [];
     const seenLines = new Set();
 
     for (const el of allElements) {
+      // 跳过脚注区域内的元素（source line 在文档中部但渲染在预览最底部）
+      if (el.closest('.footnotes')) continue;
+
       const sourceLine = parseInt(el.dataset.sourceLine, 10);
       if (isNaN(sourceLine)) continue;
       if (seenLines.has(sourceLine)) continue;
@@ -2649,27 +2652,8 @@ ${htmlContent}
       }
     }
 
-    // 速度限制：preview 移动速度不超过 editor 的 MAX_RATIO 倍
-    // 超出的位移以"债务"形式推迟到后续行，在容量充足时偿还
-    const MAX_RATIO = 3;
-    const previewList = new Array(totalLines);
-    previewList[0] = rawPreviewList[0];
-    let debt = 0;
-
-    for (let line = 1; line < totalLines; line++) {
-      const editorDelta = editorList[line] - editorList[line - 1];
-      if (editorDelta <= 0) { previewList[line] = previewList[line - 1]; continue; }
-
-      const maxPreviewDelta = editorDelta * MAX_RATIO;
-      const desiredDelta = rawPreviewList[line] - previewList[line - 1] + debt;
-      const actualDelta = Math.min(desiredDelta, maxPreviewDelta);
-      debt = desiredDelta - actualDelta;
-
-      previewList[line] = previewList[line - 1] + actualDelta;
-    }
-
     this._editorElementList = editorList;
-    this._previewElementList = previewList;
+    this._previewElementList = rawPreviewList;
   }
 
   // 根据 unified 渲染结果重建滚动同步数据（仅在内容变化时调用）
@@ -2758,7 +2742,7 @@ ${htmlContent}
     this._canScroll.preview = true;
   }
 
-  // 编辑器 → 预览同步（逐行密集插值 + 速度上限）
+  // 编辑器 → 预览同步（逐行密集插值）
   _syncEditorToPreview() {
     this._computedPosition();
 
@@ -2803,7 +2787,7 @@ ${htmlContent}
     this.preview.scrollTop = Math.max(0, Math.min(targetScrollTop, scrollHeight - clientHeight));
   }
 
-  // 预览 → 编辑器同步（逐行密集插值 + 速度上限）
+  // 预览 → 编辑器同步（逐行密集插值）
   _syncPreviewToEditor() {
     this._computedPosition();
 
@@ -2946,7 +2930,7 @@ ${htmlContent}
 
       let finalHtml = html;
       if (tocHtml) {
-        finalHtml = finalHtml.replace(/<p[^>]*>\[TOC\]<\/p>|<p[^>]*>\[toc\]<\/p>/gi, tocHtml);
+        finalHtml = finalHtml.replace(/<p[^>]*data-source-line="(\d+)"[^>]*>\[TOC\]<\/p>/gi, '<div class="toc-wrapper" data-source-line="$1">' + tocHtml + '</div>');
       }
 
       this._canScroll.editor = false;
@@ -2980,7 +2964,7 @@ ${htmlContent}
       // 重建滚动同步数据（blocks + 预览子元素）
       this.rebuildScrollSync();
 
-      // 恢复预览滚动位置（逐行密集插值 + 速度上限）
+      // 恢复预览滚动位置（逐行密集插值）
       if (this.settings.scrollSync && this._editorElementList && this._editorElementList.length > 1) {
         const cmInfo = this.cm.getScrollInfo();
         const top = cmInfo.top;
