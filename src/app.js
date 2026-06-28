@@ -1289,7 +1289,10 @@ class MarkdownEditor {
     });
 
     this.syncingScroll = false;
+    this._editorScrollTimer = null;
+    this._previewScrollTimer = null;
 
+    // 编辑器滚动时保存位置，停止 150ms 后同步预览
     this.cm.on('scroll', () => {
       const info = this.cm.getScrollInfo();
       this.activeTab.scrollPos = { top: info.top, left: info.left };
@@ -1297,31 +1300,37 @@ class MarkdownEditor {
       if (!this.settings.scrollSync || this.syncingScroll) return;
       const container = document.querySelector('.editor-container');
       if (container.classList.contains('preview-collapsed') || container.classList.contains('preview-mode')) return;
-      this.syncingScroll = true;
 
-      const viewportCenter = info.top + info.clientHeight / 2;
-      const centerLine = this.cm.coordsChar({ left: 0, top: viewportCenter }, 'local').line;
-      const previewTop = this.getPreviewTopForLine(centerLine);
-      const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
-      this.preview.scrollTop = Math.min(previewTop, previewMax);
-
-      requestAnimationFrame(() => { this.syncingScroll = false; });
+      clearTimeout(this._editorScrollTimer);
+      this._editorScrollTimer = setTimeout(() => {
+        const currentInfo = this.cm.getScrollInfo();
+        const viewportCenter = currentInfo.top + currentInfo.clientHeight / 2;
+        const centerLine = this.cm.coordsChar({ left: 0, top: viewportCenter }, 'local').line;
+        const previewTop = this.getPreviewTopForLine(centerLine);
+        const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+        this.syncingScroll = true;
+        this.preview.scrollTop = Math.min(previewTop, previewMax);
+        requestAnimationFrame(() => { this.syncingScroll = false; });
+      }, 150);
     });
 
+    // 预览滚动时同样等停止 150ms 后同步编辑器
     this.preview.addEventListener('scroll', () => {
       if (!this.settings.scrollSync || this.syncingScroll) return;
       const container = document.querySelector('.editor-container');
       if (container.classList.contains('preview-collapsed') || container.classList.contains('preview-mode')) return;
-      this.syncingScroll = true;
 
-      const targetLine = this.getLineForPreviewTop(this.preview.scrollTop);
-      const scrollInfo = this.cm.getScrollInfo();
-      const maxLine = this.cm.lineCount() - 1;
-      const lineCoords = this.cm.charCoords({ line: Math.min(targetLine, maxLine), ch: 0 }, 'local');
-      const lineH = (lineCoords.bottom - lineCoords.top) || 1;
-      this.cm.scrollTo(0, Math.max(0, lineCoords.top - scrollInfo.clientHeight / 2 + lineH / 2));
-
-      requestAnimationFrame(() => { this.syncingScroll = false; });
+      clearTimeout(this._previewScrollTimer);
+      this._previewScrollTimer = setTimeout(() => {
+        const targetLine = this.getLineForPreviewTop(this.preview.scrollTop);
+        const scrollInfo = this.cm.getScrollInfo();
+        const maxLine = this.cm.lineCount() - 1;
+        const lineCoords = this.cm.charCoords({ line: Math.min(targetLine, maxLine), ch: 0 }, 'local');
+        const lineH = (lineCoords.bottom - lineCoords.top) || 1;
+        this.syncingScroll = true;
+        this.cm.scrollTo(0, Math.max(0, lineCoords.top - scrollInfo.clientHeight / 2 + lineH / 2));
+        requestAnimationFrame(() => { this.syncingScroll = false; });
+      }, 150);
     });
   }
 
