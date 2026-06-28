@@ -23956,16 +23956,19 @@ var UnifiedRenderer = (() => {
           if (i + 1 < lines.length) {
             const next2 = lines[i + 1];
             if ((next2.startsWith(": ") || next2 === ":") && trimmed !== "" && !trimmed.startsWith("#") && !trimmed.startsWith("-") && !trimmed.startsWith("*") && !trimmed.startsWith(">") && !trimmed.startsWith("|") && !trimmed.startsWith("`") && !trimmed.startsWith("[") && !trimmed.startsWith("<") && !trimmed.startsWith("!")) {
-              result.push("<dl>");
+              const dlLine = i + 1;
+              result.push('<dl data-source-line="' + dlLine + '">');
               while (i < lines.length && !lines[i].trim().startsWith("#") && !lines[i].trim().startsWith(">") && lines[i].trim() !== "" && !lines[i].trim().startsWith("|") && !lines[i].trim().startsWith("`")) {
+                const termLine = i + 1;
                 const term = lines[i];
-                result.push("<dt>" + term + "</dt>");
+                result.push('<dt data-source-line="' + termLine + '">' + term + "</dt>");
                 i++;
                 while (i < lines.length && (lines[i].startsWith(": ") || lines[i] === ":")) {
+                  const defLine = i + 1;
                   let def = lines[i];
                   if (def.startsWith(": ")) def = def.substring(2);
                   else if (def === ":") def = "";
-                  result.push("<dd>" + def + "</dd>");
+                  result.push('<dd data-source-line="' + defLine + '">' + def + "</dd>");
                   i++;
                 }
               }

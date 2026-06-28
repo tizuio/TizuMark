@@ -251,6 +251,7 @@ function restoreAlerts(html, alertBlocks) {
 }
 
 // Convert definition lists
+// 为 <dl>/<dt>/<dd> 添加 data-source-line，确保滚动同步能映射到这些元素
 function convertDefLists(content) {
   const lines = content.split('\n');
   const result = [];
@@ -272,18 +273,21 @@ function convertDefLists(content) {
           !trimmed.startsWith('[') &&
           !trimmed.startsWith('<') &&
           !trimmed.startsWith('!')) {
-        result.push('<dl>');
+        const dlLine = i + 1;
+        result.push('<dl data-source-line="' + dlLine + '">');
         while (i < lines.length && !lines[i].trim().startsWith('#') && !lines[i].trim().startsWith('>') &&
                lines[i].trim() !== '' && !lines[i].trim().startsWith('|') &&
                !lines[i].trim().startsWith('`')) {
+          const termLine = i + 1;
           const term = lines[i];
-          result.push('<dt>' + term + '</dt>');
+          result.push('<dt data-source-line="' + termLine + '">' + term + '</dt>');
           i++;
           while (i < lines.length && (lines[i].startsWith(': ') || lines[i] === ':')) {
+            const defLine = i + 1;
             let def = lines[i];
             if (def.startsWith(': ')) def = def.substring(2);
             else if (def === ':') def = '';
-            result.push('<dd>' + def + '</dd>');
+            result.push('<dd data-source-line="' + defLine + '">' + def + '</dd>');
             i++;
           }
         }

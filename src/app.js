@@ -953,9 +953,11 @@ class MarkdownEditor {
     const containerData = [];
     containers.forEach(container => {
       const code = container.getAttribute('data-code') || container.textContent;
+      const sourceLine = container.getAttribute('data-source-line');
       codes.push(code);
       containerData.push({
         code,
+        sourceLine,
         nextSibling: container.nextSibling,
         parent: container.parentNode,
       });
@@ -967,6 +969,7 @@ class MarkdownEditor {
       newContainer.className = 'mermaid-container';
       newContainer.id = 'mermaid-' + Date.now() + '-' + i;
       newContainer.setAttribute('data-code', data.code);
+      if (data.sourceLine) newContainer.setAttribute('data-source-line', data.sourceLine);
       newContainer.textContent = data.code;
       if (data.nextSibling) {
         data.parent.insertBefore(newContainer, data.nextSibling);
@@ -3153,11 +3156,13 @@ ${htmlContent}
 
     this.preview.querySelectorAll('code.language-mermaid').forEach((block, index) => {
       const pre = block.parentElement;
+      const sourceLine = block.dataset.sourceLine;
       const container = document.createElement('div');
       container.className = 'mermaid-container';
       const id = 'mermaid-' + Date.now() + '-' + index;
       container.id = id;
       container.setAttribute('data-code', block.textContent);
+      if (sourceLine) container.setAttribute('data-source-line', sourceLine);
       container.textContent = block.textContent;
       pre.replaceWith(container);
     });
