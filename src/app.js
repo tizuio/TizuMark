@@ -404,7 +404,7 @@ class MarkdownEditor {
     this.cm = null;
     this.debounceTimer = null;
     this._renderGeneration = 0;
-    this._headingAnchors = [{ line: 0, top: 0 }];
+    this._linePositions = [{ line: 0, top: 0 }];
     this.isDark = false;
     this.viewMode = 'preview';
 
@@ -2469,73 +2469,137 @@ ${htmlContent}
     this.debounceTimer = setTimeout(() => this.updatePreview(), 30);
   }
 
-  // 构建编辑器行号→预览偏移的标题锚点映射，用于分段内插滚动同步
-  buildHeadingAnchorMap(content) {
-    const positions = [{ line: 0, top: 0 }];
-    const sourceLines = content.split('\n');
-
-    // 1. 扫描源码标题
-    const sourceHeadings = [];
+  // 按空行切分为逻辑块，跟踪围栏代码块（内部不切分）
+  parseBlocks(content) {
+    const lines = content.split('\n');
+    const blocks = [];
     let inFence = false;
-    for (let i = 0; i < sourceLines.length; i++) {
-      const trimmed = sourceLines[i].trimStart();
-      if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
-        inFence = !inFence;
+    let fenceChar = '';
+    let fenceCount = 0;
+    let blockStart = -1;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (!inFence && (trimmed.startsWith('```') || trimmed.startsWith('~~~'))) {
+        const fc = trimmed[0];
+        const match = trimmed.match(new RegExp('^\\' + fc + '{3,}'));
+        if (match) {
+          inFence = true;
+          fenceChar = fc;
+          fenceCount = match[0].length;
+          if (blockStart >= 0) {
+            blocks.push({ startLine: blockStart, endLine: i - 1 });
+            blockStart = -1;
+          }
+          blockStart = i;
+          continue;
+        }
+      }
+
+      if (inFence) {
+        if (trimmed.startsWith(fenceChar)) {
+          const match = trimmed.match(new RegExp('^\\' + fenceChar + '{' + fenceCount + ',}'));
+          if (match && trimmed.replace(match[0], '').trim() === '') {
+            blocks.push({ startLine: blockStart, endLine: i });
+            blockStart = -1;
+            inFence = false;
+          }
+        }
         continue;
       }
-      if (inFence) continue;
-      const m = trimmed.match(/^(#{1,6})\s+(.+)/);
-      if (m) {
-        sourceHeadings.push({ line: i, text: m[2].trim() });
+
+      if (trimmed === '') {
+        if (blockStart >= 0) {
+          blocks.push({ startLine: blockStart, endLine: i - 1 });
+          blockStart = -1;
+        }
+      } else if (blockStart < 0) {
+        blockStart = i;
       }
     }
 
-    // 2. 扫描预览 DOM 标题
-    const headingEls = this.preview.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    const previewHeadings = [];
+    if (blockStart >= 0) {
+      blocks.push({ startLine: blockStart, endLine: lines.length - 1 });
+    }
+
+    return blocks;
+  }
+
+  // 遍历预览 DOM，收集所有块级渲染元素（用于比例映射）
+  collectBlockElements(root) {
+    const blockTags = new Set(['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'TABLE', 'UL', 'OL', 'BLOCKQUOTE', 'HR', 'DETAILS', 'DIV']);
+    const result = [];
+    const walk = (el) => {
+      if (!el || !el.children) return;
+      for (const child of el.children) {
+        if (blockTags.has(child.tagName)) {
+          result.push(child);
+        } else if (child.tagName === 'IMG') {
+          result.push(child);
+        } else {
+          walk(child);
+        }
+      }
+    };
+    walk(root);
+    return result;
+  }
+
+  // 基于块级元素比例映射构建行号→预览偏移的位置映射
+  buildLinePositionMap(content) {
+    const blocks = this.parseBlocks(content);
+    const elements = this.collectBlockElements(this.preview);
+    const positions = [];
+
+    if (elements.length === 0 || blocks.length === 0) {
+      this._linePositions = [{ line: 0, top: 0 }];
+      return;
+    }
+
     const previewRect = this.preview.getBoundingClientRect();
     const scrollTop = this.preview.scrollTop;
-    for (const el of headingEls) {
-      previewHeadings.push({
-        text: el.textContent.trim(),
-        top: el.getBoundingClientRect().top - previewRect.top + scrollTop,
+
+    for (let i = 0; i < elements.length; i++) {
+      const blockIdx = Math.min(Math.floor((i / elements.length) * blocks.length), blocks.length - 1);
+      const line = blocks[blockIdx].startLine;
+      const rect = elements[i].getBoundingClientRect();
+      positions.push({
+        line: line,
+        top: rect.top - previewRect.top + scrollTop,
       });
     }
 
-    // 3. 按文本匹配（同为文档顺序，允许±2的错位容忍）
-    let si = 0, pi = 0;
-    while (si < sourceHeadings.length && pi < previewHeadings.length) {
-      if (sourceHeadings[si].text === previewHeadings[pi].text) {
-        positions.push({ line: sourceHeadings[si].line, top: previewHeadings[pi].top });
-        si++; pi++;
-      } else {
-        let found = false;
-        for (let d = 1; d <= 3 && !found; d++) {
-          if (pi + d < previewHeadings.length && sourceHeadings[si].text === previewHeadings[pi + d].text) {
-            pi += d; found = true;
-          } else if (si + d < sourceHeadings.length && sourceHeadings[si + d].text === previewHeadings[pi].text) {
-            si += d; found = true;
-          }
-        }
-        if (!found) { si++; pi++; }
+    // 合并相同行号（只保留第一个，即该行块的最小 top 值）
+    const deduped = [];
+    let lastLine = -1;
+    for (const p of positions) {
+      if (p.line !== lastLine) {
+        deduped.push(p);
+        lastLine = p.line;
       }
     }
 
-    // 4. 末尾锚点
-    if (positions.length > 1) {
-      const lastLine = sourceLines.length - 1;
-      const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
-      if (positions[positions.length - 1].line < lastLine) {
-        positions.push({ line: lastLine, top: maxScroll + this.preview.clientHeight });
-      }
+    // 确保文档开头有标记
+    if (deduped.length === 0 || deduped[0].line > 0) {
+      deduped.unshift({ line: 0, top: 0 });
     }
 
-    this._headingAnchors = positions;
+    // 末尾锚点
+    const lines = content.split('\n');
+    const lastLineVal = lines.length - 1;
+    const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+    if (deduped[deduped.length - 1].line < lastLineVal) {
+      deduped.push({ line: lastLineVal, top: maxScroll + this.preview.clientHeight });
+    }
+
+    this._linePositions = deduped;
   }
 
   // 根据编辑器行号，用二分查找和内插计算预览的目标 scrollTop（居中）
   getPreviewTopForLine(line) {
-    const positions = this._headingAnchors;
+    const positions = this._linePositions;
     if (!positions || positions.length < 2) return 0;
 
     let lo = 0, hi = positions.length - 1;
@@ -2556,7 +2620,7 @@ ${htmlContent}
 
   // 根据预览 scrollTop，用二分查找和内插计算编辑器目标行号（居中）
   getLineForPreviewTop(scrollTop) {
-    const positions = this._headingAnchors;
+    const positions = this._linePositions;
     if (!positions || positions.length < 2) return 0;
 
     const targetTop = scrollTop + this.preview.clientHeight / 2;
@@ -2626,8 +2690,8 @@ ${htmlContent}
       if (gen !== this._renderGeneration) { this.syncingScroll = false; return; }
 
       // 构建标题锚点映射并恢复滚动位置
-      this.buildHeadingAnchorMap(content);
-      if (this.settings.scrollSync && this._headingAnchors.length > 1) {
+      this.buildLinePositionMap(content);
+      if (this.settings.scrollSync && this._linePositions.length > 1) {
         const info = this.cm.getScrollInfo();
         const viewportCenter = info.top + info.clientHeight / 2;
         const centerLine = this.cm.coordsChar({ left: 0, top: viewportCenter }, 'local').line;
