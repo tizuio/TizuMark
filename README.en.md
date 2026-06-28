@@ -97,7 +97,7 @@ Install, launch, done.
 
 ```bash
 git clone https://github.com/tizu/tizu-mark.git
-cd markdown
+cd tizu-mark
 npm install
 npm run dev      # dev mode
 npm run build    # production build
@@ -108,17 +108,17 @@ npm run build    # production build
 ## 🛠 Architecture
 
 ```
-┌──────────────────────────────────────────┐
-│               Frontend (WebView)          │
-│   CodeMirror 5  │  markdown-it  │ KaTeX  │
-│   highlight.js  │    Mermaid    │ ...    │
-└──────────────┬───────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│                 Frontend (WebView)                 │
+│   CodeMirror 5  │  highlight.js  │    KaTeX       │
+│     Mermaid     │  html2canvas   │     ...        │
+└──────────────┬───────────────────────────────────┘
                │ IPC (ipc: / tauri:)
-┌──────────────┴───────────────────────────┐
-│              Backend (Rust)               │
-│   Tauri 2.5  │  pulldown-cmark           │
-│   File I/O   │  Native Dialogs           │
-└──────────────┬───────────────────────────┘
+┌──────────────┴───────────────────────────────────┐
+│                  Backend (Rust)                    │
+│     Tauri 2.5    │    pulldown-cmark               │
+│     File I/O     │    Native Dialogs               │
+└──────────────┬───────────────────────────────────┘
                │
         ┌──────┴──────┐
         │  OS Native   │

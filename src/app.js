@@ -621,9 +621,6 @@ class MarkdownEditor {
     if (aboutSections.length >= 4) {
       aboutSections[3].querySelector('h3').textContent = t('thirdParty');
     }
-    if (aboutSections.length >= 5) {
-      aboutSections[4].querySelector('h3').textContent = t('copyright');
-    }
 
     // Save dialog
     document.getElementById('save-dialog-title').textContent = t('saveChanges');

@@ -95,7 +95,7 @@
 
 ```bash
 git clone https://gitee.com/tizu/tizu-mark.git
-cd markdown
+cd tizu-mark
 npm install
 npm run dev      # 开发模式
 npm run build    # 构建发布版本
@@ -106,17 +106,17 @@ npm run build    # 构建发布版本
 ## 🛠 技术架构
 
 ```
-┌──────────────────────────────────────────┐
-│              前端 (WebView)               │
-│   CodeMirror 5  │  markdown-it  │ KaTeX  │
-│   highlight.js  │    Mermaid    │ ...    │
-└──────────────┬───────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│                  前端 (WebView)                   │
+│   CodeMirror 5  │  highlight.js  │    KaTeX      │
+│     Mermaid     │  html2canvas   │     ...       │
+└──────────────┬───────────────────────────────────┘
                │ IPC (ipc: / tauri:)
-┌──────────────┴───────────────────────────┐
-│              后端 (Rust)                  │
-│   Tauri 2.5  │  pulldown-cmark           │
-│   文件 I/O   │   系统对话框               │
-└──────────────┬───────────────────────────┘
+┌──────────────┴───────────────────────────────────┐
+│                  后端 (Rust)                      │
+│     Tauri 2.5    │    pulldown-cmark              │
+│     文件 I/O     │     系统对话框                  │
+└──────────────┬───────────────────────────────────┘
                │
         ┌──────┴──────┐
         │  OS Native   │
