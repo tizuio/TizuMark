@@ -404,7 +404,7 @@ class MarkdownEditor {
     this.cm = null;
     this.debounceTimer = null;
     this._renderGeneration = 0;
-    this._linePositions = [{ line: 0, top: 0 }];
+    this._headingAnchors = [{ line: 0, top: 0 }];
     this.isDark = false;
     this.viewMode = 'preview';
 
@@ -824,7 +824,7 @@ class MarkdownEditor {
   }
 
   updateOutline() {
-    const content = this.activeTab.content;
+    const content = this.cm.getValue();
     const outlineContent = document.getElementById('outline-content');
     const lines = content.split('\n');
     const headings = [];
@@ -1302,7 +1302,7 @@ class MarkdownEditor {
       this.syncingScroll = true;
 
       const viewportCenter = info.top + info.clientHeight / 2;
-      const centerLine = this.cm.lineAtHeight(viewportCenter);
+      const centerLine = this.cm.coordsChar({ left: 0, top: viewportCenter }, 'local').line;
       const previewTop = this.getPreviewTopForLine(centerLine);
       const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
       this.preview.scrollTop = Math.min(previewTop, previewMax);
@@ -2472,123 +2472,74 @@ ${htmlContent}
     this.debounceTimer = setTimeout(() => this.updatePreview(), 30);
   }
 
-  // 将 markdown 源码按空行切分为逻辑块，跟踪围栏代码块
-  parseBlocks(content) {
-    const lines = content.split('\n');
-    const blocks = [];
+  // 构建编辑器行号→预览偏移的标题锚点映射，用于分段内插滚动同步
+  buildHeadingAnchorMap(content) {
+    const positions = [{ line: 0, top: 0 }];
+    const sourceLines = content.split('\n');
+
+    // 1. 扫描源码标题
+    const sourceHeadings = [];
     let inFence = false;
-    let fenceChar = '';
-    let fenceCount = 0;
-    let blockStart = -1;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const trimmed = line.trim();
-
-      if (!inFence && (trimmed.startsWith('```') || trimmed.startsWith('~~~'))) {
-        const fc = trimmed[0];
-        const match = trimmed.match(new RegExp('^\\' + fc + '{3,}'));
-        if (match) {
-          inFence = true;
-          fenceChar = fc;
-          fenceCount = match[0].length;
-          if (blockStart >= 0) {
-            blocks.push({ startLine: blockStart, endLine: i - 1 });
-            blockStart = -1;
-          }
-          blockStart = i;
-          continue;
-        }
-      }
-
-      if (inFence) {
-        if (trimmed.startsWith(fenceChar)) {
-          const match = trimmed.match(new RegExp('^\\' + fenceChar + '{' + fenceCount + ',}'));
-          if (match && trimmed.replace(match[0], '').trim() === '') {
-            blocks.push({ startLine: blockStart, endLine: i });
-            blockStart = -1;
-            inFence = false;
-          }
-        }
+    for (let i = 0; i < sourceLines.length; i++) {
+      const trimmed = sourceLines[i].trimStart();
+      if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+        inFence = !inFence;
         continue;
       }
-
-      if (trimmed === '') {
-        if (blockStart >= 0) {
-          blocks.push({ startLine: blockStart, endLine: i - 1 });
-          blockStart = -1;
-        }
-      } else if (blockStart < 0) {
-        blockStart = i;
+      if (inFence) continue;
+      const m = trimmed.match(/^(#{1,6})\s+(.+)/);
+      if (m) {
+        sourceHeadings.push({ line: i, text: m[2].trim() });
       }
     }
 
-    if (blockStart >= 0) {
-      blocks.push({ startLine: blockStart, endLine: lines.length - 1 });
-    }
-
-    return blocks;
-  }
-
-  // 遍历预览 DOM，收集所有块级渲染元素
-  collectBlockElements(root) {
-    const blockTags = new Set(['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'TABLE', 'UL', 'OL', 'BLOCKQUOTE', 'HR']);
-    const result = [];
-
-    const walk = (el) => {
-      for (const child of el.children) {
-        if (blockTags.has(child.tagName)) {
-          result.push(child);
-        } else {
-          walk(child);
-        }
-      }
-    };
-
-    walk(root);
-    return result;
-  }
-
-  // 将 markdown 块映射到预览 DOM 元素，注入 data-md-line 属性，构建位置映射
-  buildLinePositionMap(blocks) {
-    const elements = this.collectBlockElements(this.preview);
-    const positions = [];
-
-    if (elements.length === 0 || blocks.length === 0) {
-      this._linePositions = [{ line: 0, top: 0 }];
-      return;
-    }
-
+    // 2. 扫描预览 DOM 标题
+    const headingEls = this.preview.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    const previewHeadings = [];
     const previewRect = this.preview.getBoundingClientRect();
     const scrollTop = this.preview.scrollTop;
-
-    const totalLines = blocks[blocks.length - 1].endLine + 1;
-
-    for (let i = 0; i < elements.length; i++) {
-      // 将总行数均匀分配到所有元素上，每个元素获得唯一的估计行号
-      const estimatedLine = elements.length > 1
-        ? Math.floor((i / (elements.length - 1)) * (totalLines - 1))
-        : 0;
-      elements[i].dataset.mdLine = estimatedLine;
-      const rect = elements[i].getBoundingClientRect();
-      positions.push({
-        line: estimatedLine,
-        top: rect.top - previewRect.top + scrollTop,
+    for (const el of headingEls) {
+      previewHeadings.push({
+        text: el.textContent.trim(),
+        top: el.getBoundingClientRect().top - previewRect.top + scrollTop,
       });
     }
 
-    // 确保文档开头有标记
-    if (positions[0].line > 0) {
-      positions.unshift({ line: 0, top: 0 });
+    // 3. 按文本匹配（同为文档顺序，允许±2的错位容忍）
+    let si = 0, pi = 0;
+    while (si < sourceHeadings.length && pi < previewHeadings.length) {
+      if (sourceHeadings[si].text === previewHeadings[pi].text) {
+        positions.push({ line: sourceHeadings[si].line, top: previewHeadings[pi].top });
+        si++; pi++;
+      } else {
+        let found = false;
+        for (let d = 1; d <= 3 && !found; d++) {
+          if (pi + d < previewHeadings.length && sourceHeadings[si].text === previewHeadings[pi + d].text) {
+            pi += d; found = true;
+          } else if (si + d < sourceHeadings.length && sourceHeadings[si + d].text === previewHeadings[pi].text) {
+            si += d; found = true;
+          }
+        }
+        if (!found) { si++; pi++; }
+      }
     }
 
-    this._linePositions = positions;
+    // 4. 末尾锚点
+    if (positions.length > 1) {
+      const lastLine = sourceLines.length - 1;
+      const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+      if (positions[positions.length - 1].line < lastLine) {
+        positions.push({ line: lastLine, top: maxScroll + this.preview.clientHeight });
+      }
+    }
+
+    this._headingAnchors = positions;
   }
 
   // 根据编辑器行号，用二分查找和内插计算预览的目标 scrollTop（居中）
   getPreviewTopForLine(line) {
-    const positions = this._linePositions;
-    if (positions.length < 2) return 0;
+    const positions = this._headingAnchors;
+    if (!positions || positions.length < 2) return 0;
 
     let lo = 0, hi = positions.length - 1;
     while (lo < hi - 1) {
@@ -2608,8 +2559,8 @@ ${htmlContent}
 
   // 根据预览 scrollTop，用二分查找和内插计算编辑器目标行号（居中）
   getLineForPreviewTop(scrollTop) {
-    const positions = this._linePositions;
-    if (positions.length < 2) return 0;
+    const positions = this._headingAnchors;
+    if (!positions || positions.length < 2) return 0;
 
     const targetTop = scrollTop + this.preview.clientHeight / 2;
 
@@ -2633,7 +2584,7 @@ ${htmlContent}
   async updatePreview() {
     const gen = ++this._renderGeneration;
     try {
-      const content = this.activeTab.content;
+      const content = this.cm.getValue();
 
       const hasToc = content.includes('[TOC]') || content.includes('[toc]');
       let tocHtml = '';
@@ -2673,14 +2624,16 @@ ${htmlContent}
         } catch (e) { console.warn('[preview] HLJS error:', e); }
       }
 
-      const blocks = this.parseBlocks(content);
-      this.buildLinePositionMap(blocks);
+      // 等待浏览器完成布局后再测量元素位置
+      await new Promise(r => requestAnimationFrame(r));
+      if (gen !== this._renderGeneration) { this.syncingScroll = false; return; }
 
-      // 基于块位置映射恢复滚动位置
-      if (this.settings.scrollSync && this._linePositions.length > 1) {
+      // 构建标题锚点映射并恢复滚动位置
+      this.buildHeadingAnchorMap(content);
+      if (this.settings.scrollSync && this._headingAnchors.length > 1) {
         const info = this.cm.getScrollInfo();
         const viewportCenter = info.top + info.clientHeight / 2;
-        const centerLine = this.cm.lineAtHeight(viewportCenter);
+        const centerLine = this.cm.coordsChar({ left: 0, top: viewportCenter }, 'local').line;
         const previewTop = this.getPreviewTopForLine(centerLine);
         const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
         this.preview.scrollTop = Math.min(previewTop, previewMax);
@@ -2964,7 +2917,7 @@ ${htmlContent}
   }
 
   updateWordCount() {
-    const content = this.activeTab.content;
+    const content = this.cm.getValue();
     const text = content.replace(/[#*`~\[\]()>_|\\-]/g, '').replace(/\s+/g, ' ').trim();
     const words = text ? text.split(/\s+/).length : 0;
     const chars = content.length;
