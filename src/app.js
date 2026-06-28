@@ -1304,7 +1304,7 @@ class MarkdownEditor {
       clearTimeout(this._editorScrollTimer);
       this._editorScrollTimer = setTimeout(() => {
         const currentInfo = this.cm.getScrollInfo();
-        const topLine = this.cm.coordsChar({ left: 0, top: currentInfo.top }, 'local').line;
+        const topLine = this.cm.lineAtHeight(currentInfo.top);
         const previewTop = this.getPreviewTopForLine(topLine);
         const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
         this.syncingScroll = true;
@@ -1323,9 +1323,10 @@ class MarkdownEditor {
       this._previewScrollTimer = setTimeout(() => {
         const targetLine = this.getLineForPreviewTop(this.preview.scrollTop);
         const maxLine = this.cm.lineCount() - 1;
+        const scrollInfo = this.cm.getScrollInfo();
         const lineCoords = this.cm.charCoords({ line: Math.min(targetLine, maxLine), ch: 0 }, 'local');
         this.syncingScroll = true;
-        this.cm.scrollTo(0, Math.max(0, lineCoords.top));
+        this.cm.scrollTo(0, Math.max(0, lineCoords.top + scrollInfo.top));
         requestAnimationFrame(() => { this.syncingScroll = false; });
       }, 150);
     });
@@ -2556,13 +2557,15 @@ ${htmlContent}
     return result;
   }
 
-  // 基于像素比例构建行号→预览偏移的位置映射
-  // 每个 DOM 元素的实际渲染位置占总高度的比例，映射到源码的同一比例行号
+  // 构建行号→预览位置映射
+  // 先用 parseBlocks 分析源码结构，再按像素比例分配每个块内的行号，
+  // 存储分数(fraction=0~1)而非绝对像素，以应对图片等异步加载导致的 scrollHeight 变化
   buildLinePositionMap(content) {
+    const blocks = this.parseBlocks(content);
     const elements = this.collectBlockElements(this.preview);
 
-    if (elements.length === 0) {
-      this._linePositions = [{ line: 0, top: 0 }];
+    if (elements.length === 0 || blocks.length === 0) {
+      this._linePositions = [{ line: 0, fraction: 0 }];
       return;
     }
 
@@ -2571,16 +2574,37 @@ ${htmlContent}
     const scrollTop = this.preview.scrollTop;
     const scrollHeight = this.preview.scrollHeight || 1;
 
-    const positions = [];
-    for (const el of elements) {
-      const rect = el.getBoundingClientRect();
-      const elTop = rect.top - previewRect.top + scrollTop;
-      const fraction = elTop / scrollHeight;
-      const line = Math.min(Math.floor(fraction * totalLines), totalLines - 1);
-      positions.push({ line, top: elTop });
+    // 将元素按比例分配到各个块，统计每个块内有多少元素
+    const blockElemCounts = new Array(blocks.length).fill(0);
+    const elemBlockMap = new Array(elements.length);
+    for (let i = 0; i < elements.length; i++) {
+      const blockIdx = Math.min(Math.floor((i / elements.length) * blocks.length), blocks.length - 1);
+      elemBlockMap[i] = blockIdx;
+      blockElemCounts[blockIdx]++;
     }
 
-    // 合并相同行号（只保留第一个）
+    // 为每个元素分配行号：在所属块内均匀分布行号
+    const positions = [];
+    const blockElemIdx = new Array(blocks.length).fill(0);
+    for (let i = 0; i < elements.length; i++) {
+      const blockIdx = elemBlockMap[i];
+      const block = blocks[blockIdx];
+      const lineCount = block.endLine - block.startLine + 1;
+      const j = blockElemIdx[blockIdx]++;
+      const count = blockElemCounts[blockIdx];
+
+      const rect = elements[i].getBoundingClientRect();
+      const elTop = rect.top - previewRect.top + scrollTop;
+
+      const line = count <= 1
+        ? block.startLine
+        : block.startLine + Math.floor((j / (count - 1)) * (lineCount - 1));
+
+      positions.push({ line, fraction: elTop / scrollHeight });
+    }
+
+    // 按行号排序后去重（同行的保留 fraction 最小的）
+    positions.sort((a, b) => a.line - b.line);
     const deduped = [];
     let lastLine = -1;
     for (const p of positions) {
@@ -2591,18 +2615,16 @@ ${htmlContent}
     }
 
     if (deduped.length === 0 || deduped[0].line > 0) {
-      deduped.unshift({ line: 0, top: 0 });
+      deduped.unshift({ line: 0, fraction: 0 });
     }
-
-    const maxScroll = Math.max(scrollHeight - this.preview.clientHeight, 0);
     if (deduped[deduped.length - 1].line < totalLines - 1) {
-      deduped.push({ line: totalLines - 1, top: maxScroll + this.preview.clientHeight });
+      deduped.push({ line: totalLines - 1, fraction: 1 });
     }
 
     this._linePositions = deduped;
   }
 
-  // 根据编辑器行号，用二分查找和内插计算预览对应位置（顶部对齐）
+  // 根据编辑器行号计算预览目标 scrollTop（顶部对齐）
   getPreviewTopForLine(line) {
     const positions = this._linePositions;
     if (!positions || positions.length < 2) return 0;
@@ -2616,30 +2638,36 @@ ${htmlContent}
 
     const lower = positions[lo];
     const upper = positions[hi];
-    if (upper.line === lower.line) return lower.top;
+    const lineRange = upper.line - lower.line;
+    const frac = lineRange === 0
+      ? lower.fraction
+      : lower.fraction + ((line - lower.line) / lineRange) * (upper.fraction - lower.fraction);
 
-    const frac = (line - lower.line) / (upper.line - lower.line);
-    return Math.max(0, lower.top + frac * (upper.top - lower.top));
+    return Math.max(0, frac * this.preview.scrollHeight);
   }
 
-  // 根据预览 scrollTop，用二分查找和内插计算编辑器目标行号（顶部对齐）
+  // 根据预览 scrollTop 计算编辑器目标行号（顶部对齐）
   getLineForPreviewTop(scrollTop) {
     const positions = this._linePositions;
     if (!positions || positions.length < 2) return 0;
 
+    const scrollHeight = this.preview.scrollHeight || 1;
+    const fraction = scrollTop / scrollHeight;
+
     let lo = 0, hi = positions.length - 1;
     while (lo < hi - 1) {
       const mid = (lo + hi) >> 1;
-      if (positions[mid].top <= scrollTop) lo = mid;
+      if (positions[mid].fraction <= fraction) lo = mid;
       else hi = mid;
     }
 
     const lower = positions[lo];
     const upper = positions[hi];
-    if (upper.top === lower.top) return lower.line;
+    const fracRange = upper.fraction - lower.fraction;
+    const raw = fracRange === 0
+      ? lower.line
+      : lower.line + ((fraction - lower.fraction) / fracRange) * (upper.line - lower.line);
 
-    const frac = (scrollTop - lower.top) / (upper.top - lower.top);
-    const raw = lower.line + frac * (upper.line - lower.line);
     const maxLine = positions[positions.length - 1].line;
     return Math.max(0, Math.min(maxLine, Math.round(raw)));
   }
@@ -2695,7 +2723,7 @@ ${htmlContent}
       this.buildLinePositionMap(content);
       if (this.settings.scrollSync && this._linePositions.length > 1) {
         const info = this.cm.getScrollInfo();
-        const topLine = this.cm.coordsChar({ left: 0, top: info.top }, 'local').line;
+        const topLine = this.cm.lineAtHeight(info.top);
         const previewTop = this.getPreviewTopForLine(topLine);
         const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
         this.preview.scrollTop = Math.min(previewTop, previewMax);
