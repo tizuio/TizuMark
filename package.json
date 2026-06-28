@@ -24,6 +24,7 @@
     "@fiahfy/icns": "^0.0.7",
     "@tauri-apps/api": "^2.1.0",
     "@tauri-apps/cli": "^2.11.3",
+    "jsdom": "^29.1.1",
     "sharp": "^0.35.1",
     "to-ico": "^1.1.5"
   }

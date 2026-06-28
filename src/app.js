@@ -404,7 +404,9 @@ class MarkdownEditor {
     this.cm = null;
     this.debounceTimer = null;
     this._renderGeneration = 0;
-    this._linePositions = [{ line: 0, top: 0 }];
+    this._linePositions = [{ line: 0, fraction: 0 }];
+    this._blocks = [];
+    this._previewChildrenCount = 0;
     this._editorPercent = null;
     this.isDark = false;
     this.viewMode = 'preview';
@@ -1288,47 +1290,35 @@ class MarkdownEditor {
       this.cursorPosition.textContent = `行 ${cursor.line + 1}, 列 ${cursor.ch + 1}`;
     });
 
-    this.syncingScroll = false;
-    this._editorScrollTimer = null;
-    this._previewScrollTimer = null;
+    // 双标志锁机制（demo 风格：canScroll.editor / canScroll.showDom）
+    this._canScroll = { editor: true, preview: true };
+    this._scrollThrottlePending = null;
+    this._scrollThrottleTimer = null;
+    this._scrollDebounceTimer = null;
 
-    // 编辑器滚动时保存位置，停止 150ms 后同步预览
+    // 编辑器滚动 → 同步预览（demo 的 onScroll 思路）
     this.cm.on('scroll', () => {
       const info = this.cm.getScrollInfo();
       this.activeTab.scrollPos = { top: info.top, left: info.left };
 
-      if (!this.settings.scrollSync || this.syncingScroll) return;
+      if (!this.settings.scrollSync || !this._canScroll.editor) return;
       const container = document.querySelector('.editor-container');
       if (container.classList.contains('preview-collapsed') || container.classList.contains('preview-mode')) return;
 
-      clearTimeout(this._editorScrollTimer);
-      this._editorScrollTimer = setTimeout(() => {
-        const currentInfo = this.cm.getScrollInfo();
-        const topLine = this.cm.lineAtHeight(currentInfo.top);
-        const previewTop = this.getPreviewTopForLine(topLine);
-        const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
-        this.syncingScroll = true;
-        this.preview.scrollTop = Math.min(previewTop, previewMax);
-        requestAnimationFrame(() => { this.syncingScroll = false; });
-      }, 150);
+      this._canScroll.preview = false;
+      this._throttleScroll(() => this._syncEditorToPreview(), 50);
+      this._debounceScroll(() => this._resumeScroll(), 100);
     });
 
-    // 预览滚动时同样等停止 150ms 后同步编辑器
+    // 预览滚动 → 同步编辑器（demo 的 onScroll 思路，方向相反）
     this.preview.addEventListener('scroll', () => {
-      if (!this.settings.scrollSync || this.syncingScroll) return;
+      if (!this.settings.scrollSync || !this._canScroll.preview) return;
       const container = document.querySelector('.editor-container');
       if (container.classList.contains('preview-collapsed') || container.classList.contains('preview-mode')) return;
 
-      clearTimeout(this._previewScrollTimer);
-      this._previewScrollTimer = setTimeout(() => {
-        const targetLine = this.getLineForPreviewTop(this.preview.scrollTop);
-        const maxLine = this.cm.lineCount() - 1;
-        const scrollInfo = this.cm.getScrollInfo();
-        const lineCoords = this.cm.charCoords({ line: Math.min(targetLine, maxLine), ch: 0 }, 'local');
-        this.syncingScroll = true;
-        this.cm.scrollTo(0, Math.max(0, lineCoords.top + scrollInfo.top));
-        requestAnimationFrame(() => { this.syncingScroll = false; });
-      }, 150);
+      this._canScroll.editor = false;
+      this._throttleScroll(() => this._syncPreviewToEditor(), 50);
+      this._debounceScroll(() => this._resumeScroll(), 100);
     });
   }
 
@@ -2573,143 +2563,395 @@ ${htmlContent}
       .trim();
   }
 
-  // 用文字内容匹配构建行号→预览位置映射
-  // 将每个预览 DOM 块元素的文字与源码行匹配，存储 fraction 用于 scrollHeight 变化时自适应
-  buildLinePositionMap(content) {
-    const elements = this.collectBlockElements(this.preview);
-    if (elements.length === 0) {
-      this._linePositions = [{ line: 0, fraction: 0 }];
-      return;
-    }
-
+  // 用文字内容匹配建立预览元素与源码行的一一对应（demo 思路：通过内容匹配）
+  // 将 markdown 源码拆分成块级元素（与 pulldown-cmark 渲染输出的预览子元素一一对应）
+  _splitIntoBlocks(content) {
     const lines = content.split('\n');
-    const totalLines = lines.length;
-    const previewRect = this.preview.getBoundingClientRect();
-    const scrollTop = this.preview.scrollTop;
-    const scrollHeight = this.preview.scrollHeight || 1;
+    const blocks = [];
+    let i = 0;
 
-    // 为每个非空源码行生成搜索关键词
-    const lineKeys = [];
-    for (let i = 0; i < lines.length; i++) {
-      const key = this.cleanMarkdownForSearch(lines[i]);
-      if (key.length >= 3) {
-        lineKeys.push({ line: i, key });
+    while (i < lines.length) {
+      const line = lines[i];
+
+      // 跳过空行
+      if (!line.trim()) { i++; continue; }
+
+      const block = { startLine: i, endLine: i, type: 'paragraph' };
+
+      // HTML 注释：不生成预览元素，跳过
+      if (/^<!--/.test(line)) {
+        while (i < lines.length && !/-->/.test(lines[i])) { i++; }
+        i++;
+        continue;
       }
-    }
 
-    // 对每个预览 DOM 元素，用文档顺序匹配源码行
-    const positions = [];
-    let searchFrom = 0;
-    for (const el of elements) {
-      const elText = (el.tagName === 'IMG' ? (el.alt || '') : el.textContent).trim();
-      if (elText.length < 3) continue;
-
-      const rect = el.getBoundingClientRect();
-      const elTop = rect.top - previewRect.top + scrollTop;
-
-      // 从上次匹配位置往后找
-      let matched = null;
-      for (let i = searchFrom; i < lineKeys.length; i++) {
-        if (elText.includes(lineKeys[i].key) || lineKeys[i].key.includes(elText.substring(0, 60))) {
-          matched = lineKeys[i].line;
-          searchFrom = i + 1;
-          break;
-        }
+      // 标题
+      if (/^#{1,6}\s/.test(line)) {
+        block.type = 'heading';
+        blocks.push(block);
+        i++;
+        continue;
       }
-      // 没找到就从开头找
-      if (matched === null) {
-        for (let i = 0; i < lineKeys.length; i++) {
-          if (elText.includes(lineKeys[i].key) || lineKeys[i].key.includes(elText.substring(0, 60))) {
-            matched = lineKeys[i].line;
-            searchFrom = i + 1;
+
+      // 水平分割线
+      if (/^[-*_]{3,}\s*$/.test(line)) {
+        block.type = 'hr';
+        blocks.push(block);
+        i++;
+        continue;
+      }
+
+      // 代码块
+      if (/^```/.test(line) || /^~~~/.test(line)) {
+        block.type = 'code';
+        i++; // 跳过开始标记
+        while (i < lines.length) {
+          if (/^```/.test(lines[i]) || /^~~~/.test(lines[i])) {
+            block.endLine = i;
+            i++;
             break;
           }
+          i++;
         }
+        blocks.push(block);
+        continue;
       }
 
-      if (matched !== null) {
-        positions.push({ line: matched, fraction: Math.min(elTop / scrollHeight, 1) });
+      // 表格
+      if (/^\|.*\|/.test(line)) {
+        block.type = 'table';
+        while (i < lines.length && /^\|.*\|/.test(lines[i])) {
+          block.endLine = i;
+          i++;
+        }
+        blocks.push(block);
+        continue;
       }
+
+      // 引用块
+      if (/^>\s/.test(line)) {
+        block.type = 'blockquote';
+        while (i < lines.length && /^>\s/.test(lines[i])) {
+          block.endLine = i;
+          i++;
+        }
+        blocks.push(block);
+        continue;
+      }
+
+      // 无序列表
+      if (/^[-*]\s/.test(line)) {
+        block.type = 'list';
+        while (i < lines.length && /^[-*]\s/.test(lines[i])) {
+          block.endLine = i;
+          i++;
+        }
+        blocks.push(block);
+        continue;
+      }
+
+      // 有序列表
+      if (/^\d+\.\s/.test(line)) {
+        block.type = 'orderedList';
+        while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
+          block.endLine = i;
+          i++;
+        }
+        blocks.push(block);
+        continue;
+      }
+
+      // 普通段落（持续到遇到下一个块级标记或空行）
+      while (i < lines.length && lines[i].trim() &&
+        !/^#{1,6}\s/.test(lines[i]) &&
+        !/^[-*_]{3,}\s*$/.test(lines[i]) &&
+        !/^```/.test(lines[i]) && !/^~~~/.test(lines[i]) &&
+        !/^\|.*\|/.test(lines[i]) &&
+        !/^>\s/.test(lines[i]) &&
+        !/^[-*]\s/.test(lines[i]) &&
+        !/^\d+\.\s/.test(lines[i]) &&
+        !/^<!--/.test(lines[i])) {
+        block.endLine = i;
+        i++;
+      }
+      blocks.push(block);
     }
 
-    // 匹配点太少则退化为像素比例映射
-    if (positions.length < 3) {
-      for (const el of elements) {
-        const elText = (el.tagName === 'IMG' ? (el.alt || '') : el.textContent).trim();
-        const rect = el.getBoundingClientRect();
-        const elTop = rect.top - previewRect.top + scrollTop;
-        const line = Math.min(Math.floor((elTop / scrollHeight) * totalLines), totalLines - 1);
-        positions.push({ line, fraction: Math.min(elTop / scrollHeight, 1) });
+    return blocks;
+  }
+
+  // 每次滚动时动态构建平行位置数组（文章方法：确保使用最新的 CM 行高数据）
+  _computedPosition() {
+    const previewChildren = Array.from(this.preview.children).filter(el => el.nodeType === 1);
+    const count = Math.min(this._sourceBlocks.length, previewChildren.length);
+
+    this._editorElementList = [];
+    this._previewElementList = [];
+
+    for (let i = 0; i < count; i++) {
+      const block = this._sourceBlocks[i];
+      const child = previewChildren[i];
+
+      // 编辑器位置：块起始行的顶部（heightAtLine 返回该行底部，减1得到上一行底部即本行顶部）
+      const lineForTop = Math.max(0, block.startLine - 1);
+      const editorTop = this.cm.heightAtLine(lineForTop, 'local');
+      this._editorElementList.push(editorTop);
+
+      // 预览位置：子元素相对于预览容器的 offsetTop
+      this._previewElementList.push(this._getOffsetTop(child));
+    }
+  }
+
+  // 根据文章方法初始化块数组（仅在内容变化时调用）
+  rebuildScrollSync() {
+    const content = this.cm.getValue();
+    const lines = content.split('\n');
+
+    // 拆分源文件为块
+    this._sourceBlocks = this._splitIntoBlocks(content);
+
+    // 构建初始平行数组
+    const previewChildren = Array.from(this.preview.children).filter(el => el.nodeType === 1);
+    this._computedPosition();
+
+    // 生成 _linePositions（兼容 updatePreview 滚动恢复）
+    const count = Math.min(this._sourceBlocks.length, previewChildren.length);
+    const totalLines = lines.length;
+    const previewRect = this.preview.getBoundingClientRect();
+    const st = this.preview.scrollTop;
+    const sh = this.preview.scrollHeight || 1;
+    const positions = [{ line: 0, fraction: 0 }];
+    for (let i = 0; i < count; i++) {
+      const block = this._sourceBlocks[i];
+      const el = previewChildren[i];
+      const rect = el.getBoundingClientRect();
+      const elTop = rect.top - previewRect.top + st;
+      const elBottom = elTop + el.offsetHeight;
+      if (block.startLine < totalLines) {
+        positions.push({ line: block.startLine, fraction: Math.min(Math.max(elTop / sh, 0), 1) });
+        positions.push({ line: block.endLine, fraction: Math.min(Math.max(elBottom / sh, 0), 1) });
       }
     }
-
-    // 去重
+    positions.push({ line: totalLines - 1, fraction: 1 });
     positions.sort((a, b) => a.line - b.line);
     const deduped = [];
     let lastLine = -1;
-    for (const p of positions) {
-      if (p.line !== lastLine) {
-        deduped.push(p);
-        lastLine = p.line;
-      }
-    }
-
-    if (deduped.length === 0 || deduped[0].line > 0) {
-      deduped.unshift({ line: 0, fraction: 0 });
-    }
-    if (deduped[deduped.length - 1].line < totalLines - 1) {
-      deduped.push({ line: totalLines - 1, fraction: 1 });
-    }
-
+    for (const p of positions) { if (p.line !== lastLine) { deduped.push(p); lastLine = p.line; } }
+    if (deduped.length === 0 || deduped[0].line > 0) deduped.unshift({ line: 0, fraction: 0 });
+    if (deduped[deduped.length - 1].line < totalLines - 1) deduped.push({ line: totalLines - 1, fraction: 1 });
     this._linePositions = deduped;
   }
 
-  // 根据编辑器行号计算预览目标 scrollTop（顶部对齐）
-  getPreviewTopForLine(line) {
-    const positions = this._linePositions;
-    if (!positions || positions.length < 2) return 0;
-
-    let lo = 0, hi = positions.length - 1;
-    while (lo < hi - 1) {
-      const mid = (lo + hi) >> 1;
-      if (positions[mid].line <= line) lo = mid;
-      else hi = mid;
+  // demo 的 getHeightToTop：计算元素到容器顶部的距离（offsetTop 遍历 offsetParent）
+  _getOffsetTop(el) {
+    let top = el.offsetTop;
+    let parent = el.offsetParent;
+    while (parent && parent !== this.preview) {
+      top += parent.offsetTop;
+      parent = parent.offsetParent;
     }
-
-    const lower = positions[lo];
-    const upper = positions[hi];
-    const lineRange = upper.line - lower.line;
-    const frac = lineRange === 0
-      ? lower.fraction
-      : lower.fraction + ((line - lower.line) / lineRange) * (upper.fraction - lower.fraction);
-
-    return Math.max(0, frac * this.preview.scrollHeight);
+    return top;
   }
 
-  // 根据预览 scrollTop 计算编辑器目标行号（顶部对齐）
-  getLineForPreviewTop(scrollTop) {
-    const positions = this._linePositions;
-    if (!positions || positions.length < 2) return 0;
+  // demo 风格：节流函数（首次立即执行，后续在 delay 内只保存最后一次调用）
+  _throttleScroll(fn, delay) {
+    if (this._scrollThrottleTimer) {
+      this._scrollThrottlePending = fn;
+      return;
+    }
+    fn();
+    this._scrollThrottleTimer = setTimeout(() => {
+      this._scrollThrottleTimer = null;
+      if (this._scrollThrottlePending) {
+        const pending = this._scrollThrottlePending;
+        this._scrollThrottlePending = null;
+        this._throttleScroll(pending, delay);
+      }
+    }, delay);
+  }
 
-    const scrollHeight = this.preview.scrollHeight || 1;
-    const fraction = scrollTop / scrollHeight;
+  // demo 风格：防抖函数（每次调用重置计时器）
+  _debounceScroll(fn, delay) {
+    clearTimeout(this._scrollDebounceTimer);
+    this._scrollDebounceTimer = setTimeout(fn, delay);
+  }
 
-    let lo = 0, hi = positions.length - 1;
-    while (lo < hi - 1) {
-      const mid = (lo + hi) >> 1;
-      if (positions[mid].fraction <= fraction) lo = mid;
-      else hi = mid;
+  // demo 风格：恢复滚动（重置双标志锁）
+  _resumeScroll() {
+    this._canScroll.editor = true;
+    this._canScroll.preview = true;
+  }
+
+  // 编辑器 → 预览同步（文章方法：每次滚动重建数组 + 比例公式）
+  _syncEditorToPreview() {
+    // 每次滚动时重新计算位置数组（文章核心做法）
+    this._computedPosition();
+
+    const { scrollHeight, clientHeight } = this.preview;
+    const cmInfo = this.cm.getScrollInfo();
+
+    // 滚动到底
+    if (cmInfo.top + cmInfo.clientHeight >= cmInfo.height - 0.5) {
+      this.preview.scrollTop = Math.max(0, scrollHeight - clientHeight);
+      return;
+    }
+    // 滚动到顶
+    if (cmInfo.top <= 0.5) {
+      this.preview.scrollTop = 0;
+      return;
     }
 
-    const lower = positions[lo];
-    const upper = positions[hi];
-    const fracRange = upper.fraction - lower.fraction;
-    const raw = fracRange === 0
-      ? lower.line
-      : lower.line + ((fraction - lower.fraction) / fracRange) * (upper.line - lower.line);
+    // 找到当前滚动到的块索引
+    const top = cmInfo.top;
+    let scrollElementIndex = -1;
+    for (let i = 0; i < this._editorElementList.length; i++) {
+      if (top < this._editorElementList[i]) {
+        scrollElementIndex = i - 1;
+        break;
+      }
+    }
+    if (scrollElementIndex < 0) {
+      scrollElementIndex = this._editorElementList.length - 1;
+    }
+    if (scrollElementIndex < 0) return;
+    if (scrollElementIndex >= this._editorElementList.length - 1) {
+      this.preview.scrollTop = Math.max(0, scrollHeight - clientHeight);
+      return;
+    }
 
-    const maxLine = positions[positions.length - 1].line;
-    return Math.max(0, Math.min(maxLine, Math.round(raw)));
+    // 文章比例公式
+    const ratio = (top - this._editorElementList[scrollElementIndex]) /
+      (this._editorElementList[scrollElementIndex + 1] - this._editorElementList[scrollElementIndex]);
+    this.preview.scrollTop = ratio *
+      (this._previewElementList[scrollElementIndex + 1] - this._previewElementList[scrollElementIndex]) +
+      this._previewElementList[scrollElementIndex];
+  }
+
+  // 预览 → 编辑器同步（文章方法：每次滚动重建数组 + 比例公式）
+  _syncPreviewToEditor() {
+    // 每次滚动时重新计算位置数组（文章核心做法）
+    this._computedPosition();
+
+    const { scrollTop: previewTop, scrollHeight, clientHeight } = this.preview;
+    const cmInfo = this.cm.getScrollInfo();
+
+    // 滚动到底
+    if (previewTop + clientHeight >= scrollHeight - 0.5) {
+      this.cm.scrollTo(0, Math.max(0, cmInfo.height - cmInfo.clientHeight));
+      return;
+    }
+    // 滚动到顶
+    if (previewTop <= 0.5) {
+      this.cm.scrollTo(0, 0);
+      return;
+    }
+
+    // 找到当前滚动到的块索引
+    let scrollElementIndex = -1;
+    for (let i = 0; i < this._previewElementList.length; i++) {
+      if (previewTop < this._previewElementList[i]) {
+        scrollElementIndex = i - 1;
+        break;
+      }
+    }
+    if (scrollElementIndex < 0) {
+      scrollElementIndex = this._previewElementList.length - 1;
+    }
+    if (scrollElementIndex < 0) return;
+    if (scrollElementIndex >= this._previewElementList.length - 1) {
+      this.cm.scrollTo(0, Math.max(0, cmInfo.height - cmInfo.clientHeight));
+      return;
+    }
+
+    // 文章比例公式
+    const ratio = (previewTop - this._previewElementList[scrollElementIndex]) /
+      (this._previewElementList[scrollElementIndex + 1] - this._previewElementList[scrollElementIndex]);
+    const editorScrollTop = ratio *
+      (this._editorElementList[scrollElementIndex + 1] - this._editorElementList[scrollElementIndex]) +
+      this._editorElementList[scrollElementIndex];
+    this.cm.scrollTo(0, editorScrollTop);
+  }
+
+  // 按 markdown 块级元素边界分割源码，与 pulldown-cmark 渲染输出对齐
+  // 注意：此方法保留用于兼容旧的 _blocks 数组引用
+  _splitMarkdownBlocks(lines) {
+    const blocks = [];
+    let i = 0;
+
+    while (i < lines.length) {
+      while (i < lines.length && lines[i].trim() === '') i++;
+      if (i >= lines.length) break;
+
+      const startLine = i;
+      const line = lines[i].trim();
+
+      // 代码围栏：作为一个整体 block
+      if (line.startsWith('```') || line.startsWith('~~~')) {
+        const fence = line.match(/^(`{3,}|~{3,})/)[0];
+        i++;
+        while (i < lines.length) {
+          if (lines[i].trim().startsWith(fence)) break;
+          i++;
+        }
+        if (i < lines.length) i++;
+        blocks.push({ startLine, endLine: i - 1 });
+        continue;
+      }
+
+      // 标题：始终是单行 block（demo 中每个 # 行 = 一个预览元素）
+      if (/^#{1,6}\s/.test(line)) {
+        blocks.push({ startLine, endLine: i });
+        i++;
+        continue;
+      }
+
+      // 水平分割线：单行 block
+      if (/^(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+        blocks.push({ startLine, endLine: i });
+        i++;
+        continue;
+      }
+
+      // 表格：连续的 | 行
+      if (line.startsWith('|')) {
+        while (i < lines.length && lines[i].trim().startsWith('|')) i++;
+        blocks.push({ startLine, endLine: i - 1 });
+        continue;
+      }
+
+      // 段落/列表/引用：消费连续非空行，遇到标题/围栏/分割线/表格时停止
+      i++;
+      while (i < lines.length && lines[i].trim() !== '') {
+        const t = lines[i].trim();
+        if (/^#{1,6}\s/.test(t) ||
+            t.startsWith('```') || t.startsWith('~~~') ||
+            /^(-{3,}|\*{3,}|_{3,})\s*$/.test(t) ||
+            t.startsWith('|')) {
+          break;
+        }
+        i++;
+      }
+      blocks.push({ startLine, endLine: i - 1 });
+    }
+
+    return blocks;
+  }
+
+  // 获取预览 DOM 的直系 block 级子元素（与 blocks 顺序一一对应）
+  _getPreviewBlockElements() {
+    const tags = new Set(['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'TABLE', 'UL', 'OL', 'BLOCKQUOTE', 'HR', 'DETAILS', 'DIV', 'DL', 'FIGURE', 'IMG']);
+    return Array.from(this.preview.children).filter(el => tags.has(el.tagName));
+  }
+
+  // 像素比例兜底：在文档中均匀取样 20 个点
+  _fallbackPositionMap(totalLines) {
+    const positions = [{ line: 0, fraction: 0 }];
+    const step = Math.max(1, Math.floor(totalLines / 20));
+    for (let l = step; l < totalLines - 1; l += step) {
+      positions.push({ line: l, fraction: l / totalLines });
+    }
+    positions.push({ line: totalLines - 1, fraction: 1 });
+    return positions;
   }
 
   async updatePreview() {
@@ -2732,19 +2974,20 @@ ${htmlContent}
         finalHtml = finalHtml.replace(/<p>\[TOC\]<\/p>|<p>\[toc\]<\/p>/gi, tocHtml);
       }
 
-      this.syncingScroll = true;
+      this._canScroll.editor = false;
+      this._canScroll.preview = false;
       this.preview.innerHTML = finalHtml;
 
       this.preview.querySelectorAll('details:not([open])').forEach(el => el.open = true);
 
       try { await this.processImages(); } catch (e) { console.warn('[preview] Images error:', e); }
-      if (gen !== this._renderGeneration) { this.syncingScroll = false; return; }
+      if (gen !== this._renderGeneration) { this._resumeScroll(); return; }
       try { this.processEmojiShortcodes(); } catch (e) { console.warn('[preview] Emoji error:', e); }
       try { this.processMath(); } catch (e) { console.warn('[preview] Math error:', e); }
       try { this.processAbbreviations(); } catch (e) { console.warn('[preview] Abbr error:', e); }
       try { this.processHeadings(); } catch (e) { console.warn('[preview] Headings error:', e); }
       try { await this.processMermaid(); } catch (e) { console.warn('[preview] Mermaid error:', e); }
-      if (gen !== this._renderGeneration) { this.syncingScroll = false; return; }
+      if (gen !== this._renderGeneration) { this._resumeScroll(); return; }
       try { this.addCopyButtons(); } catch (e) { console.warn('[preview] Copy btn error:', e); }
 
       if (typeof hljs !== 'undefined') {
@@ -2757,26 +3000,47 @@ ${htmlContent}
 
       // 等待浏览器完成布局后再测量元素位置
       await new Promise(r => requestAnimationFrame(r));
-      if (gen !== this._renderGeneration) { this.syncingScroll = false; return; }
+      if (gen !== this._renderGeneration) { this._resumeScroll(); return; }
 
-      // 构建块位置映射并恢复滚动位置（顶部对齐）
-      this.buildLinePositionMap(content);
-      if (this.settings.scrollSync && this._linePositions.length > 1) {
-        const info = this.cm.getScrollInfo();
-        const topLine = this.cm.lineAtHeight(info.top);
-        const previewTop = this.getPreviewTopForLine(topLine);
-        const previewMax = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
-        this.preview.scrollTop = Math.min(previewTop, previewMax);
+      // 重建滚动同步数据（blocks + 预览子元素）
+      this.rebuildScrollSync();
+
+      // 恢复预览滚动位置（文章方法：平行数组 + 比例公式）
+      if (this.settings.scrollSync && this._editorElementList && this._editorElementList.length > 1) {
+        const cmInfo = this.cm.getScrollInfo();
+        const top = cmInfo.top;
+
+        if (top <= 0.5) {
+          this.preview.scrollTop = 0;
+        } else if (top + cmInfo.clientHeight >= cmInfo.height - 0.5) {
+          this.preview.scrollTop = Math.max(0, this.preview.scrollHeight - this.preview.clientHeight);
+        } else {
+          let scrollElementIndex = -1;
+          for (let i = 0; i < this._editorElementList.length; i++) {
+            if (top < this._editorElementList[i]) {
+              scrollElementIndex = i - 1;
+              break;
+            }
+          }
+          if (scrollElementIndex < 0) scrollElementIndex = this._editorElementList.length - 1;
+          if (scrollElementIndex >= 0 && scrollElementIndex < this._editorElementList.length - 1) {
+            const ratio = (top - this._editorElementList[scrollElementIndex]) /
+              (this._editorElementList[scrollElementIndex + 1] - this._editorElementList[scrollElementIndex]);
+            this.preview.scrollTop = ratio *
+              (this._previewElementList[scrollElementIndex + 1] - this._previewElementList[scrollElementIndex]) +
+              this._previewElementList[scrollElementIndex];
+          }
+        }
       } else {
         const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
         if (this.preview.scrollTop > maxScroll) this.preview.scrollTop = maxScroll;
       }
       requestAnimationFrame(() => {
-        this.syncingScroll = false;
+        this._resumeScroll();
       });
     } catch (error) {
       if (gen !== this._renderGeneration) return;
-      this.syncingScroll = false;
+      this._resumeScroll();
       const msg = String(error).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       this.preview.innerHTML = `<p style="color: red;">预览错误: ${msg}</p>`;
     }
@@ -3161,7 +3425,8 @@ ${htmlContent}
     const container = document.querySelector('.editor-container');
     if (this.viewMode === 'preview') return;
 
-    this.syncingScroll = true;
+    this._canScroll.editor = false;
+    this._canScroll.preview = false;
 
     const sideLeft = document.getElementById('btn-side-left');
     const sideRight = document.getElementById('btn-side-right');
@@ -3196,7 +3461,7 @@ ${htmlContent}
       this.preview.scrollTop = previewScrollTop;
       this.updateSideButtons();
       requestAnimationFrame(() => {
-        this.syncingScroll = false;
+        this._resumeScroll();
       });
     };
     const targetPane = pane === 'editor' ? editorPane : previewPane;
