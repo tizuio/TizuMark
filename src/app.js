@@ -2578,12 +2578,11 @@ ${htmlContent}
     return null;
   }
 
-  // 每次滚动时动态构建平行位置数组（使用 unified 的 data-source-line 精确映射）
-  // 遍历所有带 data-source-line 的元素（不仅仅是直接子元素），确保表格/引用块/Mermaid 等
-  // 嵌套结构内部的元素也被纳入位置映射，大幅提升滚动同步精度
+  // 构建逐行密集位置映射 + 速度限制
+  // 逐行插值确保平滑，速度上限防止 Mermaid/脚注等极端像素比例的跳变
   _computedPosition() {
     const allElements = this.preview.querySelectorAll('[data-source-line]');
-    const entries = [];
+    const anchors = [];
     const seenLines = new Set();
 
     for (const el of allElements) {
@@ -2593,17 +2592,84 @@ ${htmlContent}
       seenLines.add(sourceLine);
 
       const editorTop = this.cm.heightAtLine(Math.max(0, sourceLine - 1), 'local');
-      entries.push({
-        line: sourceLine,
-        editorTop,
-        previewTop: this._getOffsetTop(el)
-      });
+      const previewTop = this._getOffsetTop(el);
+      if (typeof editorTop !== 'number' || typeof previewTop !== 'number') continue;
+
+      anchors.push({ line: sourceLine, editorTop, previewTop });
     }
 
-    entries.sort((a, b) => a.line - b.line);
+    if (anchors.length < 2) {
+      this._editorElementList = null;
+      this._previewElementList = null;
+      return;
+    }
 
-    this._editorElementList = entries.map(e => e.editorTop);
-    this._previewElementList = entries.map(e => e.previewTop);
+    anchors.sort((a, b) => a.line - b.line);
+
+    // 过滤非单调锚点（只检查 editorTop）
+    const clean = [anchors[0]];
+    for (let i = 1; i < anchors.length; i++) {
+      if (anchors[i].editorTop > clean[clean.length - 1].editorTop) {
+        clean.push(anchors[i]);
+      }
+    }
+
+    if (clean.length < 2) {
+      this._editorElementList = null;
+      this._previewElementList = null;
+      return;
+    }
+
+    // 逐行构建密集数组
+    const totalLines = this.cm.lineCount();
+    const editorList = new Array(totalLines);
+    const rawPreviewList = new Array(totalLines);
+    let anchorIdx = 0;
+
+    for (let line = 0; line < totalLines; line++) {
+      editorList[line] = this.cm.heightAtLine(line, 'local');
+      const sourceLine = line + 1;
+
+      while (anchorIdx + 1 < clean.length && clean[anchorIdx + 1].line <= sourceLine) {
+        anchorIdx++;
+      }
+
+      if (anchorIdx >= clean.length - 1) {
+        const last = clean[clean.length - 1];
+        rawPreviewList[line] = last.previewTop + Math.max(0, sourceLine - last.line) * 20;
+      } else {
+        const a1 = clean[anchorIdx];
+        const a2 = clean[anchorIdx + 1];
+        const lineGap = a2.line - a1.line;
+        if (lineGap <= 0) {
+          rawPreviewList[line] = a1.previewTop;
+        } else {
+          rawPreviewList[line] = a1.previewTop + (sourceLine - a1.line) / lineGap * (a2.previewTop - a1.previewTop);
+        }
+      }
+    }
+
+    // 速度限制：preview 移动速度不超过 editor 的 MAX_RATIO 倍
+    // 超出的位移以"债务"形式推迟到后续行，在容量充足时偿还
+    const MAX_RATIO = 3;
+    const previewList = new Array(totalLines);
+    previewList[0] = rawPreviewList[0];
+    let debt = 0;
+
+    for (let line = 1; line < totalLines; line++) {
+      const editorDelta = editorList[line] - editorList[line - 1];
+      if (editorDelta <= 0) { previewList[line] = previewList[line - 1]; continue; }
+
+      const maxPreviewDelta = editorDelta * MAX_RATIO;
+      const desiredDelta = rawPreviewList[line] - previewList[line - 1] + debt;
+      const actualDelta = Math.min(desiredDelta, maxPreviewDelta);
+      debt = desiredDelta - actualDelta;
+
+      previewList[line] = previewList[line - 1] + actualDelta;
+    }
+
+    this._editorElementList = editorList;
+    this._previewElementList = previewList;
   }
 
   // 根据 unified 渲染结果重建滚动同步数据（仅在内容变化时调用）
@@ -2692,106 +2758,93 @@ ${htmlContent}
     this._canScroll.preview = true;
   }
 
-  // 编辑器 → 预览同步（优化版：使用更精确的插值算法）
+  // 编辑器 → 预览同步（逐行密集插值 + 速度上限）
   _syncEditorToPreview() {
-    // 每次滚动时重新计算位置数组
     this._computedPosition();
+
+    const editorList = this._editorElementList;
+    const previewList = this._previewElementList;
+    if (!editorList || editorList.length < 2) return;
 
     const { scrollHeight, clientHeight } = this.preview;
     const cmInfo = this.cm.getScrollInfo();
-
-    // 滚动到底
-    if (cmInfo.top + cmInfo.clientHeight >= cmInfo.height - 0.5) {
-      this.preview.scrollTop = Math.max(0, scrollHeight - clientHeight);
-      return;
-    }
-    // 滚动到顶
-    if (cmInfo.top <= 0.5) {
-      this.preview.scrollTop = 0;
-      return;
-    }
-
-    // 找到当前滚动到的块索引
     const top = cmInfo.top;
-    let scrollElementIndex = -1;
-    for (let i = 0; i < this._editorElementList.length; i++) {
-      if (top < this._editorElementList[i]) {
-        scrollElementIndex = i - 1;
-        break;
-      }
-    }
-    if (scrollElementIndex < 0) {
-      scrollElementIndex = 0;
-    }
-    if (scrollElementIndex < 0) return;
-    if (scrollElementIndex >= this._editorElementList.length - 1) {
+
+    if (top <= 0.5) { this.preview.scrollTop = 0; return; }
+    if (top + clientHeight >= cmInfo.height - 0.5) {
       this.preview.scrollTop = Math.max(0, scrollHeight - clientHeight);
       return;
     }
 
-    // 使用更精确的插值算法
-    const editorStart = this._editorElementList[scrollElementIndex];
-    const editorEnd = this._editorElementList[scrollElementIndex + 1];
-    const previewStart = this._previewElementList[scrollElementIndex];
-    const previewEnd = this._previewElementList[scrollElementIndex + 1];
+    let lo = 0, hi = editorList.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (editorList[mid] <= top) lo = mid + 1;
+      else hi = mid;
+    }
+    let idx = lo - 1;
+    if (idx < 0) { this.preview.scrollTop = 0; return; }
+    if (idx >= editorList.length - 1) {
+      this.preview.scrollTop = Math.max(0, scrollHeight - clientHeight);
+      return;
+    }
 
-    // 避免除零错误
-    if (editorEnd === editorStart) {
+    const editorStart = editorList[idx];
+    const editorEnd = editorList[idx + 1];
+    const previewStart = previewList[idx];
+    const previewEnd = previewList[idx + 1];
+
+    if (editorEnd <= editorStart || previewEnd < 0 || previewStart < 0) {
       this.preview.scrollTop = previewStart;
       return;
     }
 
-    // 计算比例并应用
-    const ratio = (top - editorStart) / (editorEnd - editorStart);
-    const targetScrollTop = previewStart + ratio * (previewEnd - previewStart);
-
-    // 确保滚动位置在有效范围内
+    const targetScrollTop = previewStart + (top - editorStart) / (editorEnd - editorStart) * (previewEnd - previewStart);
     this.preview.scrollTop = Math.max(0, Math.min(targetScrollTop, scrollHeight - clientHeight));
   }
 
-  // 预览 → 编辑器同步（文章方法：每次滚动重建数组 + 比例公式）
+  // 预览 → 编辑器同步（逐行密集插值 + 速度上限）
   _syncPreviewToEditor() {
-    // 每次滚动时重新计算位置数组（文章核心做法）
     this._computedPosition();
 
-    const { scrollTop: previewTop, scrollHeight, clientHeight } = this.preview;
+    const previewList = this._previewElementList;
+    const editorList = this._editorElementList;
+    if (!previewList || previewList.length < 2) return;
+
+    const { scrollTop: pvTop, scrollHeight, clientHeight } = this.preview;
     const cmInfo = this.cm.getScrollInfo();
 
-    // 滚动到底
-    if (previewTop + clientHeight >= scrollHeight - 0.5) {
-      this.cm.scrollTo(0, Math.max(0, cmInfo.height - cmInfo.clientHeight));
-      return;
-    }
-    // 滚动到顶
-    if (previewTop <= 0.5) {
-      this.cm.scrollTo(0, 0);
-      return;
-    }
-
-    // 找到当前滚动到的块索引
-    let scrollElementIndex = -1;
-    for (let i = 0; i < this._previewElementList.length; i++) {
-      if (previewTop < this._previewElementList[i]) {
-        scrollElementIndex = i - 1;
-        break;
-      }
-    }
-    if (scrollElementIndex < 0) {
-      scrollElementIndex = this._previewElementList.length - 1;
-    }
-    if (scrollElementIndex < 0) return;
-    if (scrollElementIndex >= this._previewElementList.length - 1) {
+    if (pvTop <= 0.5) { this.cm.scrollTo(0, 0); return; }
+    if (pvTop + clientHeight >= scrollHeight - 0.5) {
       this.cm.scrollTo(0, Math.max(0, cmInfo.height - cmInfo.clientHeight));
       return;
     }
 
-    // 文章比例公式
-    const ratio = (previewTop - this._previewElementList[scrollElementIndex]) /
-      (this._previewElementList[scrollElementIndex + 1] - this._previewElementList[scrollElementIndex]);
-    const editorScrollTop = ratio *
-      (this._editorElementList[scrollElementIndex + 1] - this._editorElementList[scrollElementIndex]) +
-      this._editorElementList[scrollElementIndex];
-    this.cm.scrollTo(0, editorScrollTop);
+    let lo = 0, hi = previewList.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (previewList[mid] <= pvTop) lo = mid + 1;
+      else hi = mid;
+    }
+    let idx = lo - 1;
+    if (idx < 0) { this.cm.scrollTo(0, 0); return; }
+    if (idx >= previewList.length - 1) {
+      this.cm.scrollTo(0, Math.max(0, cmInfo.height - cmInfo.clientHeight));
+      return;
+    }
+
+    const previewStart = previewList[idx];
+    const previewEnd = previewList[idx + 1];
+    const editorStart = editorList[idx];
+    const editorEnd = editorList[idx + 1];
+
+    if (previewEnd <= previewStart || editorEnd < 0 || editorStart < 0) {
+      this.cm.scrollTo(0, editorStart);
+      return;
+    }
+
+    const targetEditorTop = editorStart + (pvTop - previewStart) / (previewEnd - previewStart) * (editorEnd - editorStart);
+    this.cm.scrollTo(0, targetEditorTop);
   }
 
   // 按 markdown 块级元素边界分割源码，与 pulldown-cmark 渲染输出对齐
@@ -2927,7 +2980,7 @@ ${htmlContent}
       // 重建滚动同步数据（blocks + 预览子元素）
       this.rebuildScrollSync();
 
-      // 恢复预览滚动位置（文章方法：平行数组 + 比例公式）
+      // 恢复预览滚动位置（逐行密集插值 + 速度上限）
       if (this.settings.scrollSync && this._editorElementList && this._editorElementList.length > 1) {
         const cmInfo = this.cm.getScrollInfo();
         const top = cmInfo.top;
@@ -2937,20 +2990,23 @@ ${htmlContent}
         } else if (top + cmInfo.clientHeight >= cmInfo.height - 0.5) {
           this.preview.scrollTop = Math.max(0, this.preview.scrollHeight - this.preview.clientHeight);
         } else {
-          let scrollElementIndex = -1;
+          let idx = -1;
           for (let i = 0; i < this._editorElementList.length; i++) {
             if (top < this._editorElementList[i]) {
-              scrollElementIndex = i - 1;
+              idx = i - 1;
               break;
             }
           }
-          if (scrollElementIndex < 0) scrollElementIndex = this._editorElementList.length - 1;
-          if (scrollElementIndex >= 0 && scrollElementIndex < this._editorElementList.length - 1) {
-            const ratio = (top - this._editorElementList[scrollElementIndex]) /
-              (this._editorElementList[scrollElementIndex + 1] - this._editorElementList[scrollElementIndex]);
-            this.preview.scrollTop = ratio *
-              (this._previewElementList[scrollElementIndex + 1] - this._previewElementList[scrollElementIndex]) +
-              this._previewElementList[scrollElementIndex];
+          if (idx < 0) idx = 0;
+          if (idx < this._editorElementList.length - 1) {
+            const editorStart = this._editorElementList[idx];
+            const editorEnd = this._editorElementList[idx + 1];
+            const previewStart = this._previewElementList[idx];
+            const previewEnd = this._previewElementList[idx + 1];
+            if (editorEnd > editorStart) {
+              const ratio = (top - editorStart) / (editorEnd - editorStart);
+              this.preview.scrollTop = previewStart + ratio * (previewEnd - previewStart);
+            }
           }
         }
       } else {
