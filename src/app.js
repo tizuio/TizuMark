@@ -1602,6 +1602,10 @@ class MarkdownEditor {
         this.openExternal(url);
       }
     });
+    document.getElementById('github-badge').addEventListener('click', () => {
+      const url = document.getElementById('github-badge').dataset.url;
+      if (url) this.openExternal(url);
+    });
 
     document.getElementById('btn-minimize').addEventListener('click', () => this.minimizeWindow());
     document.getElementById('btn-maximize').addEventListener('click', () => this.toggleMaximize());

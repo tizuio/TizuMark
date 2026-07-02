@@ -70,7 +70,10 @@
 
 ### 下载安装
 
-前往 [Releases 页面](https://gitee.com/tizu/tizu-mark/releases) 下载安装包，双击即装，即装即用。
+前往 Releases 页面下载安装包，双击即装，即装即用：
+
+- [GitHub Releases](https://github.com/tizuio/TizuMark/releases)
+- [Gitee Releases](https://gitee.com/tizu/tizu-mark/releases)
 
 | 平台 | 状态 |
 |---|---|
@@ -154,7 +157,7 @@ npm run build    # 构建发布版本
 
 - QQ交流群：**1035294939**
 - [Gitee Issues](https://gitee.com/tizu/tizu-mark/issues)
-- [GitHub Issues](https://github.com/tizu/tizu-mark/issues)
+- [GitHub Issues](https://github.com/tizuio/TizuMark/issues)
 </details>
 
 ---
@@ -187,7 +190,7 @@ npm run build    # 构建发布版本
 |---|---|
 | QQ群 | **1035294939** [@点击链接加入群聊【Tizu交流群】](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=G0xAh9l042apAmjy9MAKOI6pSMWhV5jI&authKey=hWwxCXRZkWorgQZtiBNeRE6L12Ow6CLSo9K9dWzSjDFNuIEfmnmLAWH1T3qooH40&noverify=0&group_code=1035294939)|
 | Gitee | [@tizu](https://gitee.com/tizu) |
-| GitHub | [@tizu](https://github.com/tizu) |
+| GitHub | [@tizuio](https://github.com/tizuio) |
 
 有问题、建议、合作，欢迎加群或提 Issue。
 
@@ -205,7 +208,9 @@ Copyright (c) 2024-2026 TizuMark
 
 <p align="center">
   <b>✨ TizuMark — 轻得不像话，快得刚刚好</b><br><br>
-  <a href="https://gitee.com/tizu/tizu-mark/releases">⬇ 下载体验</a>
+  <a href="https://github.com/tizuio/TizuMark/releases">⬇ GitHub 下载</a>
+  &nbsp;·&nbsp;
+  <a href="https://gitee.com/tizu/tizu-mark/releases">⬇ Gitee 下载</a>
   &nbsp;·&nbsp;
   <b>QQ群 1035294939</b>
   &nbsp;·&nbsp;
