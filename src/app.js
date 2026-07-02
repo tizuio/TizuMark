@@ -4271,20 +4271,66 @@ function initEula() {
     return Promise.resolve();
   }
 
+  const applyEulaLang = (lang) => {
+    const t = (key, params) => {
+      let text = I18N[lang] && I18N[lang][key];
+      if (text === undefined) text = I18N.zh[key] || key;
+      if (text && params) {
+        for (const [k, v] of Object.entries(params)) {
+          text = text.replace('{' + k + '}', v);
+        }
+      }
+      return text;
+    };
+    const gplLink = '<a href="#" class="gpl-link">GNU General Public License v3.0 (GPL v3)</a>';
+    document.getElementById('eula-title').textContent = t('eulaTitle');
+    document.getElementById('eula-heading').textContent = t('eulaHeading');
+    document.getElementById('eula-gpl-notice').innerHTML = t('eulaGplNotice', { gpl: gplLink });
+    document.getElementById('eula-you-can-heading').textContent = t('eulaYouCanTitle');
+    document.getElementById('eula-you-can-text').textContent = t('eulaYouCanText');
+    document.getElementById('eula-you-must-heading').textContent = t('eulaYouMustTitle');
+    document.getElementById('eula-you-must-text').textContent = t('eulaYouMustText');
+    document.getElementById('eula-no-warranty-heading').textContent = t('eulaNoWarrantyTitle');
+    document.getElementById('eula-no-warranty-text').textContent = t('eulaNoWarrantyText');
+    document.getElementById('eula-third-party-heading').textContent = t('eulaThirdPartyTitle');
+    document.getElementById('eula-third-party-text').textContent = t('eulaThirdPartyText');
+    document.getElementById('eula-accept').textContent = t('eulaAccept');
+    document.getElementById('eula-lang-toggle').textContent = lang === 'en' ? '中文' : 'English';
+  };
+
   return new Promise((resolve) => {
     const overlay = document.getElementById('eula-dialog');
     const acceptBtn = document.getElementById('eula-accept');
+    const langToggle = document.getElementById('eula-lang-toggle');
+
+    // Determine initial language from saved settings
+    let savedLang = 'zh';
+    try {
+      const raw = localStorage.getItem('tizumark-settings');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.language === 'en') savedLang = 'en';
+      }
+    } catch(e) { /* ignore */ }
+    let currentLang = savedLang;
+    applyEulaLang(currentLang);
 
     overlay.classList.remove('hidden');
 
-    // GPL 链接：在浏览器中打开
-    const gplLink = overlay.querySelector('.gpl-link');
-    if (gplLink) {
-      gplLink.addEventListener('click', (e) => {
+    // GPL link
+    const gplLinkEl = overlay.querySelector('.gpl-link');
+    if (gplLinkEl) {
+      gplLinkEl.addEventListener('click', (e) => {
         e.preventDefault();
         window.open('https://www.gnu.org/licenses/gpl-3.0.html', '_blank');
       });
     }
+
+    // Language toggle
+    langToggle.addEventListener('click', () => {
+      currentLang = currentLang === 'en' ? 'zh' : 'en';
+      applyEulaLang(currentLang);
+    });
 
     acceptBtn.addEventListener('click', () => {
       localStorage.setItem('tizumark-eula-accepted', 'true');
