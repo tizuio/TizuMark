@@ -212,18 +212,6 @@ const I18N = {
     depMermaid: '图表绘制库',
     depHtml2canvas: '截图导出',
     depTauri: '桌面应用框架',
-    eulaTitle: '开源许可协议',
-    eulaHeading: 'TizuMark 开源许可声明',
-    eulaGplNotice: 'TizuMark 是基于 {gpl} 发布的自由软件。',
-    eulaYouCanTitle: '你可以：',
-    eulaYouCanText: '自由使用、复制、修改和分发本软件，包括用于商业目的。',
-    eulaYouMustTitle: '你必须：',
-    eulaYouMustText: '在分发修改后的版本时，同样以 GPL v3 协议开源你的代码。',
-    eulaNoWarrantyTitle: '本软件不提供任何担保。',
-    eulaNoWarrantyText: '本软件按"现状"提供，不作任何明示或暗示的保证。在适用法律允许的最大范围内，作者不对因使用本软件而产生的任何直接或间接损害承担责任。',
-    eulaThirdPartyTitle: '第三方组件',
-    eulaThirdPartyText: '本软件包含根据各自开源许可证（MIT、BSD-3-Clause、Apache-2.0 等）分发的第三方组件。这些组件的版权和许可条款可在「帮助 → 关于」页面中查看。',
-    eulaAccept: '我知道了',
     switchFailed: '切换语言失败',
     spaces: '空格',
     settingsReset: '已恢复默认设置',
@@ -425,18 +413,6 @@ const I18N = {
     depMermaid: 'Diagram drawing library',
     depHtml2canvas: 'Screenshot export',
     depTauri: 'Desktop application framework',
-    eulaTitle: 'Open Source License',
-    eulaHeading: 'TizuMark Open Source License Statement',
-    eulaGplNotice: 'TizuMark is released under the {gpl}.',
-    eulaYouCanTitle: 'You can:',
-    eulaYouCanText: 'Freely use, copy, modify, and distribute this software, including for commercial purposes.',
-    eulaYouMustTitle: 'You must:',
-    eulaYouMustText: 'When distributing modified versions, you must open source your code under the same GPL v3 license.',
-    eulaNoWarrantyTitle: 'No Warranty.',
-    eulaNoWarrantyText: 'This software is provided "as is" without any express or implied warranty. To the maximum extent permitted by applicable law, the author shall not be liable for any direct or indirect damages arising from the use of this software.',
-    eulaThirdPartyTitle: 'Third-Party Components',
-    eulaThirdPartyText: 'This software contains third-party components distributed under their respective open-source licenses (MIT, BSD-3-Clause, Apache-2.0, etc.). Their copyright and license terms can be viewed in Help → About.',
-    eulaAccept: 'I Understand',
     spaces: 'spaces',
     settingsReset: 'Settings reset to defaults',
     shortcutsReset: 'Shortcuts reset to defaults',
@@ -700,35 +676,6 @@ class MarkdownEditor {
         if (i < depKeys.length) p.textContent = t(depKeys[i]);
       });
     }
-
-    // EULA dialog
-    const eulaTitle = document.getElementById('eula-title');
-    if (eulaTitle) eulaTitle.textContent = t('eulaTitle');
-    const eulaHeading = document.getElementById('eula-heading');
-    if (eulaHeading) eulaHeading.textContent = t('eulaHeading');
-    const eulaGplNotice = document.getElementById('eula-gpl-notice');
-    if (eulaGplNotice) {
-      const gplLink = '<a href="#" class="gpl-link">GNU General Public License v3.0 (GPL v3)</a>';
-      eulaGplNotice.innerHTML = t('eulaGplNotice', { gpl: gplLink });
-    }
-    const eulaYouCanTitle = document.getElementById('eula-you-can-heading');
-    if (eulaYouCanTitle) eulaYouCanTitle.textContent = t('eulaYouCanTitle');
-    const eulaYouCanText = document.getElementById('eula-you-can-text');
-    if (eulaYouCanText) eulaYouCanText.textContent = t('eulaYouCanText');
-    const eulaYouMustTitle = document.getElementById('eula-you-must-heading');
-    if (eulaYouMustTitle) eulaYouMustTitle.textContent = t('eulaYouMustTitle');
-    const eulaYouMustText = document.getElementById('eula-you-must-text');
-    if (eulaYouMustText) eulaYouMustText.textContent = t('eulaYouMustText');
-    const eulaNoWarrantyTitle = document.getElementById('eula-no-warranty-heading');
-    if (eulaNoWarrantyTitle) eulaNoWarrantyTitle.textContent = t('eulaNoWarrantyTitle');
-    const eulaNoWarrantyText = document.getElementById('eula-no-warranty-text');
-    if (eulaNoWarrantyText) eulaNoWarrantyText.textContent = t('eulaNoWarrantyText');
-    const eulaThirdPartyTitle = document.getElementById('eula-third-party-heading');
-    if (eulaThirdPartyTitle) eulaThirdPartyTitle.textContent = t('eulaThirdPartyTitle');
-    const eulaThirdPartyText = document.getElementById('eula-third-party-text');
-    if (eulaThirdPartyText) eulaThirdPartyText.textContent = t('eulaThirdPartyText');
-    const eulaAccept = document.getElementById('eula-accept');
-    if (eulaAccept) eulaAccept.textContent = t('eulaAccept');
 
     // Save dialog
     document.getElementById('save-dialog-title').textContent = t('saveChanges');
@@ -4271,66 +4218,20 @@ function initEula() {
     return Promise.resolve();
   }
 
-  const applyEulaLang = (lang) => {
-    const t = (key, params) => {
-      let text = I18N[lang] && I18N[lang][key];
-      if (text === undefined) text = I18N.zh[key] || key;
-      if (text && params) {
-        for (const [k, v] of Object.entries(params)) {
-          text = text.replace('{' + k + '}', v);
-        }
-      }
-      return text;
-    };
-    const gplLink = '<a href="#" class="gpl-link">GNU General Public License v3.0 (GPL v3)</a>';
-    document.getElementById('eula-title').textContent = t('eulaTitle');
-    document.getElementById('eula-heading').textContent = t('eulaHeading');
-    document.getElementById('eula-gpl-notice').innerHTML = t('eulaGplNotice', { gpl: gplLink });
-    document.getElementById('eula-you-can-heading').textContent = t('eulaYouCanTitle');
-    document.getElementById('eula-you-can-text').textContent = t('eulaYouCanText');
-    document.getElementById('eula-you-must-heading').textContent = t('eulaYouMustTitle');
-    document.getElementById('eula-you-must-text').textContent = t('eulaYouMustText');
-    document.getElementById('eula-no-warranty-heading').textContent = t('eulaNoWarrantyTitle');
-    document.getElementById('eula-no-warranty-text').textContent = t('eulaNoWarrantyText');
-    document.getElementById('eula-third-party-heading').textContent = t('eulaThirdPartyTitle');
-    document.getElementById('eula-third-party-text').textContent = t('eulaThirdPartyText');
-    document.getElementById('eula-accept').textContent = t('eulaAccept');
-    document.getElementById('eula-lang-toggle').textContent = lang === 'en' ? '中文' : 'English';
-  };
-
   return new Promise((resolve) => {
     const overlay = document.getElementById('eula-dialog');
     const acceptBtn = document.getElementById('eula-accept');
-    const langToggle = document.getElementById('eula-lang-toggle');
-
-    // Determine initial language from saved settings
-    let savedLang = 'zh';
-    try {
-      const raw = localStorage.getItem('tizumark-settings');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed.language === 'en') savedLang = 'en';
-      }
-    } catch(e) { /* ignore */ }
-    let currentLang = savedLang;
-    applyEulaLang(currentLang);
 
     overlay.classList.remove('hidden');
 
-    // GPL link
-    const gplLinkEl = overlay.querySelector('.gpl-link');
-    if (gplLinkEl) {
-      gplLinkEl.addEventListener('click', (e) => {
+    // GPL 链接：在浏览器中打开
+    const gplLink = overlay.querySelector('.gpl-link');
+    if (gplLink) {
+      gplLink.addEventListener('click', (e) => {
         e.preventDefault();
         window.open('https://www.gnu.org/licenses/gpl-3.0.html', '_blank');
       });
     }
-
-    // Language toggle
-    langToggle.addEventListener('click', () => {
-      currentLang = currentLang === 'en' ? 'zh' : 'en';
-      applyEulaLang(currentLang);
-    });
 
     acceptBtn.addEventListener('click', () => {
       localStorage.setItem('tizumark-eula-accepted', 'true');
