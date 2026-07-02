@@ -200,6 +200,30 @@ const I18N = {
     failedGuideEn: 'Failed to open guide',
     switchedZh: '已切换到中文',
     switchedEn: 'Switched to English',
+    giteeAction: '访问仓库',
+    githubAction: '访问仓库',
+    giteeTitle: '访问 Gitee 仓库',
+    githubTitle: '访问 GitHub 仓库',
+    qqTitle: '点击加群',
+    depCodeMirror: '代码编辑器组件',
+    depHighlight: '语法高亮库',
+    depCmark: 'Markdown 解析器（Rust）',
+    depKatex: '数学公式渲染',
+    depMermaid: '图表绘制库',
+    depHtml2canvas: '截图导出',
+    depTauri: '桌面应用框架',
+    eulaTitle: '开源许可协议',
+    eulaHeading: 'TizuMark 开源许可声明',
+    eulaGplNotice: 'TizuMark 是基于 {gpl} 发布的自由软件。',
+    eulaYouCanTitle: '你可以：',
+    eulaYouCanText: '自由使用、复制、修改和分发本软件，包括用于商业目的。',
+    eulaYouMustTitle: '你必须：',
+    eulaYouMustText: '在分发修改后的版本时，同样以 GPL v3 协议开源你的代码。',
+    eulaNoWarrantyTitle: '本软件不提供任何担保。',
+    eulaNoWarrantyText: '本软件按"现状"提供，不作任何明示或暗示的保证。在适用法律允许的最大范围内，作者不对因使用本软件而产生的任何直接或间接损害承担责任。',
+    eulaThirdPartyTitle: '第三方组件',
+    eulaThirdPartyText: '本软件包含根据各自开源许可证（MIT、BSD-3-Clause、Apache-2.0 等）分发的第三方组件。这些组件的版权和许可条款可在「帮助 → 关于」页面中查看。',
+    eulaAccept: '我知道了',
     switchFailed: '切换语言失败',
     spaces: '空格',
     settingsReset: '已恢复默认设置',
@@ -389,6 +413,30 @@ const I18N = {
     switchedZh: '已切换到中文',
     switchedEn: 'Switched to English',
     switchFailed: 'Failed to switch language',
+    giteeAction: 'Visit Repository',
+    githubAction: 'Visit Repository',
+    giteeTitle: 'Visit Gitee Repository',
+    githubTitle: 'Visit GitHub Repository',
+    qqTitle: 'Join Group',
+    depCodeMirror: 'Code editor component',
+    depHighlight: 'Syntax highlighting library',
+    depCmark: 'Markdown parser (Rust)',
+    depKatex: 'Math formula rendering',
+    depMermaid: 'Diagram drawing library',
+    depHtml2canvas: 'Screenshot export',
+    depTauri: 'Desktop application framework',
+    eulaTitle: 'Open Source License',
+    eulaHeading: 'TizuMark Open Source License Statement',
+    eulaGplNotice: 'TizuMark is released under the {gpl}.',
+    eulaYouCanTitle: 'You can:',
+    eulaYouCanText: 'Freely use, copy, modify, and distribute this software, including for commercial purposes.',
+    eulaYouMustTitle: 'You must:',
+    eulaYouMustText: 'When distributing modified versions, you must open source your code under the same GPL v3 license.',
+    eulaNoWarrantyTitle: 'No Warranty.',
+    eulaNoWarrantyText: 'This software is provided "as is" without any express or implied warranty. To the maximum extent permitted by applicable law, the author shall not be liable for any direct or indirect damages arising from the use of this software.',
+    eulaThirdPartyTitle: 'Third-Party Components',
+    eulaThirdPartyText: 'This software contains third-party components distributed under their respective open-source licenses (MIT, BSD-3-Clause, Apache-2.0, etc.). Their copyright and license terms can be viewed in Help → About.',
+    eulaAccept: 'I Understand',
     spaces: 'spaces',
     settingsReset: 'Settings reset to defaults',
     shortcutsReset: 'Shortcuts reset to defaults',
@@ -623,9 +671,19 @@ class MarkdownEditor {
       const contactDesc = aboutSections[1].querySelector('.contact-desc');
       const qqLabel = aboutSections[1].querySelector('.qq-label');
       const qqJoinText = aboutSections[1].querySelector('.qq-join-text');
+      const qqBadge = document.getElementById('qq-group-badge');
       if (contactDesc) contactDesc.textContent = t('contactDesc');
       if (qqLabel) qqLabel.textContent = t('qqGroupName');
       if (qqJoinText) qqJoinText.textContent = t('joinGroup');
+      if (qqBadge) qqBadge.title = t('qqTitle');
+      const giteeAction = aboutSections[1].querySelector('.gitee-action');
+      const giteeBadge = document.getElementById('gitee-badge');
+      if (giteeAction) giteeAction.textContent = t('giteeAction');
+      if (giteeBadge) giteeBadge.title = t('giteeTitle');
+      const githubAction = aboutSections[1].querySelector('.github-action');
+      const githubBadge = document.getElementById('github-badge');
+      if (githubAction) githubAction.textContent = t('githubAction');
+      if (githubBadge) githubBadge.title = t('githubTitle');
     }
     if (aboutSections.length >= 3) {
       aboutSections[2].querySelector('h3').textContent = t('license');
@@ -634,8 +692,43 @@ class MarkdownEditor {
       aboutSections[2].querySelector('p:nth-child(4)').textContent = t('noUnauthorized');
     }
     if (aboutSections.length >= 4) {
-      aboutSections[3].querySelector('h3').textContent = t('thirdParty');
+      const summary = aboutSections[3].querySelector('summary');
+      if (summary) summary.textContent = t('thirdParty');
+      const depDescs = aboutSections[3].querySelectorAll('.dependency-item p');
+      const depKeys = ['depCodeMirror', 'depHighlight', 'depCmark', 'depKatex', 'depMermaid', 'depHtml2canvas', 'depTauri'];
+      depDescs.forEach((p, i) => {
+        if (i < depKeys.length) p.textContent = t(depKeys[i]);
+      });
     }
+
+    // EULA dialog
+    const eulaTitle = document.getElementById('eula-title');
+    if (eulaTitle) eulaTitle.textContent = t('eulaTitle');
+    const eulaHeading = document.getElementById('eula-heading');
+    if (eulaHeading) eulaHeading.textContent = t('eulaHeading');
+    const eulaGplNotice = document.getElementById('eula-gpl-notice');
+    if (eulaGplNotice) {
+      const gplLink = '<a href="#" class="gpl-link">GNU General Public License v3.0 (GPL v3)</a>';
+      eulaGplNotice.innerHTML = t('eulaGplNotice', { gpl: gplLink });
+    }
+    const eulaYouCanTitle = document.getElementById('eula-you-can-heading');
+    if (eulaYouCanTitle) eulaYouCanTitle.textContent = t('eulaYouCanTitle');
+    const eulaYouCanText = document.getElementById('eula-you-can-text');
+    if (eulaYouCanText) eulaYouCanText.textContent = t('eulaYouCanText');
+    const eulaYouMustTitle = document.getElementById('eula-you-must-heading');
+    if (eulaYouMustTitle) eulaYouMustTitle.textContent = t('eulaYouMustTitle');
+    const eulaYouMustText = document.getElementById('eula-you-must-text');
+    if (eulaYouMustText) eulaYouMustText.textContent = t('eulaYouMustText');
+    const eulaNoWarrantyTitle = document.getElementById('eula-no-warranty-heading');
+    if (eulaNoWarrantyTitle) eulaNoWarrantyTitle.textContent = t('eulaNoWarrantyTitle');
+    const eulaNoWarrantyText = document.getElementById('eula-no-warranty-text');
+    if (eulaNoWarrantyText) eulaNoWarrantyText.textContent = t('eulaNoWarrantyText');
+    const eulaThirdPartyTitle = document.getElementById('eula-third-party-heading');
+    if (eulaThirdPartyTitle) eulaThirdPartyTitle.textContent = t('eulaThirdPartyTitle');
+    const eulaThirdPartyText = document.getElementById('eula-third-party-text');
+    if (eulaThirdPartyText) eulaThirdPartyText.textContent = t('eulaThirdPartyText');
+    const eulaAccept = document.getElementById('eula-accept');
+    if (eulaAccept) eulaAccept.textContent = t('eulaAccept');
 
     // Save dialog
     document.getElementById('save-dialog-title').textContent = t('saveChanges');
@@ -653,6 +746,10 @@ class MarkdownEditor {
     document.getElementById('replace-one').textContent = t('replace');
     document.getElementById('replace-all').textContent = t('replaceAll');
     setPlaceholder('preview-find-input', t('findInPreview') + '...');
+    document.querySelector('#preview-find-panel .find-option:nth-child(2)') && (document.querySelector('#preview-find-panel .find-option:nth-child(2)').childNodes[1] && (document.querySelector('#preview-find-panel .find-option:nth-child(2)').childNodes[1].textContent = ' ' + t('caseSensitive')));
+    document.querySelector('#preview-find-panel .find-option:nth-child(3)') && (document.querySelector('#preview-find-panel .find-option:nth-child(3)').childNodes[1] && (document.querySelector('#preview-find-panel .find-option:nth-child(3)').childNodes[1].textContent = ' ' + t('regex')));
+    document.getElementById('preview-find-next').textContent = t('findNext');
+    document.getElementById('preview-find-prev').textContent = t('findPrev');
   }
 
   loadSettings() {
