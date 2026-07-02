@@ -23906,8 +23906,20 @@ var UnifiedRenderer = (() => {
         const result = [];
         const alertBlocks = [];
         let i = 0;
+        let inCodeBlock = false;
         while (i < lines.length) {
           const line = lines[i];
+          if (line.trim().startsWith("```")) {
+            inCodeBlock = !inCodeBlock;
+            result.push(line);
+            i++;
+            continue;
+          }
+          if (inCodeBlock) {
+            result.push(line);
+            i++;
+            continue;
+          }
           const alertType = getAlertType(line);
           if (alertType) {
             const contentLines = [];
@@ -24136,6 +24148,44 @@ var UnifiedRenderer = (() => {
         const json = JSON.stringify(abbreviations).replace(/'/g, "&#x27;");
         return html7 + `<div id="abbr-data" style="display:none" data-abbrs='` + json + "'></div>";
       }
+      function convertHighlights(html7) {
+        var result = "";
+        var i = 0;
+        var len = html7.length;
+        var skipStack = [];
+        while (i < len) {
+          if (html7[i] === "<") {
+            var end = html7.indexOf(">", i);
+            if (end === -1) { result += html7[i]; i++; continue; }
+            var inner = html7.substring(i + 1, end);
+            var tagName = inner.split(/\s/)[0].toLowerCase();
+            if (tagName[0] === "/") {
+              var closingTag = tagName.substring(1);
+              if (skipStack[skipStack.length - 1] === closingTag) skipStack.pop();
+            } else if (/^(code|pre|katex|mermaid|script|style|textarea|math-placeholder)$/.test(tagName)) {
+              skipStack.push(tagName);
+            }
+            result += html7.substring(i, end + 1);
+            i = end + 1;
+          } else if (skipStack.length === 0 && html7[i] === "=" && html7[i + 1] === "=" && (i === 0 || html7[i - 1] !== "=")) {
+            var end2 = html7.indexOf("==", i + 2);
+            if (end2 !== -1 && html7[end2 + 2] !== "=") {
+              var text = html7.substring(i + 2, end2);
+              if (text.length > 0 && !/[\n\r]/.test(text)) {
+                result += "<mark>" + text + "</mark>";
+                i = end2 + 2;
+                continue;
+              }
+            }
+            result += html7[i];
+            i++;
+          } else {
+            result += html7[i];
+            i++;
+          }
+        }
+        return result;
+      }
       function renderMarkdown(content3) {
         content3 = content3.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
         const abbrResult = extractAbbreviations(content3);
@@ -24155,6 +24205,7 @@ var UnifiedRenderer = (() => {
         html7 = restoreMathBlocks(html7, placeholders);
         html7 = restoreAlerts(html7, alertBlocks);
         html7 = sanitizeHTML(html7);
+        html7 = convertHighlights(html7);
         html7 = embedAbbrData(html7, abbreviations);
         return html7;
       }

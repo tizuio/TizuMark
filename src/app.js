@@ -146,6 +146,7 @@ const I18N = {
     collapsePreview: '折叠预览',
     restoreEditor: '恢复编辑器',
     restorePreview: '恢复预览',
+    collapseHint: '请先切换到编辑视图再使用折叠功能',
     noteHint: 'Note 提示',
     tipHint: 'Tip 建议',
     warningHint: 'Warning 警告',
@@ -153,7 +154,9 @@ const I18N = {
     importantHint: 'Important 重要',
     version: '版本信息',
     contact: '联系我们',
-    contactDesc: '反馈建议、报告Bug、交流使用心得',
+    contactDesc: '反馈建议 · 报告 Bug · 交流使用心得 · 获取更新',
+    qqGroupName: 'QQ 交流群',
+    joinGroup: '点击加群',
     license: '许可协议',
     thirdParty: '第三方组件',
     copyright: '版权声明',
@@ -331,6 +334,7 @@ const I18N = {
     collapsePreview: 'Collapse Preview',
     restoreEditor: 'Restore Editor',
     restorePreview: 'Restore Preview',
+    collapseHint: 'Switch to edit view first to use panel collapse',
     noteHint: 'Note',
     tipHint: 'Tip',
     warningHint: 'Warning',
@@ -338,7 +342,9 @@ const I18N = {
     importantHint: 'Important',
     version: 'Version',
     contact: 'Contact Us',
-    contactDesc: 'Feedback, bug reports, and community discussion',
+    contactDesc: 'Feedback · Bug Reports · Tips & Discussion · Updates',
+    qqGroupName: 'QQ Community',
+    joinGroup: 'Join Group',
     license: 'License',
     thirdParty: 'Third-Party Components',
     copyright: 'Copyright Notice',
@@ -434,6 +440,7 @@ class MarkdownEditor {
     this.initSettings();
     this.initShortcutsDialog();
     this.initOutline();
+    this.updateOutlineCheck();
     this.initContextMenu();
     this.initInsertMenu();
     this.initTabScroll();
@@ -554,25 +561,25 @@ class MarkdownEditor {
     document.querySelector('#settings-dialog .dialog-header h2').textContent = t('settings');
     // 基本
     document.querySelector('#settings-dialog .settings-section:nth-child(1) h3').textContent = t('basic');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(1) label').textContent = t('language');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(2) label').textContent = t('themeMode');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(3) label').textContent = t('colorScheme');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(4) label').textContent = t('fontScheme');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(2) label').textContent = t('language');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(3) label').textContent = t('themeMode');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(4) label').textContent = t('colorScheme');
+    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(5) label').textContent = t('fontScheme');
     // 编辑器
     document.querySelector('#settings-dialog .settings-section:nth-child(2) h3').textContent = t('editor');
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(1) label').textContent = t('fontSize');
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(2) label').textContent = t('tabSize');
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(3) label').textContent = t('lineWrap');
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(4) label').textContent = t('lineNumbers');
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(2) label').textContent = t('fontSize');
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(3) label').textContent = t('tabSize');
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(4) label').textContent = t('lineWrap');
+    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(5) label').textContent = t('lineNumbers');
     // 预览
     document.querySelector('#settings-dialog .settings-section:nth-child(3) h3').textContent = t('previewSection');
-    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row:nth-child(1) label').textContent = t('previewFontSize');
-    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row:nth-child(2) label').textContent = t('lineHeight');
-    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row:nth-child(3) label').textContent = t('maxWidth');
+    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row:nth-child(2) label').textContent = t('previewFontSize');
+    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row:nth-child(3) label').textContent = t('lineHeight');
+    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row:nth-child(4) label').textContent = t('maxWidth');
     // 行为
     document.querySelector('#settings-dialog .settings-section:nth-child(4) h3').textContent = t('behavior');
-    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(1) label').textContent = t('defaultView');
-    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(2) label').textContent = t('scrollSync');
+    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(2) label').textContent = t('defaultView');
+    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(3) label').textContent = t('scrollSync');
     document.getElementById('settings-reset').textContent = t('resetDefault');
     document.getElementById('settings-cancel-btn').textContent = t('cancel');
     document.getElementById('settings-save-btn').textContent = t('save');
@@ -613,7 +620,12 @@ class MarkdownEditor {
     }
     if (aboutSections.length >= 2) {
       aboutSections[1].querySelector('h3').textContent = t('contact');
-      aboutSections[1].querySelector('p:nth-child(3)').textContent = t('contactDesc');
+      const contactDesc = aboutSections[1].querySelector('.contact-desc');
+      const qqLabel = aboutSections[1].querySelector('.qq-label');
+      const qqJoinText = aboutSections[1].querySelector('.qq-join-text');
+      if (contactDesc) contactDesc.textContent = t('contactDesc');
+      if (qqLabel) qqLabel.textContent = t('qqGroupName');
+      if (qqJoinText) qqJoinText.textContent = t('joinGroup');
     }
     if (aboutSections.length >= 3) {
       aboutSections[2].querySelector('h3').textContent = t('license');
@@ -1579,6 +1591,13 @@ class MarkdownEditor {
     document.getElementById('about-dialog').addEventListener('click', (e) => {
       if (e.target.id === 'about-dialog') this.hideAbout();
     });
+    document.getElementById('qq-group-badge').addEventListener('click', () => {
+      const badge = document.getElementById('qq-group-badge');
+      const url = badge.dataset.joinUrl;
+      if (url && !url.includes('YOUR_JOIN_KEY')) {
+        window.__TAURI__.shell.open(url);
+      }
+    });
 
     document.getElementById('btn-minimize').addEventListener('click', () => this.minimizeWindow());
     document.getElementById('btn-maximize').addEventListener('click', () => this.toggleMaximize());
@@ -2042,7 +2061,7 @@ class MarkdownEditor {
 
       if (href.startsWith('#')) {
         const id = href.substring(1);
-        const target = this.preview.querySelector(`[id="${id}"]`);
+        const target = this.preview.querySelector(`#${CSS.escape(id)}`);
         if (target) {
           const previewHeight = this.preview.clientHeight;
           const targetRect = target.getBoundingClientRect();
@@ -3170,17 +3189,7 @@ ${htmlContent}
     this.preview.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(heading => {
       if (heading.id) return;
       const text = heading.textContent;
-      let id = '';
-      for (const ch of text) {
-        if (ch >= '\u4e00' && ch <= '\u9fa5') {
-          id += ch;
-        } else if (/[a-zA-Z0-9]/.test(ch)) {
-          id += ch.toLowerCase();
-        } else if (ch === ' ' || ch === '-' || ch === '_') {
-          id += '-';
-        }
-      }
-      id = id.replace(/-+/g, '-').replace(/^-|-$/g, '');
+      let id = this.headingToId(text);
       if (idCount[id]) {
         idCount[id]++;
         heading.id = id + '-' + idCount[id];
@@ -3387,7 +3396,10 @@ ${htmlContent}
 
   toggleCollapse(pane) {
     const container = document.querySelector('.editor-container');
-    if (this.viewMode === 'preview') return;
+    if (this.viewMode === 'preview') {
+      this.setStatus(this.t('collapseHint'));
+      return;
+    }
 
     this._canScroll.editor = false;
     this._canScroll.preview = false;
@@ -3430,9 +3442,9 @@ ${htmlContent}
     };
     const targetPane = pane === 'editor' ? editorPane : previewPane;
     targetPane.addEventListener('transitionend', (e) => {
-      if (e.propertyName === 'width') doRefresh();
+      if (e.propertyName === 'flex') doRefresh();
     }, { once: true });
-    setTimeout(doRefresh, 400);
+    setTimeout(doRefresh, 280);
   }
 
   async openUserGuide() {
@@ -3507,6 +3519,8 @@ ${htmlContent}
   showAbout() {
     const dialog = document.getElementById('about-dialog');
     dialog.classList.remove('hidden');
+    const details = document.querySelector('#about-dialog .dependency-details');
+    if (details) details.open = false;
   }
 
   hideAbout() {

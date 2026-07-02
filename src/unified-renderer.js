@@ -207,8 +207,20 @@ function convertAlerts(content) {
   const result = [];
   const alertBlocks = [];
   let i = 0;
+  let inCodeBlock = false;
   while (i < lines.length) {
     const line = lines[i];
+    if (line.trim().startsWith('```')) {
+      inCodeBlock = !inCodeBlock;
+      result.push(line);
+      i++;
+      continue;
+    }
+    if (inCodeBlock) {
+      result.push(line);
+      i++;
+      continue;
+    }
     const alertType = getAlertType(line);
     if (alertType) {
       const contentLines = [];
@@ -462,6 +474,49 @@ function embedAbbrData(html, abbreviations) {
   return html + '<div id="abbr-data" style="display:none" data-abbrs=\'' + json + '\'></div>';
 }
 
+function convertHighlights(html) {
+  let result = '';
+  let i = 0;
+  const len = html.length;
+  const skipTags = ['code', 'pre', 'katex', 'mermaid', 'script', 'style', 'textarea'];
+  const skipStack = [];
+
+  while (i < len) {
+    if (html[i] === '<') {
+      const end = html.indexOf('>', i);
+      if (end === -1) { result += html[i]; i++; continue; }
+      const inner = html.substring(i + 1, end);
+      const tagName = inner.split(/\s/)[0].toLowerCase();
+
+      if (tagName[0] === '/') {
+        const closingTag = tagName.substring(1);
+        if (skipStack[skipStack.length - 1] === closingTag) skipStack.pop();
+      } else if (skipTags.includes(tagName)) {
+        skipStack.push(tagName);
+      }
+
+      result += html.substring(i, end + 1);
+      i = end + 1;
+    } else if (skipStack.length === 0 && html[i] === '=' && html[i + 1] === '=' && (i === 0 || html[i - 1] !== '=')) {
+      const end = html.indexOf('==', i + 2);
+      if (end !== -1 && html[end + 2] !== '=') {
+        const text = html.substring(i + 2, end);
+        if (text.length > 0 && !/[\n\r]/.test(text)) {
+          result += '<mark>' + text + '</mark>';
+          i = end + 2;
+          continue;
+        }
+      }
+      result += html[i];
+      i++;
+    } else {
+      result += html[i];
+      i++;
+    }
+  }
+  return result;
+}
+
 // ---- main pipeline ----
 
 function renderMarkdown(content) {
@@ -509,6 +564,9 @@ function renderMarkdown(content) {
 
   // 8. Sanitize
   html = sanitizeHTML(html);
+
+  // 8.5. Convert ==highlight== to <mark>
+  html = convertHighlights(html);
 
   // 9. Embed abbreviation data
   html = embedAbbrData(html, abbreviations);
