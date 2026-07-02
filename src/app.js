@@ -1593,13 +1593,13 @@ class MarkdownEditor {
     });
     document.getElementById('gitee-badge').addEventListener('click', () => {
       const url = document.getElementById('gitee-badge').dataset.url;
-      if (url) window.__TAURI__.shell.open(url);
+      if (url) this.openExternal(url);
     });
     document.getElementById('qq-group-badge').addEventListener('click', () => {
       const badge = document.getElementById('qq-group-badge');
       const url = badge.dataset.joinUrl;
       if (url && !url.includes('YOUR_JOIN_KEY')) {
-        window.__TAURI__.shell.open(url);
+        this.openExternal(url);
       }
     });
 
@@ -3529,6 +3529,14 @@ ${htmlContent}
 
   hideAbout() {
     document.getElementById('about-dialog').classList.add('hidden');
+  }
+
+  openExternal(url) {
+    if (window.__TAURI__ && window.__TAURI__.shell) {
+      window.__TAURI__.shell.open(url);
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   }
 
   async minimizeWindow() {
