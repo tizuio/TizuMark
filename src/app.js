@@ -192,14 +192,9 @@ const I18N = {
     notSaved: '该文件尚未保存',
     pathCopied: '已复制文件路径',
     copyFailed: '复制失败',
-    guideSwitchZh: '> [切换中文](#switch-lang)',
-    guideSwitchEn: '\n\n> [Switch to English](#switch-lang)',
     openedGuide: '已打开使用说明',
     openedGuideEn: 'Opened User Guide',
     failedGuide: '打开使用说明失败',
-    failedGuideEn: 'Failed to open guide',
-    switchedZh: '已切换到中文',
-    switchedEn: 'Switched to English',
     giteeAction: '访问仓库',
     githubAction: '访问仓库',
     giteeTitle: '访问 Gitee 仓库',
@@ -216,7 +211,6 @@ const I18N = {
     depMermaid: '图表绘制库',
     depHtml2canvas: '截图导出',
     depTauri: '桌面应用框架',
-    switchFailed: '切换语言失败',
     spaces: '空格',
     settingsReset: '已恢复默认设置',
     shortcutsReset: '已恢复默认快捷键',
@@ -410,15 +404,10 @@ const I18N = {
     notSaved: 'File not saved yet',
     pathCopied: 'File path copied',
     copyFailed: 'Copy failed',
-    guideSwitchZh: '\n\n> [切换中文](#switch-lang)',
-    guideSwitchEn: '> [Switch to English](#switch-lang)',
     openedGuide: 'User guide opened',
     openedGuideEn: 'Opened User Guide',
     failedGuide: 'Failed to open user guide',
     failedGuideEn: 'Failed to open guide',
-    switchedZh: '已切换到中文',
-    switchedEn: 'Switched to English',
-    switchFailed: 'Failed to switch language',
     giteeAction: 'Visit Repository',
     githubAction: 'Visit Repository',
     giteeTitle: 'Visit Gitee Repository',
@@ -3747,59 +3736,13 @@ ${htmlContent}
       const resp = await fetch(fileName);
       if (!resp.ok) throw new Error(resp.statusText);
       const content = await resp.text();
-      const langLink = isEn
-        ? this.t('guideSwitchZh')
-        : this.t('guideSwitchEn');
-      const fullContent = content + langLink;
-      this.addTab(tabName, fullContent, null);
-      this.activeTab.savedContent = fullContent;
+      this.addTab(tabName, content, null);
+      this.activeTab.savedContent = content;
       this.activeTab.isGuide = true;
       this.updateTabDisplay();
-      this.setupGuideLangLink();
       this.setStatus(isEn ? this.t('openedGuideEn') : this.t('openedGuide'));
     } catch (error) {
       this.setStatus(isEn ? this.t('failedGuideEn') : `${this.t('failedGuide')}: ${error}`);
-    }
-  }
-
-  setupGuideLangLink() {
-    setTimeout(() => {
-      const link = this.preview.querySelector('a[href="#switch-lang"]');
-      if (link) {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          this.switchGuideLang();
-        });
-      }
-    }, 200);
-  }
-
-  async switchGuideLang() {
-    const currentTab = this.activeTab;
-    const isCurrentlyEn = currentTab.name === 'User Guide.md';
-    const newFileName = isCurrentlyEn ? 'guide.md' : 'guide.en.md';
-    const newTabName = isCurrentlyEn ? '使用说明.md' : 'User Guide.md';
-    const newLang = isCurrentlyEn ? 'zh' : 'en';
-
-    try {
-      const resp = await fetch(newFileName);
-      if (!resp.ok) throw new Error(resp.statusText);
-      const content = await resp.text();
-      const langLink = newLang === 'en'
-        ? this.t('guideSwitchZh')
-        : this.t('guideSwitchEn');
-      const fullContent = content + langLink;
-      currentTab.name = newTabName;
-      currentTab.content = fullContent;
-      currentTab.savedContent = fullContent;
-      currentTab.filePath = null;
-      this.cm.setValue(fullContent);
-      this.updateTabDisplay();
-      this.updatePreview();
-      this.setupGuideLangLink();
-      this.setStatus(newLang === 'en' ? this.t('switchedEn') : this.t('switchedZh'));
-    } catch (error) {
-      this.setStatus(`${this.t('switchFailed')}: ${error}`);
     }
   }
 
