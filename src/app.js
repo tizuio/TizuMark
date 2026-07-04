@@ -2361,15 +2361,28 @@ class MarkdownEditor {
               this.updateTabDisplay();
               return;
             }
-          } else if (window.__TAURI__) {
-            const content = await invoke('read_file', { path: href });
-            const name = href.split(/[/\\]/).pop();
-            this.addTab(name, content, href);
-            this.activeTab.savedContent = content;
-            this.updateTabDisplay();
-            return;
+          } else {
+            try {
+              const resp = await fetch(href);
+              if (resp.ok) {
+                const content = await resp.text();
+                const name = href.split(/[/\\]/).pop();
+                this.addTab(name, content, null);
+                this.activeTab.savedContent = content;
+                this.updateTabDisplay();
+                return;
+              }
+            } catch (_) {}
+            if (window.__TAURI__) {
+              const content = await invoke('read_file', { path: href });
+              const name = href.split(/[/\\]/).pop();
+              this.addTab(name, content, href);
+              this.activeTab.savedContent = content;
+              this.updateTabDisplay();
+              return;
+            }
           }
-        } catch (_) { /* fall through to external open */ }
+        } catch (_) {}
       }
 
       if (href.startsWith('mailto:') || href.startsWith('tel:')) {
