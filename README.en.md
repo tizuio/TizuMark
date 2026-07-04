@@ -80,9 +80,9 @@ The world isn't short of Markdown editors. But most fall into one of two camps: 
 
 <b>Visit the release page to download:</b>
 
-<a href="https://github.com/tizuio/TizuMark/releases"><img src="https://img.shields.io/badge/GitHub-black?style=for-the-badge&logo=github" alt="GitHub"></a>
+<a href="https://github.com/tizuio/TizuMark/releases"><img src="https://img.shields.io/badge/⬇_Download_from_GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="Download from GitHub"></a>
 &nbsp;&nbsp;
-<a href="https://gitee.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/Gitee-C71D23?style=for-the-badge&logo=gitee" alt="Gitee"></a>
+<a href="https://gitee.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/⬇_Download_from_Gitee-C71D23?style=for-the-badge&logo=gitee&logoColor=white" alt="Download from Gitee"></a>
 
 > On first launch, the user guide opens automatically. You can also find it in `Help → User Guide` anytime.
 

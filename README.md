@@ -80,9 +80,9 @@
 
 <b>请打开产品发布页面下载：</b>
 
-<a href="https://github.com/tizuio/TizuMark/releases"><img src="https://img.shields.io/badge/GitHub-black?style=for-the-badge&logo=github" alt="GitHub"></a>
+<a href="https://github.com/tizuio/TizuMark/releases"><img src="https://img.shields.io/badge/⬇_从_GitHub_下载-181717?style=for-the-badge&logo=github&logoColor=white" alt="从 GitHub 下载"></a>
 &nbsp;&nbsp;
-<a href="https://gitee.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/Gitee-C71D23?style=for-the-badge&logo=gitee" alt="Gitee"></a>
+<a href="https://gitee.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/⬇_从_Gitee_下载-C71D23?style=for-the-badge&logo=gitee&logoColor=white" alt="从 Gitee 下载"></a>
 
 > 首次打开会自动展示使用说明，也可在 `帮助 → 使用说明` 中随时查看。
 
