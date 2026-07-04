@@ -205,6 +205,10 @@ const I18N = {
     giteeTitle: '访问 Gitee 仓库',
     githubTitle: '访问 GitHub 仓库',
     qqTitle: '点击加群',
+    donateTitle: '捐赠支持',
+    donateDesc: '如果 TizuMark 帮到了你，欢迎支持一下。',
+    donateWechat: '微信赞赏',
+    donateAlipay: '支付宝赞赏',
     depCodeMirror: '代码编辑器组件',
     depHighlight: '语法高亮库',
     depCmark: 'Markdown 解析器（Rust）',
@@ -420,6 +424,10 @@ const I18N = {
     giteeTitle: 'Visit Gitee Repository',
     githubTitle: 'Visit GitHub Repository',
     qqTitle: 'Join Group',
+    donateTitle: 'Donate',
+    donateDesc: 'If TizuMark has helped you, please consider supporting it.',
+    donateWechat: 'WeChat Pay',
+    donateAlipay: 'Alipay',
     depCodeMirror: 'Code editor component',
     depHighlight: 'Syntax highlighting library',
     depCmark: 'Markdown parser (Rust)',
@@ -4429,7 +4437,7 @@ function initEula() {
   const eulaAccepted = localStorage.getItem('tizumark-eula-accepted');
   if (eulaAccepted === 'true') {
     document.getElementById('eula-dialog').classList.add('hidden');
-    return Promise.resolve();
+    return Promise.resolve(false);
   }
 
   return new Promise((resolve) => {
@@ -4438,7 +4446,6 @@ function initEula() {
 
     overlay.classList.remove('hidden');
 
-    // GPL 链接：在浏览器中打开
     const gplLink = overlay.querySelector('.gpl-link');
     if (gplLink) {
       gplLink.addEventListener('click', (e) => {
@@ -4450,13 +4457,13 @@ function initEula() {
     acceptBtn.addEventListener('click', () => {
       localStorage.setItem('tizumark-eula-accepted', 'true');
       overlay.classList.add('hidden');
-      resolve();
+      resolve(true);
     });
   });
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  await initEula();
+  const isFirstLaunch = await initEula();
 
   window.editor = new MarkdownEditor();
 
@@ -4516,6 +4523,20 @@ window.addEventListener('DOMContentLoaded', async () => {
       window.editor.updateWordCount();
       window.editor.updateOutline();
       window.editor.setStatus(`已打开: ${name}`);
+    } else if (isFirstLaunch) {
+      const resp = await fetch('demo.md');
+      if (resp.ok) {
+        const content = await resp.text();
+        window.editor.activeTab.content = content;
+        window.editor.activeTab.savedContent = content;
+        window.editor.activeTab.name = 'Demo.md';
+        window.editor.cm.setValue(content);
+        window.editor.updateTabDisplay();
+        window.editor.updatePreview();
+        window.editor.updateWordCount();
+        window.editor.updateOutline();
+        window.editor.setStatus('已打开: Demo.md');
+      }
     }
   } catch (e) {
     console.warn('Failed to open file from CLI args:', e);
