@@ -24,6 +24,8 @@
   <img src="https://img.shields.io/badge/License-GPL--3.0-blue" alt="License">
 </p>
 
+<p align="center" style="font-size:1.15em"><b>安装包仅 ~7MB · 内存占用 < 50MB · 双击即开</b></p>
+
 ---
 
 ## 为什么你需要 TizuMark？
@@ -41,7 +43,7 @@
 | ✍️ **写作** | 格式全靠手敲，插入表格图片像做手术 | **语法高亮、右键菜单、自动补全——写得顺畅** |
 | 📐 **公式** | 没装 LaTeX？抱歉，看不了 | **内置 KaTeX，行内、独立、矩阵、方程组全支持** |
 | 📊 **图表** | 切到其他工具画图 → 导出 → 粘贴 → 再来一遍 | **Mermaid 代码即图表，流程图、时序图、甘特图** |
-| 💾 **资源** | 几百 MB 内存，几个 G 安装包 | **Rust 原生引擎，安装包 ~5MB，内存 <50MB** |
+| 💾 **资源** | 几百 MB 内存，几个 G 安装包 | **Rust 原生引擎，安装包 ~7MB，内存 <50MB** |
 | 🎨 **主题** | 万年不变的一个颜色，或者改半天配置文件 | **亮色/暗色/跟随系统，一键切换** |
 | 🖥️ **跨平台** | Windows 能用，换 Mac/Linux 又得找替代品 | **同一套代码，三平台原生体验** |
 
@@ -70,18 +72,19 @@
 
 ### 下载安装
 
-前往 Releases 页面下载安装包，双击即装，即装即用：
-
-- [GitHub Releases](https://github.com/tizuio/TizuMark/releases)
-- [Gitee Releases](https://gitee.com/tizu/tizu-mark/releases)
-
 | 平台 | 状态 |
-|---|---|
-| Windows | ✅ 已发布 |
+|------|------|
+| Windows | ✅ 已支持 |
 | macOS | 🔜 即将推出 |
 | Linux | 🔜 即将推出 |
 
-> 想看 TizuMark 支持的全部语法？打开 Demo 文件体验：[demo.md](demo.md)
+<b>请打开产品发布页面下载：</b>
+
+<a href="https://github.com/tizuio/TizuMark/releases"><img src="https://img.shields.io/badge/GitHub-black?style=for-the-badge&logo=github" alt="GitHub"></a>
+&nbsp;&nbsp;
+<a href="https://gitee.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/Gitee-C71D23?style=for-the-badge&logo=gitee" alt="Gitee"></a>
+
+> 首次打开会自动展示使用说明，也可在 `帮助 → 使用说明` 中随时查看。
 
 ### 快捷键速览
 
@@ -130,7 +133,7 @@ npm run build    # 构建发布版本
         └─────────────┘
 ```
 
-> Tauri v2 使用系统原生 WebView，安装包仅 ~5MB，内存占用不到 Electron 类应用的 1/5。
+> Tauri v2 使用系统原生 WebView，安装包仅 ~7MB，内存占用不到 Electron 类应用的 1/5。
 
 ---
 
@@ -226,13 +229,13 @@ Copyright (c) 2024-2026 TizuMark
 
 <p align="center">
   <b>✨ TizuMark — 轻得不像话，快得刚刚好</b><br><br>
-  <a href="https://github.com/tizuio/TizuMark/releases">⬇ GitHub 下载</a>
-  &nbsp;·&nbsp;
-  <a href="https://gitee.com/tizu/tizu-mark/releases">⬇ Gitee 下载</a>
-  &nbsp;·&nbsp;
-  <b>QQ群 1035294939</b>
-  &nbsp;·&nbsp;
+  <a href="https://github.com/tizuio/TizuMark/releases"><img src="https://img.shields.io/badge/⬇_GitHub_下载-black?style=for-the-badge&logo=github" alt="GitHub Download"></a>
+  &nbsp;
+  <a href="https://gitee.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/⬇_Gitee_下载-C71D23?style=for-the-badge&logo=gitee" alt="Gitee Download"></a>
+  <br><br>
   <a href="https://github.com/tizuio/TizuMark">⭐ GitHub Star</a>
   &nbsp;·&nbsp;
   <a href="https://gitee.com/tizu/tizu-mark">⭐ Gitee Star</a>
+  &nbsp;·&nbsp;
+  <b>QQ群 1035294939</b>
 </p>

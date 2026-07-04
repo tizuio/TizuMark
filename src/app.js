@@ -4537,19 +4537,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       window.editor.updateOutline();
       window.editor.setStatus(`已打开: ${name}`);
     } else if (isFirstLaunch) {
-      const resp = await fetch('demo.md');
-      if (resp.ok) {
-        const content = await resp.text();
-        window.editor.activeTab.content = content;
-        window.editor.activeTab.savedContent = content;
-        window.editor.activeTab.name = 'Demo.md';
-        window.editor.cm.setValue(content);
-        window.editor.updateTabDisplay();
-        window.editor.updatePreview();
-        window.editor.updateWordCount();
-        window.editor.updateOutline();
-        window.editor.setStatus('已打开: Demo.md');
-      }
+      window.editor.openUserGuide();
     }
   } catch (e) {
     console.warn('Failed to open file from CLI args:', e);

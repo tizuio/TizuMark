@@ -24,6 +24,8 @@
   <img src="https://img.shields.io/badge/License-GPL--3.0-blue" alt="License">
 </p>
 
+<p align="center" style="font-size:1.15em"><b>~7MB installer · &lt;50MB RAM · Double-click to launch</b></p>
+
 ---
 
 ## Why TizuMark?
@@ -41,7 +43,7 @@ The world isn't short of Markdown editors. But most fall into one of two camps: 
 | ✍️ **Writing** | Format manually, inserting a table feels like surgery | **Syntax highlighting, right-click menus, auto-complete — just write** |
 | 📐 **Math** | No LaTeX installed? Sorry, you're out of luck | **Built-in KaTeX — inline, display, matrices, equation systems** |
 | 📊 **Diagrams** | Fire up another tool, draw, export, paste, repeat | **Mermaid — flowcharts, sequence diagrams, Gantt charts, in code** |
-| 💾 **Resources** | Hundreds of MB RAM, multi-GB install | **Rust engine. ~5MB installer, <50MB RAM.** |
+| 💾 **Resources** | Hundreds of MB RAM, multi-GB install | **Rust engine. ~7MB installer, <50MB RAM.** |
 | 🎨 **Themes** | One stale color scheme, or config-file archaeology | **Light / Dark / System — one click, no fumbling** |
 | 🖥️ **Platforms** | Different tool for every OS, different quirks | **One codebase. Native on Windows, macOS & Linux.** |
 
@@ -70,20 +72,19 @@ The world isn't short of Markdown editors. But most fall into one of two camps: 
 
 ### Download
 
-Get the latest installer from Releases:
-
-- [GitHub Releases](https://github.com/tizuio/TizuMark/releases)
-- [Gitee Releases](https://gitee.com/tizu/tizu-mark/releases)
-
 | Platform | Status |
-|---|---|
-| Windows | ✅ Released |
+|----------|--------|
+| Windows | ✅ Supported |
 | macOS | 🔜 Coming soon |
 | Linux | 🔜 Coming soon |
 
-Install, launch, done.
+<b>Visit the release page to download:</b>
 
-> Want to see every syntax TizuMark supports? Open the demo: [demo.md](demo.md)
+<a href="https://github.com/tizuio/TizuMark/releases"><img src="https://img.shields.io/badge/GitHub-black?style=for-the-badge&logo=github" alt="GitHub"></a>
+&nbsp;&nbsp;
+<a href="https://gitee.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/Gitee-C71D23?style=for-the-badge&logo=gitee" alt="Gitee"></a>
+
+> On first launch, the user guide opens automatically. You can also find it in `Help → User Guide` anytime.
 
 ### Shortcuts
 
@@ -132,7 +133,7 @@ npm run build    # production build
         └─────────────┘
 ```
 
-> Tauri v2 uses the OS native WebView — ~5MB installer, ~1/5 the footprint of Electron-based alternatives.
+> Tauri v2 uses the OS native WebView — ~7MB installer, ~1/5 the footprint of Electron-based alternatives.
 
 ---
 
@@ -228,13 +229,13 @@ Bundled open-source components are licensed under their respective terms. See `H
 
 <p align="center">
   <b>✨ TizuMark — Stupidly light. Exactly fast enough.</b><br><br>
-  <a href="https://github.com/tizuio/TizuMark/releases">⬇ Download</a>
-  &nbsp;·&nbsp;
-  <a href="https://gitee.com/tizu/tizu-mark/releases">⬇ Gitee Download</a>
-  &nbsp;·&nbsp;
-  <a href="https://github.com/tizuio/TizuMark/issues">🐛 Report Bug</a>
-  &nbsp;·&nbsp;
+  <a href="https://github.com/tizuio/TizuMark/releases"><img src="https://img.shields.io/badge/⬇_GitHub_Download-black?style=for-the-badge&logo=github" alt="GitHub Download"></a>
+  &nbsp;
+  <a href="https://gitee.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/⬇_Gitee_Download-C71D23?style=for-the-badge&logo=gitee" alt="Gitee Download"></a>
+  <br><br>
   <a href="https://github.com/tizuio/TizuMark">⭐ GitHub Star</a>
   &nbsp;·&nbsp;
   <a href="https://gitee.com/tizu/tizu-mark">⭐ Gitee Star</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/tizuio/TizuMark/issues">🐛 Report Bug</a>
 </p>
