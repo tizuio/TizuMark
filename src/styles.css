@@ -1102,6 +1102,7 @@ body.is-resizing .preview-pane {
 .preview-content del { text-decoration: line-through; color: var(--text-secondary); }
 
 .preview-content mark {
+  display: inline-block;
   background-color: var(--color-warning);
   color: var(--text-primary);
   padding: 1px 4px;
