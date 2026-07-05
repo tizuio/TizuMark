@@ -1,6 +1,6 @@
 {
   "name": "tizumark",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A lightweight cross-platform Markdown editor",
   "private": true,
   "scripts": {
