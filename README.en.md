@@ -191,9 +191,7 @@ Click "Restore Default" in `File → Settings` or `File → Keyboard Shortcuts`.
 
 I built TizuMark because I was tired of Markdown tools that were either bloated or broken. So I made my own.
 
-Every feature, every pixel, every bug squashed — carved out on nights and weekends after my day job. No company. No team. No funding. Just someone with a stubborn refusal to ship something mediocre.
-
-If TizuMark has made your life even a little easier — docs look cleaner, writing flows better, that export earned you a compliment — please consider chipping in. **A hundred bucks or a single dollar — it all counts, and every bit of it genuinely makes my day and extends this project's runway.**
+If TizuMark has made your life even a little easier — docs look cleaner, writing flows better, that export earned you a compliment — please consider chipping in. **Your encouragement genuinely makes my day and extends this project's runway.**
 
 Can't donate? No worries. A GitHub star, a shout-out to a friend, a "nice tool" in the group chat — that's already huge.
 
