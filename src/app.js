@@ -2482,11 +2482,26 @@ class MarkdownEditor {
     }
   }
 
-  showSaveDialog(title, message) {
+  showSaveDialog(title, message, saveLabel, discardLabel, cancelLabel) {
     return new Promise((resolve) => {
       const dialog = document.getElementById('save-dialog');
-      document.getElementById('save-dialog-title').textContent = title || this.t('saveChanges');
-      document.getElementById('save-dialog-message').textContent = message || this.t('saveDialogMessage');
+      const titleEl = document.getElementById('save-dialog-title');
+      const msgEl = document.getElementById('save-dialog-message');
+      const saveBtn = document.getElementById('save-dialog-save');
+      const discardBtn = document.getElementById('save-dialog-discard');
+      const cancelBtn = document.getElementById('save-dialog-cancel');
+
+      const origTitle = titleEl.textContent;
+      const origMsg = msgEl.textContent;
+      const origSave = saveBtn.textContent;
+      const origDiscard = discardBtn.textContent;
+      const origCancel = cancelBtn.textContent;
+
+      if (title !== undefined) titleEl.textContent = title;
+      if (message !== undefined) msgEl.textContent = message;
+      if (saveLabel) saveBtn.textContent = saveLabel;
+      if (discardLabel) discardBtn.textContent = discardLabel;
+      if (cancelLabel) cancelBtn.textContent = cancelLabel;
       dialog.classList.remove('hidden');
 
       const onSave = () => {
@@ -2503,14 +2518,19 @@ class MarkdownEditor {
       };
       const cleanup = () => {
         dialog.classList.add('hidden');
-        document.getElementById('save-dialog-save').removeEventListener('click', onSave);
-        document.getElementById('save-dialog-discard').removeEventListener('click', onDiscard);
-        document.getElementById('save-dialog-cancel').removeEventListener('click', onCancel);
+        titleEl.textContent = origTitle;
+        msgEl.textContent = origMsg;
+        saveBtn.textContent = origSave;
+        discardBtn.textContent = origDiscard;
+        cancelBtn.textContent = origCancel;
+        saveBtn.removeEventListener('click', onSave);
+        discardBtn.removeEventListener('click', onDiscard);
+        cancelBtn.removeEventListener('click', onCancel);
       };
 
-      document.getElementById('save-dialog-save').addEventListener('click', onSave);
-      document.getElementById('save-dialog-discard').addEventListener('click', onDiscard);
-      document.getElementById('save-dialog-cancel').addEventListener('click', onCancel);
+      saveBtn.addEventListener('click', onSave);
+      discardBtn.addEventListener('click', onDiscard);
+      cancelBtn.addEventListener('click', onCancel);
     });
   }
 
@@ -4176,37 +4196,24 @@ ${clone.innerHTML}
 
   async closeOtherTabs(keepIndex) {
     if (keepIndex < 0 || keepIndex >= this.tabs.length) return;
-    for (let i = this.tabs.length - 1; i >= 0; i--) {
-      if (i === keepIndex) continue;
-      const tab = this.tabs[i];
-      if (!tab.isModified) continue;
-      this.activeTabIndex = i;
-      this.cm.setValue(tab.content);
-      await new Promise(r => setTimeout(r, 50));
+    const otherModified = this.tabs.filter((t, i) => i !== keepIndex && t.isModified);
+    if (otherModified.length > 0) {
       const result = await this.showSaveDialog(
         this.t('saveChanges'),
-        `${tab.name}${tab.filePath ? ' (' + tab.filePath + ')' : ''} ${this.t('fileModified')}`
+        `有 ${otherModified.length} 个文件未保存，是否保存更改？`,
+        '保存全部', '放弃全部', '取消'
       );
-      if (result === 'cancel') return; // 注意：前面已保存的文件状态不回滚（UX 限制）
+      if (result === 'cancel') return;
       if (result === 'save') {
-        try {
-          if (!tab.filePath) {
-            const path = await dialogSave({
-              filters: [
-                { name: 'Markdown', extensions: ['md'] },
-                { name: this.t('allFiles'), extensions: ['*'] }
-              ]
-            });
-            if (!path) return;
-            tab.filePath = path;
-            tab.name = path.split(/[/\\]/).pop();
-          }
-          await invoke('write_file', { path: tab.filePath, content: tab.content });
-          tab.savedContent = tab.content;
-        } catch (error) {
-          this.setStatus(`${this.t('saveFailed')}: ${error}`);
-          return;
+        const ok = await this.batchSaveTabs(modified);
+        if (!ok) return;
+      } else {
+        for (const tab of modified) {
+          tab.content = tab.savedContent;
         }
+        this.cm.setValue(this.activeTab.content);
+        this.updateTabDisplay();
+        this.updatePreview();
       }
     }
     const tab = this.tabs[keepIndex];
@@ -4219,36 +4226,17 @@ ${clone.innerHTML}
   }
 
   async closeAllTabs() {
-    for (let i = this.tabs.length - 1; i >= 0; i--) {
-      const tab = this.tabs[i];
-      if (!tab.isModified) continue;
-      this.activeTabIndex = i;
-      this.cm.setValue(tab.content);
-      await new Promise(r => setTimeout(r, 50));
+    const modified = this.tabs.filter(t => t.isModified);
+    if (modified.length > 0) {
       const result = await this.showSaveDialog(
         this.t('saveChanges'),
-        `${tab.name}${tab.filePath ? ' (' + tab.filePath + ')' : ''} ${this.t('fileModified')}`
+        `有 ${modified.length} 个文件未保存，是否保存更改？`,
+        '保存全部', '放弃全部', '取消'
       );
       if (result === 'cancel') return;
       if (result === 'save') {
-        try {
-          if (!tab.filePath) {
-            const path = await dialogSave({
-              filters: [
-                { name: 'Markdown', extensions: ['md'] },
-                { name: this.t('allFiles'), extensions: ['*'] }
-              ]
-            });
-            if (!path) return;
-            tab.filePath = path;
-            tab.name = path.split(/[/\\]/).pop();
-          }
-          await invoke('write_file', { path: tab.filePath, content: tab.content });
-          tab.savedContent = tab.content;
-        } catch (error) {
-          this.setStatus(`${this.t('saveFailed')}: ${error}`);
-          return;
-        }
+        const ok = await this.batchSaveTabs(modified);
+        if (!ok) return;
       }
     }
     this.tabs = [new Tab(`${this.t('untitled')}${this.untitledCounter++}`)];
@@ -4273,40 +4261,48 @@ ${clone.innerHTML}
     }
   }
 
+  async batchSaveTabs(tabs) {
+    for (const tab of tabs) {
+      if (!tab.isModified) continue;
+      try {
+        if (!tab.filePath) {
+          const path = await dialogSave({
+            filters: [
+              { name: 'Markdown', extensions: ['md'] },
+              { name: this.t('allFiles'), extensions: ['*'] }
+            ]
+          });
+          if (!path) return false;
+          tab.filePath = path;
+          tab.name = path.split(/[/\\]/).pop();
+        }
+        await invoke('write_file', { path: tab.filePath, content: tab.content });
+        tab.savedContent = tab.content;
+      } catch (error) {
+        this.setStatus(`${this.t('saveFailed')}: ${error}`);
+        return false;
+      }
+    }
+    return true;
+  }
+
   async handleAppClose() {
     try {
       const { getCurrentWindow } = window.__TAURI__.window;
-      for (let i = 0; i < this.tabs.length; i++) {
-        const tab = this.tabs[i];
-        if (!tab.isModified) continue;
-        this.switchTab(i);
-        await new Promise(r => setTimeout(r, 50));
-        const result = await this.showSaveDialog(
-          this.t('saveChanges'),
-          `${tab.name}${tab.filePath ? ' (' + tab.filePath + ')' : ''} ${this.t('fileModified')}`
-        );
-        if (result === 'cancel') return;
-        if (result === 'save') {
-          try {
-            if (!tab.filePath) {
-              const path = await dialogSave({
-                filters: [
-                  { name: 'Markdown', extensions: ['md'] },
-                  { name: this.t('allFiles'), extensions: ['*'] }
-                ]
-              });
-              if (!path) return;
-              tab.filePath = path;
-              tab.name = path.split(/[/\\]/).pop();
-            }
-            await invoke('write_file', { path: tab.filePath, content: tab.content });
-            tab.savedContent = tab.content;
-            this.setStatus(`${this.t('saved')}: ${tab.filePath}`);
-          } catch (error) {
-            this.setStatus(`${this.t('saveFailed')}: ${error}`);
-            return;
-          }
-        }
+      const modified = this.tabs.filter(t => t.isModified);
+      if (modified.length === 0) {
+        await getCurrentWindow().hide();
+        return;
+      }
+      const result = await this.showSaveDialog(
+        this.t('saveChanges'),
+        `有 ${modified.length} 个文件未保存，是否保存更改？`,
+        '保存全部', '放弃全部', '取消'
+      );
+      if (result === 'cancel') return;
+      if (result === 'save') {
+        const ok = await this.batchSaveTabs(modified);
+        if (!ok) return;
       }
       await getCurrentWindow().hide();
     } catch (error) {
