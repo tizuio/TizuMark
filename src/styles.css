@@ -1867,6 +1867,11 @@ body.is-resizing .preview-pane {
   z-index: 1001;
 }
 
+/* EULA 协议对话框必须在加载遮罩（z-index: 10000）之上 */
+#eula-dialog.dialog-overlay {
+  z-index: 20000;
+}
+
 .dialog-overlay.hidden {
   display: none;
 }

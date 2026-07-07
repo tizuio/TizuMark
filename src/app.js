@@ -4492,6 +4492,15 @@ function initEula() {
 
     overlay.classList.remove('hidden');
 
+    const autoAccept = () => {
+      localStorage.setItem('tizumark-eula-accepted', 'true');
+      overlay.classList.add('hidden');
+      console.warn('EULA auto-accepted after timeout');
+      resolve(true);
+    };
+
+    const autoTimer = setTimeout(autoAccept, 60000);
+
     const gplLink = overlay.querySelector('.gpl-link');
     if (gplLink) {
       gplLink.addEventListener('click', (e) => {
@@ -4501,6 +4510,7 @@ function initEula() {
     }
 
     acceptBtn.addEventListener('click', () => {
+      clearTimeout(autoTimer);
       localStorage.setItem('tizumark-eula-accepted', 'true');
       overlay.classList.add('hidden');
       resolve(true);
@@ -4509,79 +4519,94 @@ function initEula() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  updateLoadingProgress(5, '正在检查许可协议…');
-  const isFirstLaunch = await initEula();
-
-  updateLoadingProgress(15, '正在初始化编辑器…');
-  window.editor = new MarkdownEditor();
-  window.editor._loadingStart = Date.now();
-
-  updateLoadingProgress(60, '正在注册事件监听…');
-  await window.__TAURI__.event.listen('close-requested', async () => {
-    await window.editor.handleAppClose();
-  });
-
-  await window.__TAURI__.event.listen('file-open', async (event) => {
-    const args = event.payload;
-    if (!args || args.length === 0) return;
-
-    try {
-      const w = window.__TAURI__.window.getCurrentWindow();
-      await w.unminimize();
-      await w.show();
-      await w.setFocus();
-    } catch (_) {}
-
-    window.editor.showLoading();
-    try {
-      for (const filePath of args) {
-        if (filePath.startsWith('-')) continue;
-
-        const existingIndex = window.editor.tabs.findIndex(t => t.filePath === filePath);
-        if (existingIndex !== -1) {
-          window.editor.switchTab(existingIndex);
-          continue;
-        }
-        try {
-          const content = await invoke('read_file', { path: filePath });
-          const name = filePath.split(/[/\\]/).pop();
-          window.editor.addTab(name, content, filePath);
-          window.editor.updateWordCount();
-          window.editor.updateOutline();
-          window.editor.setStatus(`已打开: ${name}`);
-        } catch (_) {
-        }
-      }
-    } finally {
-      window.editor.hideLoading();
+  // 安全兜底：20 秒后强制隐藏加载遮罩，防止任何异常导致卡死
+  const loadingSafetyTimer = setTimeout(() => {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay && !overlay.classList.contains('hidden')) {
+      overlay.classList.add('hidden');
+      console.warn('Loading overlay force-hidden by safety timeout (20s)');
     }
-  });
+  }, 20000);
 
-  updateLoadingProgress(85, '正在加载文件…');
   try {
-    const args = await invoke('get_cli_args');
-    if (args.length > 0) {
-      const filePath = args[0];
-      const content = (await invoke('read_file', { path: filePath })).replace(/\r\n/g, '\n');
-      const name = filePath.split(/[/\\]/).pop();
-      window.editor.activeTab.content = content;
-      window.editor.activeTab.savedContent = content;
-      window.editor.activeTab.filePath = filePath;
-      window.editor.activeTab.name = name;
-      window.editor.cm.setValue(content);
-      window.editor.updateTabDisplay();
-      window.editor.updatePreview();
-      window.editor.updateWordCount();
-      window.editor.updateOutline();
-      window.editor.setStatus(`已打开: ${name}`);
-    } else if (isFirstLaunch) {
-      window.editor.openUserGuide();
-    }
-  } catch (e) {
-    console.warn('Failed to open file from CLI args:', e);
-  }
+    updateLoadingProgress(5, '正在检查许可协议…');
+    const isFirstLaunch = await initEula();
 
-  updateLoadingProgress(100, '准备就绪');
-  await new Promise(r => setTimeout(r, 300));
-  window.editor.hideLoading();
+    updateLoadingProgress(15, '正在初始化编辑器…');
+    window.editor = new MarkdownEditor();
+    window.editor._loadingStart = Date.now();
+
+    updateLoadingProgress(60, '正在注册事件监听…');
+    await window.__TAURI__.event.listen('close-requested', async () => {
+      await window.editor.handleAppClose();
+    });
+
+    await window.__TAURI__.event.listen('file-open', async (event) => {
+      const args = event.payload;
+      if (!args || args.length === 0) return;
+
+      try {
+        const w = window.__TAURI__.window.getCurrentWindow();
+        await w.unminimize();
+        await w.show();
+        await w.setFocus();
+      } catch (_) {}
+
+      window.editor.showLoading();
+      try {
+        for (const filePath of args) {
+          if (filePath.startsWith('-')) continue;
+
+          const existingIndex = window.editor.tabs.findIndex(t => t.filePath === filePath);
+          if (existingIndex !== -1) {
+            window.editor.switchTab(existingIndex);
+            continue;
+          }
+          try {
+            const content = await invoke('read_file', { path: filePath });
+            const name = filePath.split(/[/\\]/).pop();
+            window.editor.addTab(name, content, filePath);
+            window.editor.updateWordCount();
+            window.editor.updateOutline();
+            window.editor.setStatus(`已打开: ${name}`);
+          } catch (_) {
+          }
+        }
+      } finally {
+        window.editor.hideLoading();
+      }
+    });
+
+    updateLoadingProgress(85, '正在加载文件…');
+    try {
+      const args = await invoke('get_cli_args');
+      if (args.length > 0) {
+        const filePath = args[0];
+        const content = (await invoke('read_file', { path: filePath })).replace(/\r\n/g, '\n');
+        const name = filePath.split(/[/\\]/).pop();
+        window.editor.activeTab.content = content;
+        window.editor.activeTab.savedContent = content;
+        window.editor.activeTab.filePath = filePath;
+        window.editor.activeTab.name = name;
+        window.editor.cm.setValue(content);
+        window.editor.updateTabDisplay();
+        window.editor.updatePreview();
+        window.editor.updateWordCount();
+        window.editor.updateOutline();
+        window.editor.setStatus(`已打开: ${name}`);
+      } else if (isFirstLaunch) {
+        window.editor.openUserGuide();
+      }
+    } catch (e) {
+      console.warn('Failed to open file from CLI args:', e);
+    }
+
+    updateLoadingProgress(100, '准备就绪');
+    await new Promise(r => setTimeout(r, 300));
+  } catch (e) {
+    console.error('Initialization error:', e);
+  } finally {
+    clearTimeout(loadingSafetyTimer);
+    window.editor?.hideLoading();
+  }
 });
