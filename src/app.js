@@ -2547,7 +2547,6 @@ class MarkdownEditor {
   }
 
   async openFile() {
-    this.showLoading();
     try {
       const selected = await dialogOpen({
         multiple: true,
@@ -2558,6 +2557,7 @@ class MarkdownEditor {
       });
 
       if (!selected) return;
+      this.showLoading();
       const files = Array.isArray(selected) ? selected : [selected];
       let openedCount = 0;
 
