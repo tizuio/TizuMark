@@ -1873,6 +1873,11 @@ class MarkdownEditor {
     document.addEventListener('keydown', async (e) => {
       if (this.handleShortcutRecording(e)) return;
 
+      if (/^F(1[0-2]|[1-9])$/.test(e.key)) {
+        e.preventDefault();
+        return;
+      }
+
       if (e.key === 'Escape') {
         const aboutDialog = document.getElementById('about-dialog');
         if (!aboutDialog.classList.contains('hidden')) {
@@ -1887,6 +1892,11 @@ class MarkdownEditor {
       }
       
       const ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && ['r', 'u'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+        return;
+      }
+
       if (ctrl) {
         const key = e.key.toLowerCase();
         if (key === 'w') {
