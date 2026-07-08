@@ -2697,7 +2697,7 @@ body.is-resizing .preview-pane {
 }
 .form-hint {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
   font-size: 12px !important;
   color: var(--text-secondary);
@@ -2707,11 +2707,18 @@ body.is-resizing .preview-pane {
   background: var(--bg-secondary);
   border-radius: 6px;
 }
+.dialog-content > .form-hint:first-child {
+  margin-top: -16px;
+  margin-bottom: 12px;
+}
+#setting-image-store-hint {
+  align-items: flex-start;
+}
 
 .hint-icon {
   flex-shrink: 0;
-  margin-top: 2px;
   color: var(--accent-color);
+  opacity: 0.8;
 }
 
 /* ====== Base64 line collapse in editor ====== */
