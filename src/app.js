@@ -247,6 +247,7 @@ const I18N = {
     imageUrlLabel: '图片地址',
     imageAlt: '替代文本',
     imageAltHint: '当图片无法显示时展示此文本，屏幕阅读器也用它描述图片内容。',
+    imageStoreModeHint: '图片存储支持复制到 assets/ 和 Base64 嵌入两种方式，可在设置中更改。',
     imageStoreMode: '存储方式',
     imageStoreAssets: '复制到 assets/（推荐）',
     imageStoreBase64: 'Base64 嵌入',
@@ -488,6 +489,7 @@ const I18N = {
     imageUrlLabel: 'Image URL',
     imageAlt: 'Alt Text',
     imageAltHint: 'Shown when the image cannot be displayed; also used by screen readers to describe the image.',
+    imageStoreModeHint: 'Supports "Copy to assets/" and "Embed as Base64". Change in Settings.',
     imageStoreMode: 'Storage',
     imageStoreAssets: 'Copy to assets/ (Recommended)',
     imageStoreBase64: 'Embed as Base64',
@@ -2701,6 +2703,7 @@ class MarkdownEditor {
       } catch (_) {}
     });
     document.querySelector('#insert-image-alt-hint .hint-text').textContent = this.t('imageAltHint');
+    document.querySelector('#insert-image-store-hint .hint-text').textContent = this.t('imageStoreModeHint');
     document.getElementById('insert-image-ok').addEventListener('click', () => this.handleInsertImageOk());
     document.getElementById('insert-image-cancel').addEventListener('click', () => this.hideInsertImageDialog());
     document.getElementById('insert-image-close').addEventListener('click', () => this.hideInsertImageDialog());
@@ -2762,6 +2765,7 @@ class MarkdownEditor {
     document.getElementById('insert-image-url').value = '';
     document.getElementById('insert-image-alt').value = '';
     document.querySelector('#insert-image-alt-hint .hint-text').textContent = this.t('imageAltHint');
+    document.querySelector('#insert-image-store-hint .hint-text').textContent = this.t('imageStoreModeHint');
     document.getElementById('insert-image-dialog').classList.remove('hidden');
     setTimeout(() => {
       const browseBtn = document.getElementById('insert-image-browse');
