@@ -694,7 +694,7 @@ class MarkdownEditor {
     document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(3) label').textContent = t('scrollSync');
     setText('setting-image-store-assets', t('imageSettingAssets'));
     setText('setting-image-store-base64', t('imageSettingBase64'));
-    setText('setting-image-store-hint', t('imageSettingHint'));
+    document.querySelector('#setting-image-store-hint .hint-text').textContent = t('imageSettingHint');
     document.getElementById('settings-reset').textContent = t('resetDefault');
     document.getElementById('settings-cancel-btn').textContent = t('cancel');
     document.getElementById('settings-save-btn').textContent = t('save');
@@ -2858,7 +2858,7 @@ class MarkdownEditor {
     const mode = this.settings.imageInsertMode || 'assets';
     if (mode === 'assets') {
       if (!this.activeTab || !this.activeTab.filePath) {
-        this.setStatus(this.t('needSaveFirst'));
+        this.showToast(this.t('needSaveFirst'));
         return;
       }
       const tab = this.activeTab;
