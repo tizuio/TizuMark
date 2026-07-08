@@ -2874,6 +2874,8 @@ class MarkdownEditor {
       this.setStatus(this.t('imagePasted'));
     }
   }
+
+  newFile() {
     this.setViewMode('edit');
     this.addTab(this.t('untitled'), '', null);
     this.setStatus(this.t('newFileCreated'));
