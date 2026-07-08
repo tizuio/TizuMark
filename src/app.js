@@ -246,6 +246,7 @@ const I18N = {
     imageBrowse: '浏览...',
     imageUrlLabel: '图片地址',
     imageAlt: '替代文本',
+    imageAltHint: '当图片无法显示时展示此文本，屏幕阅读器也用它描述图片内容。',
     imageStoreMode: '存储方式',
     imageStoreAssets: '复制到 assets/（推荐）',
     imageStoreBase64: 'Base64 嵌入',
@@ -255,7 +256,10 @@ const I18N = {
     imageSettingAssets: '复制到 assets/（推荐）',
     imageSettingBase64: 'Base64 嵌入',
     imageSettingHint: '复制到 assets/：图片保存为独立文件，md 文件轻量，便于版本管理。Base64 嵌入：图片编码到 md 文件内，单文件即可分享，但文件体积显著增大（约原图1.4倍），修改图片需重新编码。',
-    needSaveFirst: '请先保存文件后再粘贴图片',
+    imageFileRequired: '请选择要插入的本地图片',
+    imageUrlRequired: '请输入网络图片地址',
+    needSaveFirst: '请先保存 markdown 文件后再插入图片',
+    imageFallbackBase64: '文件未保存，已自动切换为 Base64 嵌入',
     imagePasted: '图片已粘贴',
     imagePasteFailed: '图片粘贴失败',
     linkAutoDetected: '（已从剪贴板检测到链接）',
@@ -483,6 +487,7 @@ const I18N = {
     imageBrowse: 'Browse...',
     imageUrlLabel: 'Image URL',
     imageAlt: 'Alt Text',
+    imageAltHint: 'Shown when the image cannot be displayed; also used by screen readers to describe the image.',
     imageStoreMode: 'Storage',
     imageStoreAssets: 'Copy to assets/ (Recommended)',
     imageStoreBase64: 'Embed as Base64',
@@ -492,7 +497,10 @@ const I18N = {
     imageSettingAssets: 'Copy to assets/ (Recommended)',
     imageSettingBase64: 'Embed as Base64',
     imageSettingHint: 'Copy to assets/: Images are saved as separate files, keeping the markdown file lightweight and suitable for version control. Embed as Base64: Encodes images into the markdown file for self-contained sharing, but file size increases significantly (~1.4x original). Requires re-encoding to modify.',
-    needSaveFirst: 'Save the file first to paste images',
+    imageFileRequired: 'Please select a local image file',
+    imageUrlRequired: 'Please enter an image URL',
+    needSaveFirst: 'Save the markdown file first before inserting images',
+    imageFallbackBase64: 'File not saved, auto-switched to Base64 embed',
     imagePasted: 'Image pasted',
     imagePasteFailed: 'Image paste failed',
     linkAutoDetected: '(Link detected from clipboard)',
@@ -682,13 +690,9 @@ class MarkdownEditor {
     document.querySelector('#settings-dialog .settings-section:nth-child(4) h3').textContent = t('behavior');
     document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(2) label').textContent = t('defaultView');
     document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(3) label').textContent = t('scrollSync');
-    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(4) label').textContent = t('imageSettingLabel');
-    document.getElementById('image-insert-mode-hint').textContent = t('imageSettingHint');
-    const imageModeSelect = document.getElementById('set-image-insert-mode');
-    if (imageModeSelect) {
-      imageModeSelect.options[0].text = t('imageSettingAssets');
-      imageModeSelect.options[1].text = t('imageSettingBase64');
-    }
+    setText('setting-image-store-assets', t('imageSettingAssets'));
+    setText('setting-image-store-base64', t('imageSettingBase64'));
+    setText('setting-image-store-hint', t('imageSettingHint'));
     document.getElementById('settings-reset').textContent = t('resetDefault');
     document.getElementById('settings-cancel-btn').textContent = t('cancel');
     document.getElementById('settings-save-btn').textContent = t('save');
@@ -1030,7 +1034,8 @@ class MarkdownEditor {
     document.getElementById('set-default-view').value = s.defaultView;
     document.getElementById('set-scroll-sync').checked = s.scrollSync;
     document.getElementById('set-language').value = s.language || 'zh';
-    document.getElementById('set-image-insert-mode').value = s.imageInsertMode || 'assets';
+    const modeRadio = document.querySelector(`#settings-image-store-mode input[value="${s.imageInsertMode || 'assets'}"]`);
+    if (modeRadio) modeRadio.checked = true;
 
     document.getElementById('set-font-size').addEventListener('change', (e) => {
       this.settings.fontSize = Number(e.target.value);
@@ -1104,9 +1109,11 @@ class MarkdownEditor {
       this.saveSettings();
       this.applyLanguage();
     });
-    document.getElementById('set-image-insert-mode').addEventListener('change', (e) => {
-      this.settings.imageInsertMode = e.target.value;
-      this.saveSettings();
+    document.querySelectorAll('#settings-image-store-mode input[name="settings-image-store"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        this.settings.imageInsertMode = e.target.value;
+        this.saveSettings();
+      });
     });
 
     this.applySettings();
@@ -1372,7 +1379,8 @@ class MarkdownEditor {
     document.getElementById('set-default-view').value = defaults.defaultView;
     document.getElementById('set-scroll-sync').checked = defaults.scrollSync;
     document.getElementById('set-language').value = defaults.language;
-    document.getElementById('set-image-insert-mode').value = defaults.imageInsertMode;
+    const defaultRadio = document.querySelector(`#settings-image-store-mode input[value="${defaults.imageInsertMode}"]`);
+    if (defaultRadio) defaultRadio.checked = true;
 
     await this.applySettings();
     this.setStatus(this.t('settingsReset'));
@@ -1616,6 +1624,14 @@ class MarkdownEditor {
       this.debounceUpdatePreview();
       this.updateWordCount();
       this.updateOutline();
+    });
+
+    this.cm.on('renderLine', (cm, line, el) => {
+      if (line.text.length > 500 && line.text.includes('data:image/')) {
+        el.classList.add('cm-base64-line');
+      } else {
+        el.classList.remove('cm-base64-line');
+      }
     });
 
     this.cm.on('cursorActivity', () => {
@@ -2668,7 +2684,7 @@ class MarkdownEditor {
     sourceSelect.addEventListener('change', () => {
       const isLocal = sourceSelect.value === 'local';
       document.getElementById('insert-image-local-field').classList.toggle('hidden', !isLocal);
-      document.getElementById('insert-image-store-field').classList.toggle('hidden', !isLocal);
+      document.getElementById('insert-image-alt-field').classList.toggle('hidden', !isLocal);
       document.getElementById('insert-image-web-field').classList.toggle('hidden', isLocal);
     });
     document.getElementById('insert-image-browse').addEventListener('click', async () => {
@@ -2684,15 +2700,7 @@ class MarkdownEditor {
         }
       } catch (_) {}
     });
-    // Store mode radio → update hint text
-    document.querySelectorAll('#insert-image-store-mode input[name="image-store"]').forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        const hint = document.getElementById('insert-image-store-hint');
-        hint.textContent = e.target.value === 'assets'
-          ? this.t('imageStoreAssetsHint')
-          : this.t('imageStoreBase64Hint');
-      });
-    });
+    document.querySelector('#insert-image-alt-hint .hint-text').textContent = this.t('imageAltHint');
     document.getElementById('insert-image-ok').addEventListener('click', () => this.handleInsertImageOk());
     document.getElementById('insert-image-cancel').addEventListener('click', () => this.hideInsertImageDialog());
     document.getElementById('insert-image-close').addEventListener('click', () => this.hideInsertImageDialog());
@@ -2748,17 +2756,12 @@ class MarkdownEditor {
   showInsertImageDialog() {
     document.getElementById('insert-image-source').value = 'local';
     document.getElementById('insert-image-local-field').classList.remove('hidden');
-    document.getElementById('insert-image-store-field').classList.remove('hidden');
+    document.getElementById('insert-image-alt-field').classList.remove('hidden');
     document.getElementById('insert-image-web-field').classList.add('hidden');
     document.getElementById('insert-image-file').value = '';
     document.getElementById('insert-image-url').value = '';
     document.getElementById('insert-image-alt').value = '';
-    // Pre-select store mode from settings
-    const mode = this.settings.imageInsertMode || 'assets';
-    const radio = document.querySelector(`#insert-image-store-mode input[value="${mode}"]`);
-    if (radio) radio.checked = true;
-    const hint = document.getElementById('insert-image-store-hint');
-    hint.textContent = mode === 'assets' ? this.t('imageStoreAssetsHint') : this.t('imageStoreBase64Hint');
+    document.querySelector('#insert-image-alt-hint .hint-text').textContent = this.t('imageAltHint');
     document.getElementById('insert-image-dialog').classList.remove('hidden');
     setTimeout(() => {
       const browseBtn = document.getElementById('insert-image-browse');
@@ -2771,23 +2774,33 @@ class MarkdownEditor {
   }
 
   async handleInsertImageOk() {
-    const source = document.getElementById('insert-image-source').value;
     const alt = document.getElementById('insert-image-alt').value.trim();
-    const isLocal = source === 'local';
+    const localField = document.getElementById('insert-image-local-field');
+    const isLocal = !localField.classList.contains('hidden');
 
     if (isLocal) {
       const filePath = document.getElementById('insert-image-file').value.trim();
-      if (!filePath) return;
-      const storeMode = document.querySelector('#insert-image-store-mode input[name="image-store"]:checked')?.value || 'assets';
+      if (!filePath) {
+        this.showToast(this.t('imageFileRequired'));
+        return;
+      }
+      const storeMode = this.settings.imageInsertMode || 'assets';
 
       if (storeMode === 'assets') {
+        if (!this.activeTab || !this.activeTab.filePath) {
+          this.showToast(this.t('needSaveFirst'));
+          return;
+        }
         await this.insertLocalImageAssets(filePath, alt);
       } else {
         await this.insertLocalImageBase64(filePath, alt);
       }
     } else {
       const url = document.getElementById('insert-image-url').value.trim();
-      if (!url) return;
+      if (!url) {
+        this.showToast(this.t('imageUrlRequired'));
+        return;
+      }
       this.insertAtCursor(`![${alt || 'image'}](${url})`, alt.length + 4);
     }
     this.hideInsertImageDialog();
@@ -2840,11 +2853,11 @@ class MarkdownEditor {
   async handlePasteImage(file) {
     const mode = this.settings.imageInsertMode || 'assets';
     if (mode === 'assets') {
-      const tab = this.activeTab;
-      if (!tab.filePath) {
+      if (!this.activeTab || !this.activeTab.filePath) {
         this.setStatus(this.t('needSaveFirst'));
         return;
       }
+      const tab = this.activeTab;
       const sep = tab.filePath.includes('/') ? '/' : '\\';
       const dir = tab.filePath.substring(0, tab.filePath.lastIndexOf(sep));
       const assetsDir = dir + sep + 'assets';
@@ -2860,7 +2873,6 @@ class MarkdownEditor {
       this.insertAtCursor(`![image](${relativePath})`, 2);
       this.setStatus(this.t('imagePasted'));
     } else {
-      // base64
       const buf = await file.arrayBuffer();
       const bytes = new Uint8Array(buf);
       let binary = '';
@@ -3967,6 +3979,24 @@ ${clone.innerHTML}
       pre.style.position = 'relative';
       pre.appendChild(btn);
     });
+  }
+
+  showToast(text, type = 'danger') {
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = '<span class="toast-icon">'
+      + (type === 'danger'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>')
+      + '</span><span class="toast-text">' + text + '</span>';
+    container.appendChild(el);
+    setTimeout(() => {
+      el.style.transition = 'opacity 0.3s, transform 0.3s';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(-20px)';
+      setTimeout(() => el.remove(), 300);
+    }, 3000);
   }
 
   setStatus(text) {

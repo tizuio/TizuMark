@@ -15,6 +15,7 @@
 <body>
   <div id="app">
     <div id="drag-overlay" class="hidden"></div>
+    <div id="toast-container"></div>
     <header class="header">
       <div class="toolbar">
         <div class="toolbar-left">
@@ -596,27 +597,23 @@
           </select>
         </div>
         <div class="form-field" id="insert-image-local-field">
-          <label id="insert-image-file-label">文件</label>
+          <label id="insert-image-file-label" class="required">文件</label>
           <div class="file-input-row">
             <input id="insert-image-file" type="text" readonly />
             <button id="insert-image-browse" class="dialog-btn">浏览...</button>
           </div>
         </div>
         <div class="form-field hidden" id="insert-image-web-field">
-          <label id="insert-image-url-label">图片地址</label>
+          <label id="insert-image-url-label" class="required">图片地址</label>
           <input id="insert-image-url" type="text" placeholder="https://..." />
         </div>
-        <div class="form-field">
+        <div class="form-field" id="insert-image-alt-field">
           <label id="insert-image-alt-label">替代文本</label>
           <input id="insert-image-alt" type="text" />
-        </div>
-        <div class="form-field" id="insert-image-store-field">
-          <label id="insert-image-store-label">存储方式</label>
-          <div class="radio-group" id="insert-image-store-mode">
-            <label><input type="radio" name="image-store" value="assets" checked /> <span id="insert-image-store-assets">复制到 assets/（推荐）</span></label>
-            <label><input type="radio" name="image-store" value="base64" /> <span id="insert-image-store-base64">Base64 嵌入</span></label>
-          </div>
-          <p class="form-hint" id="insert-image-store-hint">复制到 assets/：图片保存为独立文件，md 文件轻量，便于版本管理。</p>
+          <p class="form-hint" id="insert-image-alt-hint" data-i18n="imageAltHint">
+            <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span class="hint-text"></span>
+          </p>
         </div>
       </div>
       <div class="dialog-footer">
@@ -760,18 +757,13 @@
             <label>滚动同步</label>
             <label class="toggle"><input type="checkbox" id="set-scroll-sync" checked><span class="toggle-slider"></span></label>
           </div>
-          <div class="settings-row">
+          <div class="settings-row settings-row-stacked">
             <label>图片存储方式</label>
-            <div style="display:flex;align-items:center;gap:4px">
-              <select id="set-image-insert-mode">
-                <option value="assets" selected>复制到 assets/（推荐）</option>
-                <option value="base64">Base64 嵌入</option>
-              </select>
-              <span class="settings-hint-wrap">
-                <span class="settings-hint-icon">?</span>
-                <span class="settings-hint-tooltip" id="image-insert-mode-hint">复制到 assets/：图片保存为独立文件，md 文件轻量，便于版本管理。Base64 嵌入：图片编码到 md 文件内，单文件即可分享，但文件体积显著增大（约原图1.4倍），修改图片需重新编码。</span>
-              </span>
+            <div class="radio-group" id="settings-image-store-mode">
+              <label><input type="radio" name="settings-image-store" value="assets" checked /> <span id="setting-image-store-assets">复制到 assets/（推荐）</span></label>
+              <label><input type="radio" name="settings-image-store" value="base64" /> <span id="setting-image-store-base64">Base64 嵌入</span></label>
             </div>
+            <p class="form-hint" id="setting-image-store-hint">复制到 assets/：图片保存为独立文件，md 文件轻量，便于版本管理。Base64 嵌入：图片编码到 md 文件内，单文件即可分享，但文件体积显著增大（约原图1.4倍），修改图片需重新编码。</p>
           </div>
         </div>
       </div>
