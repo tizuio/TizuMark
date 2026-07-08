@@ -556,6 +556,76 @@
     </div>
   </div>
 
+  <!-- 插入链接对话框 -->
+  <div id="insert-link-dialog" class="dialog-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="insert-link-title">
+    <div class="dialog insert-link-dialog">
+      <div class="dialog-header">
+        <h2 id="insert-link-title">插入链接</h2>
+        <button class="dialog-close" id="insert-link-close" aria-label="关闭">&times;</button>
+      </div>
+      <div class="dialog-content">
+        <div class="form-field">
+          <label id="insert-link-text-label">显示文本</label>
+          <input id="insert-link-text" type="text" />
+        </div>
+        <div class="form-field">
+          <label id="insert-link-url-label">链接地址</label>
+          <input id="insert-link-url" type="text" placeholder="https://..." />
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button id="insert-link-cancel" class="dialog-btn">取消</button>
+        <button id="insert-link-ok" class="dialog-btn dialog-btn-primary">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 插入图片对话框 -->
+  <div id="insert-image-dialog" class="dialog-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="insert-image-title">
+    <div class="dialog insert-image-dialog">
+      <div class="dialog-header">
+        <h2 id="insert-image-title">插入图片</h2>
+        <button class="dialog-close" id="insert-image-close" aria-label="关闭">&times;</button>
+      </div>
+      <div class="dialog-content">
+        <div class="form-field">
+          <label id="insert-image-source-label">图片来源</label>
+          <select id="insert-image-source">
+            <option value="local" id="insert-image-source-local">本地图片</option>
+            <option value="web" id="insert-image-source-web">网络图片</option>
+          </select>
+        </div>
+        <div class="form-field" id="insert-image-local-field">
+          <label id="insert-image-file-label">文件</label>
+          <div class="file-input-row">
+            <input id="insert-image-file" type="text" readonly />
+            <button id="insert-image-browse" class="dialog-btn">浏览...</button>
+          </div>
+        </div>
+        <div class="form-field hidden" id="insert-image-web-field">
+          <label id="insert-image-url-label">图片地址</label>
+          <input id="insert-image-url" type="text" placeholder="https://..." />
+        </div>
+        <div class="form-field">
+          <label id="insert-image-alt-label">替代文本</label>
+          <input id="insert-image-alt" type="text" />
+        </div>
+        <div class="form-field" id="insert-image-store-field">
+          <label id="insert-image-store-label">存储方式</label>
+          <div class="radio-group" id="insert-image-store-mode">
+            <label><input type="radio" name="image-store" value="assets" checked /> <span id="insert-image-store-assets">复制到 assets/（推荐）</span></label>
+            <label><input type="radio" name="image-store" value="base64" /> <span id="insert-image-store-base64">Base64 嵌入</span></label>
+          </div>
+          <p class="form-hint" id="insert-image-store-hint">复制到 assets/：图片保存为独立文件，md 文件轻量，便于版本管理。</p>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button id="insert-image-cancel" class="dialog-btn">取消</button>
+        <button id="insert-image-ok" class="dialog-btn dialog-btn-primary">确定</button>
+      </div>
+    </div>
+  </div>
+
   <div id="shortcuts-dialog" class="dialog-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
     <div class="dialog shortcuts-dialog">
       <div class="dialog-header">
@@ -689,6 +759,19 @@
           <div class="settings-row">
             <label>滚动同步</label>
             <label class="toggle"><input type="checkbox" id="set-scroll-sync" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <label>图片存储方式</label>
+            <div style="display:flex;align-items:center;gap:4px">
+              <select id="set-image-insert-mode">
+                <option value="assets" selected>复制到 assets/（推荐）</option>
+                <option value="base64">Base64 嵌入</option>
+              </select>
+              <span class="settings-hint-wrap">
+                <span class="settings-hint-icon">?</span>
+                <span class="settings-hint-tooltip" id="image-insert-mode-hint">复制到 assets/：图片保存为独立文件，md 文件轻量，便于版本管理。Base64 嵌入：图片编码到 md 文件内，单文件即可分享，但文件体积显著增大（约原图1.4倍），修改图片需重新编码。</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>

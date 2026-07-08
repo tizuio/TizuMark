@@ -235,6 +235,30 @@ const I18N = {
     backToTop: '回到顶部',
     loading: '加载中...',
     cursorPos: '行 {line}, 列 {col}',
+    insertLinkTitle: '插入链接',
+    linkText: '显示文本',
+    linkUrl: '链接地址',
+    insertImageTitle: '插入图片',
+    imageSource: '图片来源',
+    imageLocal: '本地图片',
+    imageWeb: '网络图片',
+    imageFile: '文件',
+    imageBrowse: '浏览...',
+    imageUrlLabel: '图片地址',
+    imageAlt: '替代文本',
+    imageStoreMode: '存储方式',
+    imageStoreAssets: '复制到 assets/（推荐）',
+    imageStoreBase64: 'Base64 嵌入',
+    imageStoreAssetsHint: '复制到 assets/：图片保存为独立文件，md 文件轻量，便于版本管理。',
+    imageStoreBase64Hint: 'Base64 嵌入：图片编码到 md 文件内，单文件即可分享，但文件体积显著增大（约原图1.4倍），修改图片需重新编码。',
+    imageSettingLabel: '图片存储方式',
+    imageSettingAssets: '复制到 assets/（推荐）',
+    imageSettingBase64: 'Base64 嵌入',
+    imageSettingHint: '复制到 assets/：图片保存为独立文件，md 文件轻量，便于版本管理。Base64 嵌入：图片编码到 md 文件内，单文件即可分享，但文件体积显著增大（约原图1.4倍），修改图片需重新编码。',
+    needSaveFirst: '请先保存文件后再粘贴图片',
+    imagePasted: '图片已粘贴',
+    imagePasteFailed: '图片粘贴失败',
+    linkAutoDetected: '（已从剪贴板检测到链接）',
   },
   en: {
     file: 'File',
@@ -448,6 +472,30 @@ const I18N = {
     backToTop: 'Back to Top',
     loading: 'Loading...',
     cursorPos: 'Line {line}, Col {col}',
+    insertLinkTitle: 'Insert Link',
+    linkText: 'Text',
+    linkUrl: 'URL',
+    insertImageTitle: 'Insert Image',
+    imageSource: 'Source',
+    imageLocal: 'Local Image',
+    imageWeb: 'Web Image',
+    imageFile: 'File',
+    imageBrowse: 'Browse...',
+    imageUrlLabel: 'Image URL',
+    imageAlt: 'Alt Text',
+    imageStoreMode: 'Storage',
+    imageStoreAssets: 'Copy to assets/ (Recommended)',
+    imageStoreBase64: 'Embed as Base64',
+    imageStoreAssetsHint: 'Copy to assets/: Images saved as separate files, keeps markdown lightweight, suitable for version control.',
+    imageStoreBase64Hint: 'Embed as Base64: Encodes image into the markdown file for self-contained sharing, but significantly increases file size (~1.4x original). Requires re-encoding to modify.',
+    imageSettingLabel: 'Image Storage',
+    imageSettingAssets: 'Copy to assets/ (Recommended)',
+    imageSettingBase64: 'Embed as Base64',
+    imageSettingHint: 'Copy to assets/: Images are saved as separate files, keeping the markdown file lightweight and suitable for version control. Embed as Base64: Encodes images into the markdown file for self-contained sharing, but file size increases significantly (~1.4x original). Requires re-encoding to modify.',
+    needSaveFirst: 'Save the file first to paste images',
+    imagePasted: 'Image pasted',
+    imagePasteFailed: 'Image paste failed',
+    linkAutoDetected: '(Link detected from clipboard)',
   }
 };
 
@@ -493,6 +541,8 @@ class MarkdownEditor {
     this.updateOutlineCheck();
     this.initContextMenu();
     this.initInsertMenu();
+    this.initInsertDialogs();
+    this.initImagePaste();
     this.initTabScroll();
     this.loadTheme();
     this.applyFontScheme();
@@ -632,6 +682,13 @@ class MarkdownEditor {
     document.querySelector('#settings-dialog .settings-section:nth-child(4) h3').textContent = t('behavior');
     document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(2) label').textContent = t('defaultView');
     document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(3) label').textContent = t('scrollSync');
+    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(4) label').textContent = t('imageSettingLabel');
+    document.getElementById('image-insert-mode-hint').textContent = t('imageSettingHint');
+    const imageModeSelect = document.getElementById('set-image-insert-mode');
+    if (imageModeSelect) {
+      imageModeSelect.options[0].text = t('imageSettingAssets');
+      imageModeSelect.options[1].text = t('imageSettingBase64');
+    }
     document.getElementById('settings-reset').textContent = t('resetDefault');
     document.getElementById('settings-cancel-btn').textContent = t('cancel');
     document.getElementById('settings-save-btn').textContent = t('save');
@@ -924,6 +981,7 @@ class MarkdownEditor {
       defaultView: 'preview',
       scrollSync: true,
       language: 'zh',
+      imageInsertMode: 'assets',
     };
     try {
       const saved = JSON.parse(localStorage.getItem('tizumark-settings'));
@@ -972,6 +1030,7 @@ class MarkdownEditor {
     document.getElementById('set-default-view').value = s.defaultView;
     document.getElementById('set-scroll-sync').checked = s.scrollSync;
     document.getElementById('set-language').value = s.language || 'zh';
+    document.getElementById('set-image-insert-mode').value = s.imageInsertMode || 'assets';
 
     document.getElementById('set-font-size').addEventListener('change', (e) => {
       this.settings.fontSize = Number(e.target.value);
@@ -1044,6 +1103,10 @@ class MarkdownEditor {
       this.settings.language = e.target.value;
       this.saveSettings();
       this.applyLanguage();
+    });
+    document.getElementById('set-image-insert-mode').addEventListener('change', (e) => {
+      this.settings.imageInsertMode = e.target.value;
+      this.saveSettings();
     });
 
     this.applySettings();
@@ -1291,6 +1354,7 @@ class MarkdownEditor {
       defaultView: 'preview',
       scrollSync: true,
       language: 'zh',
+      imageInsertMode: 'assets',
     };
     this.settings = defaults;
     localStorage.removeItem('tizumark-settings');
@@ -1308,6 +1372,7 @@ class MarkdownEditor {
     document.getElementById('set-default-view').value = defaults.defaultView;
     document.getElementById('set-scroll-sync').checked = defaults.scrollSync;
     document.getElementById('set-language').value = defaults.language;
+    document.getElementById('set-image-insert-mode').value = defaults.imageInsertMode;
 
     await this.applySettings();
     this.setStatus(this.t('settingsReset'));
@@ -1489,7 +1554,7 @@ class MarkdownEditor {
       findReplace: () => this.toggleFindPanel(true),
       bold: () => this.wrapSelection('**', '**'),
       italic: () => this.wrapSelection('*', '*'),
-      insertLink: () => this.insertAtCursor(`[${this.t('linkText')}](https://example.com)`, 1),
+      insertLink: () => this.showInsertLinkDialog(),
     };
 
     const toCmKey = (k) => k.replace(/\+/g, '-');
@@ -2570,7 +2635,245 @@ class MarkdownEditor {
     });
   }
 
-  newFile() {
+  initInsertDialogs() {
+    // Insert Link dialog
+    document.getElementById('insert-link-ok').addEventListener('click', () => {
+      const text = document.getElementById('insert-link-text').value.trim();
+      const url = document.getElementById('insert-link-url').value.trim();
+      if (!url) return;
+      const linkText = text || url;
+      const sel = this.cm.getSelection();
+      if (sel) {
+        this.cm.replaceSelection(`[${sel}](${url})`);
+      } else {
+        this.insertAtCursor(`[${linkText}](${url})`, linkText.length + 3);
+      }
+      this.hideInsertLinkDialog();
+      this.cm.focus();
+    });
+    document.getElementById('insert-link-cancel').addEventListener('click', () => this.hideInsertLinkDialog());
+    document.getElementById('insert-link-close').addEventListener('click', () => this.hideInsertLinkDialog());
+    document.getElementById('insert-link-dialog').addEventListener('click', (e) => {
+      if (e.target.id === 'insert-link-dialog') this.hideInsertLinkDialog();
+    });
+    document.getElementById('insert-link-url').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('insert-link-ok').click();
+    });
+    document.getElementById('insert-link-text').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('insert-link-ok').click();
+    });
+
+    // Insert Image dialog
+    const sourceSelect = document.getElementById('insert-image-source');
+    sourceSelect.addEventListener('change', () => {
+      const isLocal = sourceSelect.value === 'local';
+      document.getElementById('insert-image-local-field').classList.toggle('hidden', !isLocal);
+      document.getElementById('insert-image-store-field').classList.toggle('hidden', !isLocal);
+      document.getElementById('insert-image-web-field').classList.toggle('hidden', isLocal);
+    });
+    document.getElementById('insert-image-browse').addEventListener('click', async () => {
+      try {
+        const selected = await dialogOpen({
+          multiple: false,
+          filters: [
+            { name: this.t('imageLocal'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'] }
+          ]
+        });
+        if (selected) {
+          document.getElementById('insert-image-file').value = selected;
+        }
+      } catch (_) {}
+    });
+    // Store mode radio → update hint text
+    document.querySelectorAll('#insert-image-store-mode input[name="image-store"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const hint = document.getElementById('insert-image-store-hint');
+        hint.textContent = e.target.value === 'assets'
+          ? this.t('imageStoreAssetsHint')
+          : this.t('imageStoreBase64Hint');
+      });
+    });
+    document.getElementById('insert-image-ok').addEventListener('click', () => this.handleInsertImageOk());
+    document.getElementById('insert-image-cancel').addEventListener('click', () => this.hideInsertImageDialog());
+    document.getElementById('insert-image-close').addEventListener('click', () => this.hideInsertImageDialog());
+    document.getElementById('insert-image-dialog').addEventListener('click', (e) => {
+      if (e.target.id === 'insert-image-dialog') this.hideInsertImageDialog();
+    });
+  }
+
+  initImagePaste() {
+    const wrapper = document.getElementById('editor-wrapper');
+    if (!wrapper) return;
+    wrapper.addEventListener('paste', (e) => {
+      const items = e.clipboardData.items;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            this.handlePasteImage(file).catch(err => {
+              this.setStatus(this.t('imagePasteFailed') + ': ' + err);
+            });
+          }
+          return;
+        }
+      }
+    });
+  }
+
+  showInsertLinkDialog() {
+    const sel = this.cm.getSelection();
+    document.getElementById('insert-link-text').value = sel || '';
+    document.getElementById('insert-link-url').value = '';
+    // Clipboard URL detection
+    try {
+      navigator.clipboard.readText().then(text => {
+        if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
+          document.getElementById('insert-link-url').value = text;
+          const textInput = document.getElementById('insert-link-text');
+          if (!textInput.value) {
+            textInput.placeholder = this.t('linkAutoDetected');
+          }
+        }
+      }).catch(() => {});
+    } catch (_) {}
+    document.getElementById('insert-link-dialog').classList.remove('hidden');
+    setTimeout(() => document.getElementById('insert-link-text').focus(), 100);
+  }
+
+  hideInsertLinkDialog() {
+    document.getElementById('insert-link-dialog').classList.add('hidden');
+  }
+
+  showInsertImageDialog() {
+    document.getElementById('insert-image-source').value = 'local';
+    document.getElementById('insert-image-local-field').classList.remove('hidden');
+    document.getElementById('insert-image-store-field').classList.remove('hidden');
+    document.getElementById('insert-image-web-field').classList.add('hidden');
+    document.getElementById('insert-image-file').value = '';
+    document.getElementById('insert-image-url').value = '';
+    document.getElementById('insert-image-alt').value = '';
+    // Pre-select store mode from settings
+    const mode = this.settings.imageInsertMode || 'assets';
+    const radio = document.querySelector(`#insert-image-store-mode input[value="${mode}"]`);
+    if (radio) radio.checked = true;
+    const hint = document.getElementById('insert-image-store-hint');
+    hint.textContent = mode === 'assets' ? this.t('imageStoreAssetsHint') : this.t('imageStoreBase64Hint');
+    document.getElementById('insert-image-dialog').classList.remove('hidden');
+    setTimeout(() => {
+      const browseBtn = document.getElementById('insert-image-browse');
+      if (browseBtn) browseBtn.focus();
+    }, 100);
+  }
+
+  hideInsertImageDialog() {
+    document.getElementById('insert-image-dialog').classList.add('hidden');
+  }
+
+  async handleInsertImageOk() {
+    const source = document.getElementById('insert-image-source').value;
+    const alt = document.getElementById('insert-image-alt').value.trim();
+    const isLocal = source === 'local';
+
+    if (isLocal) {
+      const filePath = document.getElementById('insert-image-file').value.trim();
+      if (!filePath) return;
+      const storeMode = document.querySelector('#insert-image-store-mode input[name="image-store"]:checked')?.value || 'assets';
+
+      if (storeMode === 'assets') {
+        await this.insertLocalImageAssets(filePath, alt);
+      } else {
+        await this.insertLocalImageBase64(filePath, alt);
+      }
+    } else {
+      const url = document.getElementById('insert-image-url').value.trim();
+      if (!url) return;
+      this.insertAtCursor(`![${alt || 'image'}](${url})`, alt.length + 4);
+    }
+    this.hideInsertImageDialog();
+    this.cm.focus();
+  }
+
+  async insertLocalImageAssets(filePath, alt) {
+    const tab = this.activeTab;
+    if (!tab.filePath) {
+      this.setStatus(this.t('needSaveFirst'));
+      return;
+    }
+    const sep = tab.filePath.includes('/') ? '/' : '\\';
+    const dir = tab.filePath.substring(0, tab.filePath.lastIndexOf(sep));
+    const assetsDir = dir + sep + 'assets';
+    const fileName = filePath.split(/[/\\]/).pop();
+    const destPath = assetsDir + sep + fileName;
+    try {
+      await invoke('ensure_dir', { path: assetsDir });
+      const content = await invoke('fetch_image_as_base64', { url: filePath });
+      const bytes = Uint8Array.from(atob(content), c => c.charCodeAt(0));
+      await invoke('write_binary_file', { path: destPath, contents: Array.from(bytes) });
+      const relativePath = 'assets/' + fileName;
+      this.insertAtCursor(`![${alt || fileName}](${relativePath})`, alt.length + 4);
+      this.setStatus(this.t('imagePasted'));
+    } catch (err) {
+      this.setStatus(this.t('imagePasteFailed') + ': ' + err);
+    }
+  }
+
+  async insertLocalImageBase64(filePath, alt) {
+    try {
+      const base64 = await invoke('fetch_image_as_base64', { url: filePath });
+      const ext = filePath.split('.').pop().toLowerCase();
+      let mime = 'image/png';
+      if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
+      else if (ext === 'gif') mime = 'image/gif';
+      else if (ext === 'svg') mime = 'image/svg+xml';
+      else if (ext === 'webp') mime = 'image/webp';
+      else if (ext === 'bmp') mime = 'image/bmp';
+      else if (ext === 'ico') mime = 'image/x-icon';
+      const dataUrl = `data:${mime};base64,${base64}`;
+      this.insertAtCursor(`![${alt || 'image'}](${dataUrl})`, alt.length + 4);
+      this.setStatus(this.t('imagePasted'));
+    } catch (err) {
+      this.setStatus(this.t('imagePasteFailed') + ': ' + err);
+    }
+  }
+
+  async handlePasteImage(file) {
+    const mode = this.settings.imageInsertMode || 'assets';
+    if (mode === 'assets') {
+      const tab = this.activeTab;
+      if (!tab.filePath) {
+        this.setStatus(this.t('needSaveFirst'));
+        return;
+      }
+      const sep = tab.filePath.includes('/') ? '/' : '\\';
+      const dir = tab.filePath.substring(0, tab.filePath.lastIndexOf(sep));
+      const assetsDir = dir + sep + 'assets';
+      const ts = new Date().toISOString().replace(/[:.]/g, '').slice(0, 15);
+      const ext = file.type.split('/')[1] || 'png';
+      const fileName = `image-${ts}.${ext}`;
+      const destPath = assetsDir + sep + fileName;
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      await invoke('ensure_dir', { path: assetsDir });
+      await invoke('write_binary_file', { path: destPath, contents: Array.from(bytes) });
+      const relativePath = 'assets/' + fileName;
+      this.insertAtCursor(`![image](${relativePath})`, 2);
+      this.setStatus(this.t('imagePasted'));
+    } else {
+      // base64
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binary);
+      const mime = file.type || 'image/png';
+      const dataUrl = `data:${mime};base64,${base64}`;
+      this.insertAtCursor(`![image](${dataUrl})`, 2);
+      this.setStatus(this.t('imagePasted'));
+    }
+  }
     this.setViewMode('edit');
     this.addTab(this.t('untitled'), '', null);
     this.setStatus(this.t('newFileCreated'));
@@ -4189,8 +4492,8 @@ ${clone.innerHTML}
       case 'insert-ol': this.insertLinePrefix('1. '); break;
       case 'insert-task': this.insertLinePrefix('- [ ] '); break;
 
-      case 'insert-link': this.insertAtCursor('[链接文本](https://example.com)', 1); break;
-      case 'insert-image': this.insertAtCursor('![图片描述](image-url)', 2); break;
+      case 'insert-link': this.showInsertLinkDialog(); break;
+      case 'insert-image': this.showInsertImageDialog(); break;
 
       case 'preview-copy': document.execCommand('copy'); break;
       case 'preview-select-all': { const range = document.createRange(); range.selectNodeContents(this.preview); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); break; }

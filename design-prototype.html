@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TizuMark 设计原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============ BASE ============ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { height: 100%; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0d0d0f; color: #e4e4e7;
+  height: 100%; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+/* ============ TOP BAR ============ */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 24px; background: rgba(20,20,24,0.95);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  -webkit-user-select: none; user-select: none; flex-shrink: 0; gap: 12px;
+}
+.top-bar-left { display: flex; align-items: center; gap: 20px; }
+.top-bar h1 {
+  font-size: 13px; font-weight: 600; color: #a0a0aa;
+  letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap;
+}
+.top-bar h1 span { color: #e4e4e7; }
+.direction-tabs {
+  display: flex; gap: 3px; background: rgba(255,255,255,0.04);
+  border-radius: 10px; padding: 4px; flex-wrap: wrap;
+}
+.dir-btn {
+  padding: 5px 12px; border: none; border-radius: 6px;
+  background: transparent; color: #7c7c88; font-size: 12px;
+  font-weight: 500; cursor: pointer; transition: all 0.2s ease;
+  font-family: inherit; white-space: nowrap;
+}
+.dir-btn:hover { color: #c0c0cc; }
+.dir-btn.active { background: rgba(255,255,255,0.1); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+
+.top-bar-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+.toggle-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #7c7c88; }
+.toggle-track {
+  width: 32px; height: 18px; background: rgba(255,255,255,0.12);
+  border-radius: 9px; cursor: pointer; position: relative;
+  transition: background 0.3s; flex-shrink: 0;
+}
+.toggle-track.active { background: #2563eb; }
+.toggle-knob {
+  width: 14px; height: 14px; background: #fff; border-radius: 50%;
+  position: absolute; top: 2px; left: 2px;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.toggle-track.active .toggle-knob { transform: translateX(14px); }
+
+/* ============ CANVAS ============ */
+.canvas-wrap {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 20px 32px;
+  background: radial-gradient(ellipse at 50% 0%, #1a1a24 0%, #0d0d0f 70%);
+  overflow: hidden;
+}
+.app-window {
+  width: 1100px; height: 680px; border-radius: 14px; overflow: hidden;
+  display: flex; flex-direction: column; position: relative;
+  transition: box-shadow 0.5s ease;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.5);
+}
+
+/* =============================================
+   THEME VARIABLES — 5 REFINED COLOR SCHEMES
+   ============================================= */
+
+/* --- 1. 基准 (美化版) --- */
+.app-window[data-direction="current"][data-theme="light"] {
+  --tw-bg: #f8f7f4; --tw-bg-secondary: #f0efec; --tw-toolbar: #eae9e5;
+  --tw-tab: #e3e2dd; --tw-tab-active: #f8f7f4;
+  --tw-text: #1d1d21; --tw-text-secondary: #6e6d73; --tw-border: #e0dfda;
+  --tw-accent: #2050d0; --tw-accent-muted: rgba(32,80,208,0.08);
+  --tw-hover: rgba(0,0,0,0.04); --tw-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  --tw-editor-font: 'JetBrains Mono','SF Mono',monospace;
+  --tw-ui-font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-scrollbar: #c8c7c2; --tw-line-numbers: #b0afa8;
+  --tw-status-bg: #f0efec; --tw-preview-bg: #f8f7f4;
+  --tw-preview-font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-tab-accent-line: var(--tw-accent);
+}
+.app-window[data-direction="current"][data-theme="dark"] {
+  --tw-bg: #1a1c20; --tw-bg-secondary: #212328; --tw-toolbar: #282a30;
+  --tw-tab: #23252b; --tw-tab-active: #1a1c20;
+  --tw-text: #e2e2e6; --tw-text-secondary: #8a8b92; --tw-border: #34363e;
+  --tw-accent: #4a9eff; --tw-accent-muted: rgba(74,158,255,0.12);
+  --tw-hover: rgba(255,255,255,0.04); --tw-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  --tw-editor-font: 'JetBrains Mono','SF Mono',monospace;
+  --tw-ui-font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-scrollbar: #3c3e48; --tw-line-numbers: #585a64;
+  --tw-status-bg: #212328; --tw-preview-bg: #1a1c20;
+  --tw-preview-font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-tab-accent-line: var(--tw-accent);
+}
+
+/* --- 2. 翠林风 (Forest) — 高级绿 --- */
+.app-window[data-direction="forest"][data-theme="light"] {
+  --tw-bg: #f4f7f2; --tw-bg-secondary: #edf1ea; --tw-toolbar: #e6ebe2;
+  --tw-tab: #dee5d8; --tw-tab-active: #f4f7f2;
+  --tw-text: #1a2618; --tw-text-secondary: #5c7358; --tw-border: #d9e1d2;
+  --tw-accent: #3a7d5c; --tw-accent-muted: rgba(58,125,92,0.09);
+  --tw-hover: rgba(0,0,0,0.03); --tw-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  --tw-editor-font: 'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-ui-font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-scrollbar: #cbd8c2; --tw-line-numbers: #a8bca0;
+  --tw-status-bg: #3a7d5c; --tw-preview-bg: #f4f7f2;
+  --tw-preview-font: 'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-tab-accent-line: #3a7d5c;
+}
+.app-window[data-direction="forest"][data-theme="dark"] {
+  --tw-bg: #162018; --tw-bg-secondary: #1c281f; --tw-toolbar: #243028;
+  --tw-tab: #1a261e; --tw-tab-active: #162018;
+  --tw-text: #d4e2d0; --tw-text-secondary: #7a9a78; --tw-border: #2a3a2e;
+  --tw-accent: #65c89a; --tw-accent-muted: rgba(101,200,154,0.12);
+  --tw-hover: rgba(255,255,255,0.03); --tw-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  --tw-editor-font: 'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-ui-font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-scrollbar: #3a5440; --tw-line-numbers: #4a6a52;
+  --tw-status-bg: #1e3828; --tw-preview-bg: #162018;
+  --tw-preview-font: 'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-tab-accent-line: #65c89a;
+}
+
+/* --- 3. 极夜风 (Nord) — 高级冰蓝 --- */
+.app-window[data-direction="nord"][data-theme="light"] {
+  --tw-bg: #f4f6fa; --tw-bg-secondary: #edf0f5; --tw-toolbar: #e5e8ef;
+  --tw-tab: #dce1e8; --tw-tab-active: #f4f6fa;
+  --tw-text: #252a36; --tw-text-secondary: #646d7e; --tw-border: #d8dde6;
+  --tw-accent: #4f7a9e; --tw-accent-muted: rgba(79,122,158,0.09);
+  --tw-hover: rgba(0,0,0,0.03); --tw-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  --tw-editor-font: 'JetBrains Mono','SF Mono',monospace;
+  --tw-ui-font: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --tw-scrollbar: #c8ced8; --tw-line-numbers: #aab2be;
+  --tw-status-bg: #4f7a9e; --tw-preview-bg: #f4f6fa;
+  --tw-preview-font: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --tw-tab-accent-line: #4f7a9e;
+}
+.app-window[data-direction="nord"][data-theme="dark"] {
+  --tw-bg: #202530; --tw-bg-secondary: #262b38; --tw-toolbar: #2e3342;
+  --tw-tab: #252a36; --tw-tab-active: #202530;
+  --tw-text: #dde2ec; --tw-text-secondary: #8891a8; --tw-border: #363e50;
+  --tw-accent: #8ac4d8; --tw-accent-muted: rgba(138,196,216,0.12);
+  --tw-hover: rgba(255,255,255,0.03); --tw-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  --tw-editor-font: 'JetBrains Mono','SF Mono',monospace;
+  --tw-ui-font: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --tw-scrollbar: #404a60; --tw-line-numbers: #4c566a;
+  --tw-status-bg: #2a3a4e; --tw-preview-bg: #202530;
+  --tw-preview-font: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --tw-tab-accent-line: #8ac4d8;
+}
+
+/* --- 4. 暮紫风 (Dusk) — 高级紫 --- */
+.app-window[data-direction="dusk"][data-theme="light"] {
+  --tw-bg: #f7f5fa; --tw-bg-secondary: #f0edf5; --tw-toolbar: #eae6f0;
+  --tw-tab: #e2dde8; --tw-tab-active: #f7f5fa;
+  --tw-text: #26223a; --tw-text-secondary: #726a8a; --tw-border: #e0dae8;
+  --tw-accent: #7c4dcc; --tw-accent-muted: rgba(124,77,204,0.08);
+  --tw-hover: rgba(0,0,0,0.03); --tw-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  --tw-editor-font: 'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-ui-font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-scrollbar: #cec4dc; --tw-line-numbers: #aea4be;
+  --tw-status-bg: #7c4dcc; --tw-preview-bg: #f7f5fa;
+  --tw-preview-font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-tab-accent-line: #7c4dcc;
+}
+.app-window[data-direction="dusk"][data-theme="dark"] {
+  --tw-bg: #1d1728; --tw-bg-secondary: #241e32; --tw-toolbar: #2c2540;
+  --tw-tab: #221c30; --tw-tab-active: #1d1728;
+  --tw-text: #ddd6f0; --tw-text-secondary: #8f86aa; --tw-border: #342c4a;
+  --tw-accent: #b28cf0; --tw-accent-muted: rgba(178,140,240,0.12);
+  --tw-hover: rgba(255,255,255,0.03); --tw-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  --tw-editor-font: 'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-ui-font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-scrollbar: #443a62; --tw-line-numbers: #544a78;
+  --tw-status-bg: #352860; --tw-preview-bg: #1d1728;
+  --tw-preview-font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-tab-accent-line: #b28cf0;
+}
+
+/* --- 5. 暖橙风 (Sunset) — 高级陶土 --- */
+.app-window[data-direction="sunset"][data-theme="light"] {
+  --tw-bg: #fcf7f2; --tw-bg-secondary: #f5f0ea; --tw-toolbar: #eee8e0;
+  --tw-tab: #e6ded4; --tw-tab-active: #fcf7f2;
+  --tw-text: #261d16; --tw-text-secondary: #8a7a6c; --tw-border: #e6ddd2;
+  --tw-accent: #d4764a; --tw-accent-muted: rgba(212,118,74,0.08);
+  --tw-hover: rgba(0,0,0,0.03); --tw-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  --tw-editor-font: 'IBM Plex Serif',Georgia,'Times New Roman',serif;
+  --tw-ui-font: 'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-scrollbar: #d8cec2; --tw-line-numbers: #c0b4a6;
+  --tw-status-bg: #d4764a; --tw-preview-bg: #fcf7f2;
+  --tw-preview-font: 'IBM Plex Serif',Georgia,'Times New Roman',serif;
+  --tw-tab-accent-line: #d4764a;
+}
+.app-window[data-direction="sunset"][data-theme="dark"] {
+  --tw-bg: #241912; --tw-bg-secondary: #2c2019; --tw-toolbar: #342820;
+  --tw-tab: #281e16; --tw-tab-active: #241912;
+  --tw-text: #e6dacf; --tw-text-secondary: #9a8a7a; --tw-border: #3a2e26;
+  --tw-accent: #e89460; --tw-accent-muted: rgba(232,148,96,0.12);
+  --tw-hover: rgba(255,255,255,0.03); --tw-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  --tw-editor-font: 'IBM Plex Serif',Georgia,'Times New Roman',serif;
+  --tw-ui-font: 'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  --tw-scrollbar: #4a3c30; --tw-line-numbers: #5a4c40;
+  --tw-status-bg: #4a2e1a; --tw-preview-bg: #241912;
+  --tw-preview-font: 'IBM Plex Serif',Georgia,'Times New Roman',serif;
+  --tw-tab-accent-line: #e89460;
+}
+
+/* ============ Title Bar ============ */
+.title-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 14px; height: 36px; flex-shrink: 0;
+  background: var(--tw-toolbar); border-bottom: 1px solid var(--tw-border);
+  -webkit-user-select: none; user-select: none;
+}
+.title-bar-center { font-size: 12px; font-weight: 500; color: var(--tw-text-secondary); letter-spacing: 0.2px; }
+.title-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+[data-direction="current"] .title-dot { background: #2050d0; }
+[data-direction="forest"] .title-dot { background: #3a7d5c; }
+[data-direction="nord"] .title-dot { background: #4f7a9e; }
+[data-direction="dusk"] .title-dot { background: #7c4dcc; }
+[data-direction="sunset"] .title-dot { background: #d4764a; }
+[data-theme="dark"] [data-direction="current"] .title-dot { background: #4a9eff; }
+[data-theme="dark"] [data-direction="forest"] .title-dot { background: #65c89a; }
+[data-theme="dark"] [data-direction="nord"] .title-dot { background: #8ac4d8; }
+[data-theme="dark"] [data-direction="dusk"] .title-dot { background: #b28cf0; }
+[data-theme="dark"] [data-direction="sunset"] .title-dot { background: #e89460; }
+
+.win-controls { display: flex; gap: 8px; }
+.win-dot { width: 12px; height: 12px; border-radius: 50%; transition: opacity 0.2s; }
+.win-dot:hover { opacity: 0.8; }
+.win-dot.red { background: #ff5f57; }
+.win-dot.yellow { background: #febc2e; }
+.win-dot.green { background: #28c840; }
+
+/* ============ Tab Bar ============ */
+.tab-bar {
+  display: flex; align-items: stretch; height: 34px; flex-shrink: 0;
+  background: var(--tw-toolbar); border-bottom: 1px solid var(--tw-border);
+  overflow-x: auto; padding: 0 4px;
+}
+.tab-bar::-webkit-scrollbar { height: 0; }
+.tab-item {
+  display: flex; align-items: center; gap: 8px; padding: 0 14px;
+  font-size: 12px; color: var(--tw-text-secondary); cursor: pointer;
+  position: relative; white-space: nowrap; margin: 0 0;
+  transition: all 0.15s ease; font-family: var(--tw-ui-font);
+  border-radius: 6px 6px 0 0; margin-top: 4px;
+}
+.tab-item:hover { color: var(--tw-text); background: var(--tw-hover); }
+.tab-item.active {
+  background: var(--tw-tab-active); color: var(--tw-text);
+  box-shadow: none;
+}
+.tab-item.active::after {
+  content: ''; position: absolute; bottom: -1px; left: 8px; right: 8px;
+  height: 2px; border-radius: 1px;
+  background: var(--tw-tab-accent-line);
+}
+.tab-close {
+  width: 16px; height: 16px; border-radius: 4px; border: none;
+  background: transparent; color: var(--tw-text-secondary);
+  font-size: 10px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  opacity: 0; transition: all 0.15s;
+}
+.tab-item:hover .tab-close { opacity: 0.5; }
+.tab-close:hover { opacity: 1 !important; background: var(--tw-hover); }
+
+/* ============ Content ============ */
+.main-content { flex: 1; display: flex; overflow: hidden; background: var(--tw-bg); }
+.editor-preview-split { flex: 1; display: flex; overflow: hidden; }
+.editor-pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--tw-bg); }
+.preview-pane {
+  width: 45%; flex-shrink: 0; border-left: 1px solid var(--tw-border);
+  overflow-y: auto; background: var(--tw-preview-bg);
+  transition: width 0.35s cubic-bezier(0.4,0,0.2,1);
+  padding: 28px 32px; font-family: var(--tw-preview-font);
+}
+.preview-pane.hidden { width: 0; padding: 0; overflow: hidden; border-left: none; }
+
+.resize-handle {
+  width: 4px; cursor: col-resize; background: transparent; flex-shrink: 0; position: relative; z-index: 2;
+}
+.resize-handle::after {
+  content: ''; position: absolute; left: 1px; top: 6px; bottom: 6px;
+  width: 2px; border-radius: 1px; background: var(--tw-border); transition: background 0.15s;
+}
+.resize-handle:hover::after, .resize-handle:active::after { background: var(--tw-accent); }
+
+/* Editor header */
+.editor-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 20px; flex-shrink: 0; border-bottom: 1px solid var(--tw-border);
+}
+.editor-label {
+  font-size: 11px; font-weight: 500; color: var(--tw-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.8px; font-family: var(--tw-ui-font);
+}
+.editor-actions { display: flex; gap: 4px; }
+.editor-btn {
+  padding: 3px 8px; border: none; border-radius: 4px;
+  background: transparent; color: var(--tw-text-secondary); font-size: 12px;
+  cursor: pointer; transition: all 0.15s; font-family: var(--tw-ui-font);
+}
+.editor-btn:hover { background: var(--tw-hover); color: var(--tw-text); }
+
+/* Editor body */
+.editor-body {
+  flex: 1; overflow-y: auto; padding: 16px 0;
+  font-family: var(--tw-editor-font); font-size: 14px; line-height: 1.7;
+  background: var(--tw-bg);
+}
+.editor-body::-webkit-scrollbar { width: 8px; }
+.editor-body::-webkit-scrollbar-track { background: transparent; }
+.editor-body::-webkit-scrollbar-thumb { background: var(--tw-scrollbar); border-radius: 4px; }
+
+[data-direction="sunset"] .editor-body { padding: 28px 48px; line-height: 1.9; font-size: 15px; }
+[data-direction="forest"] .editor-body, [data-direction="dusk"] .editor-body { padding: 20px 28px; line-height: 1.8; }
+
+.editor-line { display: flex; padding: 0 20px; min-height: 1.7em; }
+[data-direction="sunset"] .editor-line { padding: 0 48px; }
+[data-direction="forest"] .editor-line, [data-direction="dusk"] .editor-line { padding: 0 28px; }
+
+.line-num {
+  width: 40px; flex-shrink: 0; text-align: right; padding-right: 16px;
+  color: var(--tw-line-numbers); font-size: 12px;
+  -webkit-user-select: none; user-select: none; font-family: var(--tw-editor-font);
+}
+.line-content { flex: 1; white-space: pre-wrap; word-break: break-word; color: var(--tw-text); }
+.line-content .cm-h1 { font-size: 1.35em; font-weight: 700; color: var(--tw-text); }
+.line-content .cm-h2 { font-size: 1.15em; font-weight: 600; }
+.line-content .cm-bold { font-weight: 700; }
+.line-content .cm-italic { font-style: italic; }
+.line-content .cm-code { background: var(--tw-bg-secondary); padding: 1px 6px; border-radius: 3px; font-size: 0.85em; }
+.line-content .cm-link { color: var(--tw-accent); }
+.line-content .cm-list { color: var(--tw-accent); }
+.line-content .cm-blockquote { color: var(--tw-text-secondary); border-left: 2px solid var(--tw-border); padding-left: 14px; }
+
+[data-direction="sunset"] .line-content .cm-h1 { font-family: var(--tw-ui-font); font-weight: 700; letter-spacing: -0.02em; }
+
+/* Status Bar */
+.status-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 24px; flex-shrink: 0; padding: 0 14px; font-size: 11px;
+  font-family: var(--tw-ui-font); border-top: 1px solid var(--tw-border);
+  transition: all 0.3s ease; color: var(--tw-text-secondary);
+}
+[data-direction="current"] .status-bar, [data-direction="sunset"] .status-bar {
+  background: var(--tw-status-bg);
+}
+[data-direction="forest"] .status-bar, [data-direction="nord"] .status-bar, [data-direction="dusk"] .status-bar {
+  background: var(--tw-status-bg); color: rgba(255,255,255,0.85);
+}
+[data-direction="forest"][data-theme="light"] .status-bar,
+[data-direction="nord"][data-theme="light"] .status-bar,
+[data-direction="dusk"][data-theme="light"] .status-bar {
+  color: rgba(255,255,255,0.9);
+}
+.status-left, .status-right { display: flex; align-items: center; gap: 14px; }
+
+/* ============ Preview ============ */
+.preview-pane h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; color: var(--tw-text); }
+.preview-pane h2 { font-size: 20px; font-weight: 600; margin: 28px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--tw-border); color: var(--tw-text); }
+.preview-pane h3 { font-size: 16px; font-weight: 600; margin: 20px 0 6px; }
+.preview-pane p { margin-bottom: 12px; line-height: 1.7; font-size: 14px; color: var(--tw-text); }
+.preview-pane blockquote {
+  border-left: 3px solid var(--tw-accent); padding-left: 16px;
+  color: var(--tw-text-secondary); margin: 16px 0; font-style: italic;
+}
+.preview-pane ul, .preview-pane ol { padding-left: 24px; margin-bottom: 12px; line-height: 1.7; }
+.preview-pane li { margin-bottom: 4px; font-size: 14px; }
+.preview-pane table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; }
+.preview-pane th, .preview-pane td { border: 1px solid var(--tw-border); padding: 6px 12px; text-align: left; }
+.preview-pane th { background: var(--tw-bg-secondary); font-weight: 600; }
+.preview-pane code { background: var(--tw-bg-secondary); padding: 1px 6px; border-radius: 3px; font-size: 0.85em; font-family: 'JetBrains Mono',monospace; }
+.preview-pane pre { background: var(--tw-bg-secondary); padding: 14px 16px; border-radius: 6px; overflow-x: auto; margin-bottom: 12px; font-size: 13px; line-height: 1.5; }
+.preview-pane pre code { background: none; padding: 0; }
+
+[data-direction="sunset"] .preview-pane p { font-size: 15px; line-height: 1.8; }
+[data-direction="sunset"] .preview-pane blockquote { font-size: 15px; }
+[data-direction="forest"] .preview-pane pre, [data-direction="nord"] .preview-pane pre, [data-direction="dusk"] .preview-pane pre {
+  border: 1px solid var(--tw-border); box-shadow: var(--tw-shadow);
+}
+
+/* ============ Spec Bar ============ */
+.spec-bar {
+  padding: 10px 24px; background: rgba(20,20,24,0.95);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; gap: 20px;
+  flex-shrink: 0; -webkit-user-select: none; user-select: none; flex-wrap: wrap;
+}
+.spec-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #7c7c88; }
+.spec-swatch { width: 18px; height: 18px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+.spec-font-sample { font-size: 12px; color: #c0c0cc; }
+.spec-pill { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 500; letter-spacing: 0.3px; }
+
+/* ============ Responsive ============ */
+@media (max-width: 1024px) {
+  .app-window { width: 100%; height: 100%; border-radius: 0; }
+  .canvas-wrap { padding: 0; }
+  .top-bar { padding: 8px 12px; }
+  .spec-bar { padding: 8px 12px; gap: 10px; }
+}
+@media (max-width: 700px) {
+  .direction-tabs { gap: 2px; padding: 3px; }
+  .dir-btn { padding: 4px 8px; font-size: 11px; }
+}
+
+/* Theme transition */
+.app-window, .title-bar, .tab-bar, .tab-item, .sidebar, .editor-body,
+.preview-pane, .status-bar, .line-content, .line-num, .file-item {
+  transition: background 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== TOP BAR ==================== -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <h1>TizuMark <span>Design Lab</span></h1>
+    <div class="direction-tabs">
+      <button class="dir-btn active" data-dir="current">基准 美化版</button>
+      <button class="dir-btn" data-dir="forest">🌲 翠林风</button>
+      <button class="dir-btn" data-dir="nord">❄️ 极夜风</button>
+      <button class="dir-btn" data-dir="dusk">🌆 暮紫风</button>
+      <button class="dir-btn" data-dir="sunset">🌅 暖橙风</button>
+    </div>
+  </div>
+  <div class="top-bar-right">
+    <div class="toggle-row">
+      <span>预览</span>
+      <div class="toggle-track" id="previewToggle"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="toggle-row">
+      <span>🌙</span>
+      <div class="toggle-track active" id="themeToggle"><div class="toggle-knob"></div></div>
+      <span>☀️</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CANVAS ==================== -->
+<div class="canvas-wrap">
+  <div class="app-window" id="appWindow" data-direction="current" data-theme="dark">
+    <div class="title-bar">
+      <div class="win-controls">
+        <div class="win-dot red"></div>
+        <div class="win-dot yellow"></div>
+        <div class="win-dot green"></div>
+      </div>
+      <div class="title-bar-center"><span class="title-dot"></span>TizuMark — 设计稿.md</div>
+      <div style="width:52px"></div>
+    </div>
+    <div class="tab-bar">
+      <div class="tab-item active">设计稿.md <span class="tab-close">✕</span></div>
+      <div class="tab-item">README.md <span class="tab-close">✕</span></div>
+      <div class="tab-item">笔记.md <span class="tab-close">✕</span></div>
+    </div>
+    <div class="main-content">
+      <div class="editor-preview-split">
+        <div class="editor-pane">
+          <div class="editor-header">
+            <span class="editor-label">编辑器</span>
+            <div class="editor-actions">
+              <button class="editor-btn">💾</button>
+              <button class="editor-btn">🔍</button>
+            </div>
+          </div>
+          <div class="editor-body" id="editorBody"></div>
+        </div>
+        <div class="resize-handle" id="resizeHandle"></div>
+        <div class="preview-pane" id="previewPane">
+          <h1>TizuMark 设计规范</h1>
+          <p>TizuMark 是一款专注于 Markdown 写作的桌面编辑器，基于 <strong>Tauri v2</strong> + <strong>CodeMirror 5</strong> 构建。</p>
+          <h2>排版系统</h2>
+          <p>好的排版让阅读成为一种享受。我们定义了三级标题体系，搭配合理的行距和字距，确保舒适的阅读体验。</p>
+          <blockquote>「好的设计是尽可能少的设计。」</blockquote>
+          <h2>代码与样式</h2>
+          <pre><code>function hello() {
+  console.log("Hello, TizuMark!");
+}</code></pre>
+          <table>
+            <tr><th>组件</th><th>颜色</th><th>圆角</th></tr>
+            <tr><td>按钮</td><td>accent</td><td>6px</td></tr>
+            <tr><td>卡片</td><td>bg-secondary</td><td>8px</td></tr>
+          </table>
+          <h2>功能列表</h2>
+          <ul>
+            <li>实时 Markdown 预览</li>
+            <li>Vim 模式支持</li>
+            <li>多标签页管理</li>
+            <li>代码语法高亮</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="status-bar">
+      <div class="status-left">
+        <span>Ln 12, Col 24</span>
+        <span>UTF-8</span>
+        <span>Markdown</span>
+      </div>
+      <div class="status-right">
+        <span>Spaces: 2</span>
+        <span id="statusWords">248 字</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SPEC BAR ==================== -->
+<div class="spec-bar">
+  <div class="spec-item">
+    <span>主色</span>
+    <span class="spec-swatch" id="swatchPrimary" style="background:#4a9eff"></span>
+    <span id="primaryColor">#4a9eff</span>
+  </div>
+  <div class="spec-item">
+    <span>背景</span>
+    <span class="spec-swatch" id="swatchBg" style="background:#1a1c20"></span>
+    <span id="bgColor">#1a1c20</span>
+  </div>
+  <div class="spec-item">
+    <span>编辑字体</span>
+    <span class="spec-font-sample" id="editorFontSample">JetBrains Mono</span>
+  </div>
+  <div class="spec-item">
+    <span>UI字体</span>
+    <span class="spec-font-sample" id="uiFontSample">Inter</span>
+  </div>
+  <div class="spec-item">
+    <span>预览字体</span>
+    <span class="spec-font-sample" id="previewFontSample">Inter</span>
+  </div>
+  <div class="spec-item" id="specStyle">
+    <span>风格</span>
+    <span class="spec-pill" id="stylePill" style="background:rgba(74,158,255,0.15);color:#4a9eff">美化基准</span>
+  </div>
+</div>
+
+<script>
+// ==================== EDITOR ====================
+const editorLines = [
+  { text: '# TizuMark 设计规范', cls: 'cm-h1' }, { text: '', cls: '' },
+  { text: 'TizuMark 是一款专注于 Markdown 写作的桌面编辑器。', cls: '' },
+  { text: '本文档记录了 **设计方向** 的探索与决策过程。', cls: '' }, { text: '', cls: '' },
+  { text: '## 排版系统', cls: 'cm-h2' }, { text: '', cls: '' },
+  { text: '好的排版让阅读成为一种享受。我们定义了三级标题体系：', cls: '' }, { text: '', cls: '' },
+  { text: '- 一级标题用于文章标题', cls: 'cm-list' },
+  { text: '- 二级标题用于章节分割', cls: 'cm-list' },
+  { text: '- 三级标题用于子章节', cls: 'cm-list' }, { text: '', cls: '' },
+  { text: '## 色彩系统', cls: 'cm-h2' }, { text: '', cls: '' },
+  { text: '采用 `#2563eb` 作为主色调，搭配中性灰阶。', cls: '' },
+  { text: '暗色模式使用 `#3b8cff` 保持可读性。', cls: '' }, { text: '', cls: '' },
+  { text: '> 好的设计是尽可能少的设计。', cls: 'cm-blockquote' }, { text: '', cls: '' },
+  { text: '## 功能特性', cls: 'cm-h2' }, { text: '', cls: '' },
+  { text: '1. 实时 Markdown 预览', cls: '' },
+  { text: '2. 多标签页管理', cls: '' },
+  { text: '3. Vim 模式支持', cls: '' },
+  { text: '4. 代码语法高亮', cls: '' }, { text: '', cls: '' },
+  { text: '```javascript', cls: 'cm-code' },
+  { text: 'function hello() {', cls: 'cm-code' },
+  { text: '  return "TizuMark";', cls: 'cm-code' },
+  { text: '}', cls: 'cm-code' },
+];
+
+function renderEditor() {
+  const body = document.getElementById('editorBody');
+  body.innerHTML = editorLines.map((l, i) => {
+    let c = l.text.replace(/\*\*(.+?)\*\*/g,'<span class="cm-bold">$1</span>').replace(/`(.+?)`/g,'<span class="cm-code">$1</span>');
+    return `<div class="editor-line"><span class="line-num">${i+1}</span><span class="line-content ${l.cls}">${c||' '}</span></div>`;
+  }).join('');
+}
+renderEditor();
+
+// ==================== STATE ====================
+let direction = 'current', darkMode = true;
+
+const dirSpecs = {
+  current: { label:'美化基准', style:'美化基准', ef:'JetBrains Mono', uf:'Inter', pf:'Inter',
+    c:{ light:{ p:'#2050d0', b:'#f8f7f4' }, dark:{ p:'#4a9eff', b:'#1a1c20' } } },
+  forest: { label:'翠林风', style:'自然型', ef:'IBM Plex Sans', uf:'Inter', pf:'IBM Plex Sans',
+    c:{ light:{ p:'#3a7d5c', b:'#f4f7f2' }, dark:{ p:'#65c89a', b:'#162018' } } },
+  nord: { label:'极夜风', style:'冷静型', ef:'JetBrains Mono', uf:'System UI', pf:'System UI',
+    c:{ light:{ p:'#4f7a9e', b:'#f4f6fa' }, dark:{ p:'#8ac4d8', b:'#202530' } } },
+  dusk: { label:'暮紫风', style:'优雅型', ef:'IBM Plex Sans', uf:'Inter', pf:'Inter',
+    c:{ light:{ p:'#7c4dcc', b:'#f7f5fa' }, dark:{ p:'#b28cf0', b:'#1d1728' } } },
+  sunset: { label:'暖橙风', style:'活力型', ef:'IBM Plex Serif', uf:'IBM Plex Sans', pf:'IBM Plex Serif',
+    c:{ light:{ p:'#d4764a', b:'#fcf7f2' }, dark:{ p:'#e89460', b:'#241912' } } },
+};
+
+function setDirection(dir) {
+  direction = dir;
+  document.getElementById('appWindow').setAttribute('data-direction', dir);
+  document.querySelectorAll('.dir-btn').forEach(b => b.classList.toggle('active', b.dataset.dir === dir));
+  const spec = dirSpecs[dir];
+  const theme = darkMode ? 'dark' : 'light';
+  const col = spec.c[theme];
+  document.getElementById('swatchPrimary').style.background = col.p;
+  document.getElementById('primaryColor').textContent = col.p;
+  document.getElementById('swatchBg').style.background = col.b;
+  document.getElementById('bgColor').textContent = col.b;
+  document.getElementById('editorFontSample').textContent = spec.ef;
+  document.getElementById('uiFontSample').textContent = spec.uf;
+  document.getElementById('previewFontSample').textContent = spec.pf;
+  const pill = document.getElementById('stylePill');
+  pill.textContent = spec.style;
+  pill.style.background = col.p + '22';
+  pill.style.color = col.p;
+}
+
+function setTheme(dark) {
+  darkMode = dark;
+  document.getElementById('appWindow').setAttribute('data-theme', dark ? 'dark' : 'light');
+  document.getElementById('themeToggle').classList.toggle('active', dark);
+  setDirection(direction);
+}
+
+let showPreview = true;
+function togglePreview() {
+  showPreview = !showPreview;
+  document.getElementById('previewToggle').classList.toggle('active', showPreview);
+  document.getElementById('previewPane').classList.toggle('hidden', !showPreview);
+  document.querySelector('.resize-handle').style.display = showPreview ? '' : 'none';
+}
+
+// Resize
+let isResizing = false;
+document.getElementById('resizeHandle').addEventListener('mousedown', e => { isResizing = true; e.preventDefault(); });
+document.addEventListener('mousemove', e => {
+  if (!isResizing) return;
+  const s = document.querySelector('.editor-preview-split'), pv = document.getElementById('previewPane');
+  const r = s.getBoundingClientRect();
+  let pw = r.right - e.clientX; pw = Math.max(100, Math.min(r.width - 200, pw));
+  pv.style.width = (pw / r.width * 100) + '%';
+});
+document.addEventListener('mouseup', () => { isResizing = false; });
+
+// Events
+document.querySelectorAll('.dir-btn').forEach(b => b.addEventListener('click', () => setDirection(b.dataset.dir)));
+document.getElementById('themeToggle').addEventListener('click', () => setTheme(!darkMode));
+document.getElementById('previewToggle').addEventListener('click', togglePreview);
+setDirection('current'); setTheme(true); togglePreview();
+document.getElementById('previewToggle').classList.add('active');
+</script>
+</body>
+</html>

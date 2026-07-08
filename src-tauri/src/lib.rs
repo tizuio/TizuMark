@@ -237,6 +237,11 @@ fn write_binary_file(path: String, contents: Vec<u8>) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn ensure_dir(path: String) -> Result<(), String> {
+    fs::create_dir_all(&path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 async fn fetch_image_as_base64(url: String) -> Result<String, String> {
     let bytes = if url.starts_with("http://") || url.starts_with("https://") {
         let resp = reqwest::get(&url).await.map_err(|e| e.to_string())?;
@@ -1119,6 +1124,7 @@ pub fn run() {
             read_file,
             write_file,
             write_binary_file,
+            ensure_dir,
             fetch_image_as_base64,
             generate_toc
         ])

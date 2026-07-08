@@ -2628,3 +2628,123 @@ body.is-resizing .preview-pane {
   font-size: 14px;
   color: var(--text-secondary, #666666);
 }
+
+/* ====== Dialog Form Fields ====== */
+.form-field {
+  margin-bottom: 14px;
+}
+.form-field label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.form-field input[type="text"],
+.form-field select {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.form-field input[type="text"]:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+.file-input-row {
+  display: flex;
+  gap: 8px;
+}
+.file-input-row input[type="text"] {
+  flex: 1;
+  cursor: default;
+}
+.file-input-row .dialog-btn {
+  white-space: nowrap;
+}
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+}
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.radio-group input[type="radio"] {
+  margin: 0;
+}
+.form-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 6px 0 0 0;
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  border-left: 3px solid var(--accent-color);
+}
+
+/* ====== Settings Info Tooltip ====== */
+.settings-hint-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.settings-hint-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  color: var(--bg-primary);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+  margin-left: 6px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.settings-hint-icon:hover {
+  background: var(--accent-color);
+}
+.settings-hint-tooltip {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  width: 280px;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: var(--shadow-lg);
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  z-index: 999;
+  white-space: normal;
+  pointer-events: none;
+}
+.settings-hint-wrap:hover .settings-hint-tooltip {
+  display: block;
+}
+
+/* ====== Insert Image/Link Dialogs ====== */
+.insert-link-dialog,
+.insert-image-dialog {
+  max-width: 420px;
+}
+.insert-image-dialog {
+  max-width: 480px;
+}
