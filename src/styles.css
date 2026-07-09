@@ -2722,23 +2722,18 @@ body.is-resizing .preview-pane {
 }
 
 /* ====== Base64 line collapse in editor ====== */
+.cm-base64-line {
+  box-shadow: inset 3px 0 0 0 var(--accent-color);
+  background: color-mix(in srgb, var(--accent-color) 4%, transparent);
+  border-radius: 2px;
+}
 .cm-base64-line > span {
   display: inline-block;
-  max-width: 85vw;
+  max-width: 60ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: top;
-}
-.cm-base64-line:hover > span {
-  max-width: none;
-  overflow: visible;
-  white-space: normal;
-  word-break: break-all;
-  background: var(--bg-primary);
-  box-shadow: 0 0 0 2px var(--bg-primary);
-  position: relative;
-  z-index: 10;
 }
 
 /* ====== Settings Info Tooltip ====== */

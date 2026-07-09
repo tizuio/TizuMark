@@ -2805,7 +2805,7 @@ class MarkdownEditor {
         this.showToast(this.t('imageUrlRequired'));
         return;
       }
-      this.insertAtCursor(`![${alt || 'image'}](${url})`, alt.length + 4);
+      this.insertImageBlock(`![${alt || 'image'}](${url})`, alt.length + 4);
     }
     this.hideInsertImageDialog();
     this.cm.focus();
@@ -2828,10 +2828,10 @@ class MarkdownEditor {
       const bytes = Uint8Array.from(atob(content), c => c.charCodeAt(0));
       await invoke('write_binary_file', { path: destPath, contents: Array.from(bytes) });
       const relativePath = 'assets/' + fileName;
-      this.insertAtCursor(`![${alt || fileName}](${relativePath})`, alt.length + 4);
+      this.insertImageBlock(`![${alt || fileName}](${relativePath})`, alt.length + 4);
       this.setStatus(this.t('imagePasted'));
     } catch (err) {
-      this.setStatus(this.t('imagePasteFailed') + ': ' + err);
+      this.showToast(this.t('imagePasteFailed') + ': ' + err);
     }
   }
 
@@ -2847,10 +2847,10 @@ class MarkdownEditor {
       else if (ext === 'bmp') mime = 'image/bmp';
       else if (ext === 'ico') mime = 'image/x-icon';
       const dataUrl = `data:${mime};base64,${base64}`;
-      this.insertAtCursor(`![${alt || 'image'}](${dataUrl})`, alt.length + 4);
+      this.insertImageBlock(`![${alt || 'image'}](${dataUrl})`, alt.length + 4);
       this.setStatus(this.t('imagePasted'));
     } catch (err) {
-      this.setStatus(this.t('imagePasteFailed') + ': ' + err);
+      this.showToast(this.t('imagePasteFailed') + ': ' + err);
     }
   }
 
@@ -2874,7 +2874,7 @@ class MarkdownEditor {
       await invoke('ensure_dir', { path: assetsDir });
       await invoke('write_binary_file', { path: destPath, contents: Array.from(bytes) });
       const relativePath = 'assets/' + fileName;
-      this.insertAtCursor(`![image](${relativePath})`, 2);
+      this.insertImageBlock(`![image](${relativePath})`, 2);
       this.setStatus(this.t('imagePasted'));
     } else {
       const buf = await file.arrayBuffer();
@@ -2886,7 +2886,7 @@ class MarkdownEditor {
       const base64 = btoa(binary);
       const mime = file.type || 'image/png';
       const dataUrl = `data:${mime};base64,${base64}`;
-      this.insertAtCursor(`![image](${dataUrl})`, 2);
+      this.insertImageBlock(`![image](${dataUrl})`, 2);
       this.setStatus(this.t('imagePasted'));
     }
   }
@@ -4290,6 +4290,22 @@ ${clone.innerHTML}
     } else {
       this.cm.setCursor({ line: cursor.line + addedLines, ch: cursor.ch + text.length });
     }
+    this.cm.focus();
+  }
+
+  insertImageBlock(text, cursorOffset) {
+    const cursor = this.cm.getCursor();
+    const line = this.cm.getLine(cursor.line);
+    const afterText = line.slice(cursor.ch);
+    const prevLine = cursor.line > 0 ? this.cm.getLine(cursor.line - 1) : '';
+    let prefix = '';
+    let addedLines = 0;
+    if (cursor.ch > 0 || (cursor.line > 0 && prevLine.trim() !== '')) {
+      prefix = '\n';
+      addedLines = 1;
+    }
+    this.cm.replaceRange(prefix + text + '\n' + afterText, cursor, { line: cursor.line, ch: line.length });
+    this.cm.setCursor({ line: cursor.line + addedLines + 1, ch: 0 });
     this.cm.focus();
   }
 
