@@ -222,6 +222,10 @@
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
                 <span>使用说明</span>
               </div>
+              <div class="dropdown-item" id="btn-check-update">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                <span>检查更新</span>
+              </div>
               <div class="dropdown-item" id="btn-about">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
                 <span>关于</span>
@@ -522,6 +526,40 @@
       </div>
       <div class="dialog-footer">
         <button id="eula-accept" class="dialog-btn dialog-btn-primary">我知道了 / I Understand</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 更新对话框 -->
+  <div id="update-dialog" class="dialog-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="update-title">
+    <div class="dialog update-dialog">
+      <div class="dialog-header">
+        <h2 id="update-title">发现新版本</h2>
+        <button class="dialog-close" id="update-close" aria-label="关闭">&times;</button>
+      </div>
+      <div class="dialog-content">
+        <div id="update-state-checking">
+          <p>正在检查更新...</p>
+        </div>
+        <div id="update-state-available" class="hidden">
+          <p>TizuMark <span id="update-new-version" class="update-version-highlight"></span> 可用</p>
+          <p class="update-current">当前版本: <span id="update-current-version"></span></p>
+          <div class="update-notes">
+            <h4>更新内容</h4>
+            <div id="update-notes-body"></div>
+          </div>
+          <div class="update-progress hidden" id="update-progress-wrap">
+            <div class="progress-bar"><div class="progress-fill" id="update-progress-fill"></div></div>
+            <span id="update-progress-text">0%</span>
+          </div>
+        </div>
+        <div id="update-state-latest" class="hidden">
+          <p>已是最新版本</p>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="dialog-btn" id="update-skip">稍后再说</button>
+        <button class="dialog-btn dialog-btn-primary" id="update-action" data-state="" disabled>正在检查...</button>
       </div>
     </div>
   </div>
