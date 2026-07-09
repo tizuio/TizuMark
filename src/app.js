@@ -264,6 +264,19 @@ const I18N = {
     imagePasted: '图片已粘贴',
     imagePasteFailed: '图片粘贴失败',
     linkAutoDetected: '（已从剪贴板检测到链接）',
+    checkUpdate: '检查更新',
+    updateChecking: '正在检查更新...',
+    updateAvailable: '发现新版本',
+    updateLatest: '已是最新版本',
+    updateDownloadLabel: '下载更新',
+    updateDownloading: '下载中...',
+    updateInstallNow: '立即安装',
+    updateLater: '稍后再说',
+    updateReady: '更新已就绪，是否现在安装？',
+    updateNoUpdate: '已是最新版本',
+    updateFailed: '检查更新失败',
+    updateProgress: '下载中 {pct}%',
+    noUpdateNotes: '暂无更新说明',
   },
   en: {
     file: 'File',
@@ -506,6 +519,19 @@ const I18N = {
     imagePasted: 'Image pasted',
     imagePasteFailed: 'Image paste failed',
     linkAutoDetected: '(Link detected from clipboard)',
+    checkUpdate: 'Check for Updates',
+    updateChecking: 'Checking for updates...',
+    updateAvailable: 'Update Available',
+    updateLatest: 'Up to Date',
+    updateDownloadLabel: 'Download Update',
+    updateDownloading: 'Downloading...',
+    updateInstallNow: 'Install Now',
+    updateLater: 'Later',
+    updateReady: 'Update ready. Install now?',
+    updateNoUpdate: 'You\'re up to date',
+    updateFailed: 'Check for updates failed',
+    updateProgress: 'Downloading {pct}%',
+    noUpdateNotes: 'No release notes',
   }
 };
 
@@ -560,6 +586,7 @@ class MarkdownEditor {
     this.applyViewMode();
     this.updateMaximizeIcon();
     this.updateWordCount();
+    setTimeout(() => this.checkUpdate(false), 5000);
     this.updateSideButtons();
     this.applyLanguage();
   }
@@ -1914,6 +1941,10 @@ class MarkdownEditor {
       document.getElementById('help-menu').classList.add('hidden');
       this.showAbout();
     });
+    document.getElementById('btn-check-update').addEventListener('click', () => {
+      document.getElementById('help-menu').classList.add('hidden');
+      this.checkUpdate(true);
+    });
     document.getElementById('btn-add-tab').addEventListener('click', () => this.newFile());
     document.querySelector('.tab-bar-wrapper').addEventListener('dblclick', (e) => {
       if (!e.target.closest('.tab') && !e.target.closest('.tab-add')) {
@@ -1928,6 +1959,12 @@ class MarkdownEditor {
     document.getElementById('about-dialog').addEventListener('click', (e) => {
       if (e.target.id === 'about-dialog') this.hideAbout();
     });
+    document.getElementById('update-close').addEventListener('click', () => this.hideUpdateDialog());
+    document.getElementById('update-dialog').addEventListener('click', (e) => {
+      if (e.target.id === 'update-dialog') this.hideUpdateDialog();
+    });
+    document.getElementById('update-action').addEventListener('click', () => this.handleUpdateAction());
+    document.getElementById('update-skip').addEventListener('click', () => this.hideUpdateDialog());
     document.getElementById('gitee-badge').addEventListener('click', () => {
       const url = document.getElementById('gitee-badge').dataset.url;
       if (url) this.openExternal(url);
@@ -4199,15 +4236,149 @@ ${clone.innerHTML}
     }
   }
 
-  showAbout() {
+  async showAbout() {
     const dialog = document.getElementById('about-dialog');
     dialog.classList.remove('hidden');
     const details = document.querySelector('#about-dialog .dependency-details');
     if (details) details.open = false;
+    try {
+      const ver = await window.__TAURI__.app.getVersion();
+      const el = document.querySelector('#about-dialog .about-section h3 + p');
+      if (el) el.textContent = 'TizuMark v' + ver;
+    } catch (_) {}
   }
 
   hideAbout() {
     document.getElementById('about-dialog').classList.add('hidden');
+  }
+
+  // ========== Update / Auto-updater ==========
+
+  showUpdateDialog() {
+    document.getElementById('update-dialog').classList.remove('hidden');
+  }
+
+  hideUpdateDialog() {
+    this._updateDismissed = true;
+    document.getElementById('update-dialog').classList.add('hidden');
+  }
+
+  showUpdateState(state) {
+    ['checking', 'available', 'latest'].forEach(s => {
+      document.getElementById('update-state-' + s).classList.toggle('hidden', s !== state);
+    });
+    const btn = document.getElementById('update-action');
+    if (state === 'checking') {
+      btn.disabled = true;
+      btn.textContent = this.t('updateChecking');
+      document.getElementById('update-progress-wrap').classList.add('hidden');
+    }
+  }
+
+  async checkUpdate(showUpToDate = false) {
+    this._updateDismissed = false;
+    this.showUpdateDialog();
+    this.showUpdateState('checking');
+    try {
+      const { invoke } = window.__TAURI__.core;
+      const result = await invoke('plugin:updater|check');
+      if (this._updateDismissed) return;
+      if (!result) {
+        this.showUpdateState('latest');
+        if (showUpToDate) {
+          setTimeout(() => {
+            this.hideUpdateDialog();
+            this.showToast(this.t('updateNoUpdate'));
+          }, 1200);
+        } else {
+          setTimeout(() => this.hideUpdateDialog(), 1200);
+        }
+        return;
+      }
+      const update = result;
+      document.getElementById('update-new-version').textContent = update.version;
+      try {
+        const ver = await window.__TAURI__.app.getVersion();
+        document.getElementById('update-current-version').textContent = ver;
+      } catch (_) {}
+      const notesEl = document.getElementById('update-notes-body');
+      if (update.body) {
+        notesEl.innerHTML = update.body.replace(/\n/g, '<br>');
+      } else {
+        notesEl.textContent = this.t('noUpdateNotes');
+      }
+      this.showUpdateState('available');
+      this.pendingUpdate = update;
+      this.setUpdateAction('download');
+    } catch (err) {
+      console.error('Update check failed:', err);
+      if (this._updateDismissed) return;
+      this.hideUpdateDialog();
+      if (showUpToDate) this.showToast(this.t('updateFailed'));
+    }
+  }
+
+  setUpdateAction(state) {
+    const btn = document.getElementById('update-action');
+    btn.dataset.state = state;
+    btn.disabled = state === 'downloading';
+    if (state === 'download') {
+      btn.textContent = this.t('updateDownloadLabel');
+    } else if (state === 'downloading') {
+      btn.textContent = this.t('updateDownloading');
+    } else if (state === 'install') {
+      btn.textContent = this.t('updateInstallNow');
+    }
+  }
+
+  async handleUpdateAction() {
+    const state = document.getElementById('update-action').dataset.state;
+    if (state === 'download') {
+      this.setUpdateAction('downloading');
+      document.getElementById('update-progress-wrap').classList.remove('hidden');
+      await this.downloadUpdate();
+    } else if (state === 'install') {
+      await this.installUpdate();
+    }
+  }
+
+  async downloadUpdate() {
+    if (!this.pendingUpdate) return;
+    try {
+      const { invoke } = window.__TAURI__.core;
+      const { listen } = window.__TAURI__.event;
+      const unlisten = await listen('plugin:updater:download-progress', (event) => {
+        const d = event.payload || {};
+        const downloaded = d.chunkLength || d.chunks || d.downloaded || 0;
+        const total = d.contentLength || d.content_length || d.total || 1;
+        const pct = Math.min(100, Math.round((downloaded / total) * 100));
+        document.getElementById('update-progress-fill').style.width = pct + '%';
+        document.getElementById('update-progress-text').textContent = pct + '%';
+      });
+      try {
+        await invoke('plugin:updater|download');
+      } finally {
+        unlisten();
+      }
+      this.setUpdateAction('install');
+    } catch (err) {
+      console.error('Download failed:', err);
+      this.showToast(this.t('updateFailed'));
+      this.hideUpdateDialog();
+    }
+  }
+
+  async installUpdate() {
+    this.hideUpdateDialog();
+    try {
+      if (this.pendingUpdate) {
+        const { invoke } = window.__TAURI__.core;
+        await invoke('plugin:updater|install');
+      }
+    } catch (err) {
+      console.error('Install failed:', err);
+      this.showToast(this.t('updateFailed'));
+    }
   }
 
   openExternal(url) {

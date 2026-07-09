@@ -1971,6 +1971,12 @@ body.is-resizing .preview-pane {
   background-color: var(--accent-hover);
 }
 
+.dialog-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 /* EULA 对话框 */
 .eula-dialog {
   max-width: 600px;
@@ -2720,6 +2726,20 @@ body.is-resizing .preview-pane {
   color: var(--accent-color);
   opacity: 0.8;
 }
+
+/* ====== Update dialog ====== */
+.update-dialog { max-width: 480px; }
+.update-version-highlight { font-weight: bold; color: var(--accent-color); }
+.update-current { font-size: 12px; color: var(--text-secondary); margin: 4px 0 12px; }
+.update-notes { max-height: 200px; overflow-y: auto; background: var(--bg-secondary); padding: 12px; border-radius: 6px; margin: 12px 0; font-size: 13px; }
+.update-notes h4 { margin: 0 0 8px; font-size: 13px; color: var(--text-secondary); }
+.update-progress { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+.progress-bar { flex: 1; height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; background: var(--accent-color); transition: width 0.3s; }
+#update-progress-text { font-size: 12px; color: var(--text-secondary); min-width: 40px; text-align: right; }
+#update-state-checking.hidden,
+#update-state-available.hidden,
+#update-state-latest.hidden { display: none; }
 
 /* ====== Base64 line collapse in editor ====== */
 .cm-base64-line {
