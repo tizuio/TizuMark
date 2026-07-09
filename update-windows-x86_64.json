@@ -1,0 +1,11 @@
+{
+  "version": "1.0.3",
+  "notes": "## 更新内容\n\n- **图片插入改进**: 插入图片 dialog 改进 — toast 通知、表单提示美化、校验、存储方式改用全局设置\n- **图片粘贴优化**: 粘贴图片 toast 提醒、提示图标替换为文件文本图标、存储提示上移\n- **图片插入自动换行**: 图片插入自动换行隔离 + base64 截断 60 字符 + 错误提示改 Toast\n- **更新对话框优化**: 更新对话框改为单一按钮状态机 + 禁用样式 + 检查时关闭不弹框\n\n| 文件 | 下载链接 |\n|---|---|\n| NSIS 安装包 (~7MB) | https://gitee.com/tizu/tizu-mark/releases/download/v1.0.3/TizuMark_1.0.3_x64-setup.exe |\n| MSI 安装包 (~9.5MB) | https://gitee.com/tizu/tizu-mark/releases/download/v1.0.3/TizuMark_1.0.3_x64_en-US.msi |",
+  "pub_date": "2026-07-10T00:00:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSbFczUG4wTWlicWRLWHh4NUVMYWhlVFF5SmF1SDhGVGNGaFZVZVhKekpMZDAyVU56cmJrV09McFZNRmRYRlJVbDI2cGZWNkpuaGR1Y0lrTXZrM2RUV1VzbW9SZS90WEFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjE2NjE3CWZpbGU6VGl6dU1hcmtfMS4wLjNfeDY0LXNldHVwLmV4ZQpyRlY3ZlhRNTFDVlNKaUtRTFpVMTRySml5Rkg3REVYQ0lMMTFKbHZjdXZySXdSSjE2SVZXeUEvOC9HTG5xaU1oZGlwZ0RKSVBxMktzbVc0bkFpZG5DQT09Cg==",
+      "url": "https://gitee.com/tizu/tizu-mark/releases/download/v1.0.3/TizuMark_1.0.3_x64-setup.exe"
+    }
+  }
+}
