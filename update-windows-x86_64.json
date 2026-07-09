@@ -1,10 +1,10 @@
 {
   "version": "1.0.3",
-  "notes": "## 更新内容\n\n- **图片插入改进**: 插入图片 dialog 改进 — toast 通知、表单提示美化、校验、存储方式改用全局设置\n- **图片粘贴优化**: 粘贴图片 toast 提醒、提示图标替换为文件文本图标、存储提示上移\n- **图片插入自动换行**: 图片插入自动换行隔离 + base64 截断 60 字符 + 错误提示改 Toast\n- **更新对话框优化**: 更新对话框改为单一按钮状态机 + 禁用样式 + 检查时关闭不弹框\n\n| 文件 | 下载链接 |\n|---|---|\n| NSIS 安装包 (~7MB) | https://gitee.com/tizu/tizu-mark/releases/download/v1.0.3/TizuMark_1.0.3_x64-setup.exe |\n| MSI 安装包 (~9.5MB) | https://gitee.com/tizu/tizu-mark/releases/download/v1.0.3/TizuMark_1.0.3_x64_en-US.msi |",
+  "notes": "## ⬇️ 下载\n\n> **🏆 推荐大多数用户选择：** [⬇ TizuMark_1.0.3_x64-setup.exe](https://gitee.com/tizu/tizu-mark/releases/download/v1.0.3/TizuMark_1.0.3_x64-setup.exe)\n>\n> **🛠 企业/批量部署：** [⬇ TizuMark_1.0.3_x64_en-US.msi](https://gitee.com/tizu/tizu-mark/releases/download/v1.0.3/TizuMark_1.0.3_x64_en-US.msi)\n\n### 两种安装包说明\n\n| 安装包 | 适用人群 | 特点 |\n|--------|---------|------|\n| ⭐ **NSIS 安装包 (.exe)** — **推荐** | 绝大多数 Windows 用户 | 传统的 setup 向导安装，支持自定义安装路径、创建桌面快捷方式、自动注册文件关联。双击即装，即装即用。 |\n| **MSI 安装包 (.msi)** | 企业 IT 管理员、需要批量部署的用户 | 标准的 Windows Installer 格式，支持组策略推送、静默安装（msiexec /i TizuMark_1.0.3_x64_en-US.msi /qn）、适合企业环境集中管理。 |\n\n---\n\n## ✨ v1.0.3 更新内容\n\n### 改进\n- 更新对话框改进：检查/下载/安装三态统一为单一按钮，检查时关闭不再弹 Toast，新增禁用样式\n- 图片粘贴体验优化：Toast 提醒、提示图标替换为文件文本图标、存储提示上移\n- 图片插入对话框改进：新增校验、表单美化、存储方式改用全局设置\n- 插入图片自动换行隔离、Base64 截断至 60 字符、错误提示改为 Toast\n\n> 使用中遇到问题欢迎加 QQ 群：1035294939",
   "pub_date": "2026-07-10T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSbFczUG4wTWlicWRLWHh4NUVMYWhlVFF5SmF1SDhGVGNGaFZVZVhKekpMZDAyVU56cmJrV09McFZNRmRYRlJVbDI2cGZWNkpuaGR1Y0lrTXZrM2RUV1VzbW9SZS90WEFjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjE2NjE3CWZpbGU6VGl6dU1hcmtfMS4wLjNfeDY0LXNldHVwLmV4ZQpyRlY3ZlhRNTFDVlNKaUtRTFpVMTRySml5Rkg3REVYQ0lMMTFKbHZjdXZySXdSSjE2SVZXeUEvOC9HTG5xaU1oZGlwZ0RKSVBxMktzbVc0bkFpZG5DQT09Cg==",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSbFczUG4wTWlicVNvN3JFUEVRQUdtRzVLRFJ3MnpCQkxyTTZLTmZWOXFpR21nNmF0ZUVQN3d6NDNhZE1uT1dSRnBEV3RZMFkzL3B0MVZrNTgxYkNvZzRPbGRNUE1Ib0EwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjE5NzgwCWZpbGU6VGl6dU1hcmtfMS4wLjNfeDY0LXNldHVwLmV4ZQpnUGNtSHVzcEF5V0wrZG4xNnh2ZmdBUXZDMG1heDY3VTdtRUp4TWpvaCtrWmVUM1hGOWdnSHFqeWdqWU9VaUdkNzNrM1RNWnI0aXdEUGNrZUlCZkRDdz09Cg==",
       "url": "https://gitee.com/tizu/tizu-mark/releases/download/v1.0.3/TizuMark_1.0.3_x64-setup.exe"
     }
   }

@@ -2845,6 +2845,10 @@ body.is-resizing .preview-pane {
   background: #dc2626;
 }
 
+.toast.success {
+  background: #16a34a;
+}
+
 .toast-icon {
   width: 18px;
   height: 18px;

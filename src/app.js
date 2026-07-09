@@ -4288,7 +4288,7 @@ ${clone.innerHTML}
         if (showUpToDate) {
           setTimeout(() => {
             this.hideUpdateDialog();
-            this.showToast(this.t('updateNoUpdate'));
+            this.showToast(this.t('updateNoUpdate'), 'success');
           }, 1200);
         } else {
           setTimeout(() => this.hideUpdateDialog(), 1200);
@@ -4303,12 +4303,17 @@ ${clone.innerHTML}
       } catch (_) {}
       const notesEl = document.getElementById('update-notes-body');
       if (update.body) {
-        notesEl.innerHTML = update.body.replace(/\n/g, '<br>');
+        if (window.markdownit) {
+          notesEl.innerHTML = window.markdownit({ html: true, linkify: true }).render(update.body);
+        } else {
+          notesEl.innerHTML = update.body.replace(/\n/g, '<br>');
+        }
       } else {
         notesEl.textContent = this.t('noUpdateNotes');
       }
       this.showUpdateState('available');
       this.pendingUpdate = update;
+      this.pendingUpdateRid = update.rid;
       this.setUpdateAction('download');
     } catch (err) {
       console.error('Update check failed:', err);
@@ -4343,23 +4348,28 @@ ${clone.innerHTML}
   }
 
   async downloadUpdate() {
-    if (!this.pendingUpdate) return;
+    if (!this.pendingUpdate || !this.pendingUpdateRid) return;
+    this.pendingBytesRid = null;
     try {
-      const { invoke } = window.__TAURI__.core;
-      const { listen } = window.__TAURI__.event;
-      const unlisten = await listen('plugin:updater:download-progress', (event) => {
-        const d = event.payload || {};
-        const downloaded = d.chunkLength || d.chunks || d.downloaded || 0;
-        const total = d.contentLength || d.content_length || d.total || 1;
-        const pct = Math.min(100, Math.round((downloaded / total) * 100));
-        document.getElementById('update-progress-fill').style.width = pct + '%';
-        document.getElementById('update-progress-text').textContent = pct + '%';
-      });
-      try {
-        await invoke('plugin:updater|download');
-      } finally {
-        unlisten();
-      }
+      const { invoke, Channel } = window.__TAURI__.core;
+      const channel = new Channel();
+      let totalSize = 0;
+      let downloadedSize = 0;
+      channel.onmessage = (eventData) => {
+        if (eventData.event === 'Started') {
+          totalSize = eventData.data?.contentLength || 0;
+        } else if (eventData.event === 'Progress') {
+          downloadedSize += eventData.data?.chunkLength || 0;
+          const pct = totalSize > 0 ? Math.min(100, Math.round((downloadedSize / totalSize) * 100)) : 0;
+          document.getElementById('update-progress-fill').style.width = pct + '%';
+          document.getElementById('update-progress-text').textContent = pct + '%';
+        } else if (eventData.event === 'Finished') {
+          document.getElementById('update-progress-fill').style.width = '100%';
+          document.getElementById('update-progress-text').textContent = '100%';
+        }
+      };
+      const bytesRid = await invoke('plugin:updater|download', { rid: this.pendingUpdateRid, onEvent: channel });
+      this.pendingBytesRid = bytesRid;
       this.setUpdateAction('install');
     } catch (err) {
       console.error('Download failed:', err);
@@ -4369,12 +4379,11 @@ ${clone.innerHTML}
   }
 
   async installUpdate() {
+    if (!this.pendingUpdateRid || !this.pendingBytesRid) return;
     this.hideUpdateDialog();
     try {
-      if (this.pendingUpdate) {
-        const { invoke } = window.__TAURI__.core;
-        await invoke('plugin:updater|install');
-      }
+      const { invoke } = window.__TAURI__.core;
+      await invoke('plugin:updater|install', { updateRid: this.pendingUpdateRid, bytesRid: this.pendingBytesRid });
     } catch (err) {
       console.error('Install failed:', err);
       this.showToast(this.t('updateFailed'));
