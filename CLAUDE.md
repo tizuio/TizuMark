@@ -136,15 +136,12 @@ $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD="tizu2024"; npx tauri signer sign -f C:\
 Copy-Item -Path "update-windows-x86_64.json" -Destination "release/" -Force
 ```
 
-#### 6. 删除旧 Gitee Release
+#### 6. 创建新 Gitee Release
+
+**不要删除旧 Release**，直接新建：
 
 ```bash
-$token = "0dac842444bee19c14975bac33431437"; Invoke-RestMethod -Uri "https://gitee.com/api/v5/repos/tizu/tizu-mark/releases/{旧Release_ID}" -Headers @{"Authorization"="Bearer $token"} -Method Delete
-```
-
-Release ID 可以通过以下命令获取：
-```bash
-$token = "0dac842444bee19c14975bac33431437"; (Invoke-RestMethod -Uri "https://gitee.com/api/v5/repos/tizu/tizu-mark/releases" -Headers @{"Authorization"="Bearer $token"}) | Select-Object id, tag_name
+$token = "0dac842444bee19c14975bac33431437"; Invoke-RestMethod -Uri "https://gitee.com/api/v5/repos/tizu/tizu-mark/releases" -Method Get -Headers @{"Authorization"="Bearer $token"} | Select-Object id, tag_name
 ```
 
 #### 7. 创建 Release + 上传附件
