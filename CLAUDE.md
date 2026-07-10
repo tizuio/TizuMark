@@ -125,7 +125,7 @@ $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD="tizu2024"; npx tauri signer sign -f C:\
 
 #### 5. 生成 update-windows-x86_64.json
 
-编辑 `update-windows-x86_64.json`：
+编辑项目根目录的 `update-windows-x86_64.json`（**此文件同时作为 Gitee raw 端点的源文件**）：
 - `version` → 新版本号
 - `notes` → 更新的 release notes（在已有模板基础上追加内容，注意 JSON 转义 `\n`）
 - `pub_date` → 当天日期 `YYYY-MM-DDT00:00:00Z`
@@ -268,3 +268,56 @@ git push
 - Gitee API 的 release body 必须用 Node.js 发送（PowerShell 的 `Invoke-RestMethod` 在 PS5.1 中编码会出错，导致中文乱码）
 - 上传附件顺序：NSIS → MSI → update JSON（无先后依赖）
 - 每次发布后，`release/` 目录包含最新全套产物，可作为备份
+
+## 常用 API 端点与路径参考
+
+### Gitee API（v5）
+
+基础路径：`https://gitee.com/api/v5/repos/tizu/tizu-mark`
+
+| 操作 | 方法 | 路径 | 备注 |
+|------|------|------|------|
+| 列出 releases | GET | `/releases` | 返回所有 Release，取 `.id` 和 `.tag_name` |
+| 创建 release | POST | `/releases` | body 含 `tag_name`, `name`, `body`（JSON） |
+| 查看 release | GET | `/releases/{release_id}` | 验证 body 中文 |
+| 列出附件 | GET | `/releases/{release_id}/attach_files` | 返回 `[{id, name, size}]` |
+| 上传附件 | POST | `/releases/{release_id}/attach_files` | multipart/form-data, `name="file"` |
+| 删除附件 | DELETE | `/releases/{release_id}/attach_files/{file_id}` | 返回 204，**注意 release_id 不能省略** |
+| 更新 release | PATCH | `/releases/{release_id}` | body 必须包含全部字段（`tag_name`, `name`, `body`） |
+
+Token：`REDACTED_GITEE_TOKEN`
+
+### 已知 Release ID
+
+| 版本 | Release ID |
+|------|-----------|
+| v1.0.3 | 740254 |
+| v1.0.4 | 740255 |
+
+### 下载与静态文件 URL
+
+| 用途 | URL 格式 |
+|------|---------|
+| Release 附件下载 | `https://gitee.com/tizu/tizu-mark/releases/download/v{version}/{filename}` |
+| Raw 文件（master 分支） | `https://gitee.com/tizu/tizu-mark/raw/master/{path}` |
+| GitHub 最新 Release | `https://github.com/tizuio/TizuMark/releases/latest/download/{filename}` |
+
+### 更新系统端点
+
+- **Gitee raw（新版，无版本依赖）：** `https://gitee.com/tizu/tizu-mark/raw/master/update-windows-x86_64.json`
+- **GitHub latest：** `https://github.com/tizuio/TizuMark/releases/latest/download/update-windows-x86_64.json`
+- **旧版 {{current_version}} 格式（已废弃）：** `https://gitee.com/tizu/tizu-mark/releases/download/v{{current_version}}/update-windows-x86_64.json`
+
+### 签名相关
+
+- 私钥：`C:\Users\admin\.tauri\tizu-updater.key`
+- 密码：`tizu2024`（也存于 `C:\Users\admin\.tauri\tizu-updater.password`）
+- 公钥：已配置在 `src-tauri/tauri.conf.json` 的 `pubkey` 字段
+- 签名命令：`$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD="tizu2024"; npx tauri signer sign -f C:\Users\admin\.tauri\tizu-updater.key "路径\to\file.exe"`
+
+### 本地路径
+
+- 项目根：`D:\project\tizu-mark`
+- 构建产物：`src-tauri\target\release\bundle\nsis\` 和 `\msi\`
+- 本地归档：`release\`
+- 临时脚本：`scripts\`
