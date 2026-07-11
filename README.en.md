@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/Version-1.0.4-blue" alt="Version">
   <img src="https://img.shields.io/badge/Windows-7%2B-brightgreen" alt="Windows">
   <img src="https://img.shields.io/badge/macOS-Coming%20Soon-lightgrey" alt="macOS">
   <img src="https://img.shields.io/badge/Linux-Coming%20Soon-lightgrey" alt="Linux">
@@ -58,6 +58,7 @@ The world isn't short of Markdown editors. But most fall into one of two camps: 
 | Find & replace with regex | Mermaid flowcharts, sequences, Gantt, state | Dark / light theme preserved |
 | Auto bracket & quote pairing | Emoji shortcodes (`:rocket:` → 🚀) | 100% offline |
 | Insert menu (tables, callouts, TOC) | Adaptive image sizing | CJK Emoji support |
+| Image paste, auto-dedup (MD5 hash) | Auto width/height on image insert | Custom image asset path |
 
 | ⚡ Productivity | 🎨 Style | 🔧 Power |
 |---|---|---|
@@ -65,6 +66,7 @@ The world isn't short of Markdown editors. But most fall into one of two camps: 
 | Drag & drop, batch file open | Font size, line height, max width | File association: .md, .markdown |
 | Free-drag split pane ratio | Tab width, word wrap toggle | Auto-save + dirty state markers |
 | Multi-tab + right-click context menus | Fully rebindable shortcuts | Status bar word & char count |
+| Custom image asset path (relative/absolute) | Silent update check on startup | |
 
 ---
 

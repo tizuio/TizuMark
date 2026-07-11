@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.0.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/Version-1.0.4-blue" alt="Version">
   <img src="https://img.shields.io/badge/Windows-7%2B-brightgreen" alt="Windows">
   <img src="https://img.shields.io/badge/macOS-Coming%20Soon-lightgrey" alt="macOS">
   <img src="https://img.shields.io/badge/Linux-Coming%20Soon-lightgrey" alt="Linux">
@@ -58,6 +58,7 @@
 | 查找替换（支持正则） | Mermaid 流程图/时序图/甘特图/状态图 | 保留暗黑/亮色主题样式 |
 | 自动补全括号、引号 | Emoji 短代码 (`:rocket:` → 🚀) | 完全离线，无需联网 |
 | 插入菜单（表格/提示块/目录等） | 自适应图片尺寸 | 中英文 Emoji 完美适配 |
+| 图片粘贴插入、自动去重（MD5） | 图片自动带宽高属性 | 自定义图片存储路径 |
 
 | ⚡ 效率 | 🎨 个性化 | 🔧 专业 |
 |---|---|---|
@@ -65,6 +66,7 @@
 | 拖拽、批量打开文件 | 字体大小/行高/内容宽度可调 | 文件关联 .md / .markdown |
 | 编辑/预览分屏比例自由拖拽 | Tab 宽度 / 自动换行开关 | 自动保存 + 脏状态标记 |
 | 多标签页 + 右键快捷菜单 | 全套快捷键可自定义 | 状态栏实时字数统计 |
+| 自定义图片存储路径（相对/绝对） | 静默检查更新，有新版自动提示 | |
 
 ---
 

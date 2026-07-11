@@ -154,6 +154,69 @@ The toolbar **Insert** button provides quick Markdown element insertion.
 - Link — `[text](URL)`
 - Image — `![alt](image-url)`
 
+---
+
+## Image Management
+
+TizuMark offers comprehensive image support with multiple insertion methods and auto-dedup.
+
+### Insert an Image
+
+| Method | Action | Description |
+|--------|--------|-------------|
+| Paste | <kbd>Ctrl</kbd> + <kbd>V</kbd> | Paste an image from clipboard (screenshot, copied image, etc.) |
+| Insert Dialog | `Insert → Image` | Choose a local file or enter a network image URL |
+| Drag & Drop | Drag image file | Drop an image file from file explorer into the editor |
+
+### Auto Deduplication
+
+Images with identical content are stored only once. TizuMark uses **MD5 hash** for content comparison:
+
+- On paste or insert, the file's MD5 is computed automatically
+- If the image already exists, the existing file is reused
+- Same filename with different content will not conflict
+
+### Image Storage Path
+
+Configured at `File → Settings → Image Asset Path`:
+
+- **Relative** (default): Relative to the current Markdown file's directory
+- **Absolute**: Uses a fixed directory (e.g. `D:\assets`)
+
+A dynamic hint below the setting shows the actual reference path for confirmation.
+
+### Auto Width & Height
+
+Images are inserted with original dimensions automatically:
+
+```html
+<img src="assets/abc123.png" width="800" height="600" alt="example">
+```
+
+You can edit or remove `width`/`height` directly in the source:
+
+- Change to a percentage: `width="100%"`
+- Remove entirely: the editor renders at original dimensions
+
+---
+
+## Auto Updates
+
+TizuMark silently checks for updates on startup:
+
+| Scenario | Behavior |
+|----------|----------|
+| Startup check | Silent — no dialog, no toast |
+| New version found | Update dialog appears automatically with version, release notes, and download button |
+| Already up-to-date | Nothing happens |
+| Manual check | `Help → Check for Updates` — shows dialog if update found, toasts otherwise |
+| Check failed | Toast notification "Check for updates failed" |
+
+Update dialog:
+- Shows current and new version
+- Renders release notes (Markdown)
+- Click "Download" → progress bar → "Install Now" → install & restart
+
 ## Full Syntax Reference
 
 [Open the Demo file for all syntax examples →](../demo.md)
