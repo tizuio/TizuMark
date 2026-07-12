@@ -910,7 +910,8 @@ body.is-resizing * {
 }
 
 body.is-resizing .editor-pane,
-body.is-resizing .preview-pane {
+body.is-resizing .preview-pane,
+body.is-resizing .outline-sidebar {
   transition: none !important;
 }
 
@@ -1009,6 +1010,18 @@ body.is-resizing .preview-pane {
 }
 
 .resizer:hover { background-color: var(--accent-color); }
+
+.outline-resizer {
+  width: 4px;
+  flex-shrink: 0;
+  background-color: var(--border-color);
+  cursor: col-resize;
+  transition: background-color 0.2s;
+  position: relative;
+  z-index: 5;
+}
+
+.outline-resizer:hover { background-color: var(--accent-color); }
 
 #preview-wrapper {
   flex: 1;
@@ -1679,7 +1692,6 @@ body.is-resizing .preview-pane {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width 0.3s ease, min-width 0.3s ease, border-right 0.3s ease;
 }
 
 .outline-sidebar.hidden {

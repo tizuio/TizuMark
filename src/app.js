@@ -586,6 +586,7 @@ class MarkdownEditor {
     this.initSettings();
     this.initShortcutsDialog();
     this.initOutline();
+    this.initOutlineResizer();
     this.updateOutlineCheck();
     this.initContextMenu();
     this.initInsertMenu();
@@ -1029,6 +1030,7 @@ class MarkdownEditor {
       imageInsertMode: 'assets',
       imageAssetPath: 'assets',
       imageAssetPathMode: 'relative',
+      outlineWidth: 240,
     };
     try {
       const saved = JSON.parse(localStorage.getItem('tizumark-settings'));
@@ -1186,6 +1188,9 @@ class MarkdownEditor {
     const outlineClose = document.getElementById('outline-close');
 
     outlineClose.addEventListener('click', () => {
+      this.settings.outlineWidth = outlineSidebar.offsetWidth;
+      this.saveSettings();
+      outlineSidebar.style.width = '';
       outlineSidebar.classList.add('hidden');
       this.updateOutlineCheck();
       this.updateSideButtons();
@@ -1196,19 +1201,62 @@ class MarkdownEditor {
     const outlineSidebar = document.getElementById('outline-sidebar');
     const sideLeft = document.getElementById('btn-side-left');
     const sideRight = document.getElementById('btn-side-right');
-    const outlineWidth = outlineSidebar.classList.contains('hidden') ? 0 : 240;
+    const outlineWidth = outlineSidebar.classList.contains('hidden') ? 0 : outlineSidebar.offsetWidth;
     sideLeft.style.left = outlineWidth + 'px';
     sideRight.style.left = '';
   }
 
   toggleOutline() {
     const outlineSidebar = document.getElementById('outline-sidebar');
-    outlineSidebar.classList.toggle('hidden');
+    const wasHidden = outlineSidebar.classList.contains('hidden');
+    if (wasHidden) {
+      outlineSidebar.style.width = (this.settings.outlineWidth || 240) + 'px';
+      outlineSidebar.classList.remove('hidden');
+    } else {
+      this.settings.outlineWidth = outlineSidebar.offsetWidth;
+      this.saveSettings();
+      outlineSidebar.style.width = '';
+      outlineSidebar.classList.add('hidden');
+    }
     this.updateOutlineCheck();
     if (!outlineSidebar.classList.contains('hidden')) {
       this.updateOutline();
     }
     this.updateSideButtons();
+  }
+
+  initOutlineResizer() {
+    const resizer = document.getElementById('outline-resizer');
+    const sidebar = document.getElementById('outline-sidebar');
+    let isResizing = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    resizer.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      isResizing = true;
+      startX = e.clientX;
+      startWidth = sidebar.offsetWidth;
+      document.body.classList.add('is-resizing');
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isResizing) return;
+      const delta = e.clientX - startX;
+      let newWidth = startWidth + delta;
+      newWidth = Math.max(140, Math.min(500, newWidth));
+      sidebar.style.width = newWidth + 'px';
+      this.cm.refresh();
+      this.updateSideButtons();
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!isResizing) return;
+      isResizing = false;
+      document.body.classList.remove('is-resizing');
+      this.settings.outlineWidth = sidebar.offsetWidth;
+      this.saveSettings();
+    });
   }
 
   updateOutlineCheck() {
@@ -1426,6 +1474,7 @@ class MarkdownEditor {
       imageInsertMode: 'assets',
       imageAssetPath: 'assets',
       imageAssetPathMode: 'relative',
+      outlineWidth: 240,
     };
     this.settings = defaults;
     localStorage.removeItem('tizumark-settings');
