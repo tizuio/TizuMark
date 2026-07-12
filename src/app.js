@@ -1210,7 +1210,7 @@ class MarkdownEditor {
     const outlineSidebar = document.getElementById('outline-sidebar');
     const wasHidden = outlineSidebar.classList.contains('hidden');
     if (wasHidden) {
-      outlineSidebar.style.width = (this.settings.outlineWidth || 240) + 'px';
+      outlineSidebar.style.width = (this.settings.outlineWidth ?? 240) + 'px';
       outlineSidebar.classList.remove('hidden');
     } else {
       this.settings.outlineWidth = outlineSidebar.offsetWidth;
@@ -1244,7 +1244,7 @@ class MarkdownEditor {
       if (!isResizing) return;
       const delta = e.clientX - startX;
       let newWidth = startWidth + delta;
-      newWidth = Math.max(140, Math.min(500, newWidth));
+      newWidth = Math.max(80, Math.min(500, newWidth));
       sidebar.style.width = newWidth + 'px';
       this.cm.refresh();
       this.updateSideButtons();
@@ -2864,17 +2864,17 @@ class MarkdownEditor {
     const wrapper = document.getElementById('editor-wrapper');
     if (!wrapper) return;
     wrapper.addEventListener('paste', (e) => {
-      const items = e.clipboardData.items;
+      const items = Array.from(e.clipboardData.items).filter(i => i.type.startsWith('image/'));
+      if (items.length === 0) return;
+      e.preventDefault();
       for (const item of items) {
-        if (item.type.startsWith('image/')) {
-          e.preventDefault();
-          const file = item.getAsFile();
-          if (file) {
-            this.handlePasteImage(file).catch(err => {
-              this.setStatus(this.t('imagePasteFailed') + ': ' + err);
-            });
-          }
-          return;
+        const file = item.getAsFile();
+        if (file) {
+          this.handlePasteImage(file).catch(err => {
+            this.setStatus(this.t('imagePasteFailed') + ': ' + err);
+          });
+        } else {
+          this.showToast('无法读取剪贴板图片');
         }
       }
     });
@@ -2953,7 +2953,7 @@ class MarkdownEditor {
         this.showToast(this.t('imageUrlRequired'));
         return;
       }
-      this.insertImageBlock(`![${alt || 'image'}](${url})`, alt.length + 4);
+      this.insertImageBlock(`![${alt || 'image'}](${url})`);
     }
     this.hideInsertImageDialog();
     this.cm.focus();
@@ -2966,7 +2966,8 @@ class MarkdownEditor {
       return;
     }
     const { assetsDir, refPrefix } = this.getImageAssetPath();
-    const ext = filePath.split('.').pop().toLowerCase() || 'png';
+    const extMatch = filePath.match(/\.([^.]+)$/);
+    const ext = extMatch ? extMatch[1].toLowerCase() : 'png';
     try {
       const content = await invoke('fetch_image_as_base64', { url: filePath });
       const bytes = Uint8Array.from(atob(content), c => c.charCodeAt(0));
@@ -2976,7 +2977,7 @@ class MarkdownEditor {
       const h = info.height || '';
       const dimAttr = w ? ` width="${w}" height="${h}"` : '';
       const imgTag = `<img src="${src}"${dimAttr} alt="${alt || info.filename}">`;
-      this.insertImageBlock(imgTag, alt.length + 10);
+      this.insertImageBlock(imgTag);
       this.setStatus(this.t('imagePasted'));
     } catch (err) {
       this.showToast(this.t('imagePasteFailed') + ': ' + err);
@@ -2986,7 +2987,8 @@ class MarkdownEditor {
   async insertLocalImageBase64(filePath, alt) {
     try {
       const base64 = await invoke('fetch_image_as_base64', { url: filePath });
-      const ext = filePath.split('.').pop().toLowerCase();
+      const extMatch = filePath.match(/\.([^.]+)$/);
+      const ext = extMatch ? extMatch[1].toLowerCase() : 'png';
       let mime = 'image/png';
       if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
       else if (ext === 'gif') mime = 'image/gif';
@@ -2995,7 +2997,7 @@ class MarkdownEditor {
       else if (ext === 'bmp') mime = 'image/bmp';
       else if (ext === 'ico') mime = 'image/x-icon';
       const dataUrl = `data:${mime};base64,${base64}`;
-      this.insertImageBlock(`![${alt || 'image'}](${dataUrl})`, alt.length + 4);
+      this.insertImageBlock(`![${alt || 'image'}](${dataUrl})`);
       this.setStatus(this.t('imagePasted'));
     } catch (err) {
       this.showToast(this.t('imagePasteFailed') + ': ' + err);
@@ -3019,19 +3021,18 @@ class MarkdownEditor {
       const w = info.width || '';
       const h = info.height || '';
       const dimAttr = w ? ` width="${w}" height="${h}"` : '';
-      this.insertImageBlock(`<img src="${src}"${dimAttr} alt="${alt}">`, 2);
+      this.insertImageBlock(`<img src="${src}"${dimAttr} alt="${alt}">`);
       this.setStatus(this.t('imagePasted'));
     } else {
-      const buf = await file.arrayBuffer();
-      const bytes = new Uint8Array(buf);
-      let binary = '';
-      for (let i = 0; i < bytes.length; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const base64 = btoa(binary);
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
       const mime = file.type || 'image/png';
       const dataUrl = `data:${mime};base64,${base64}`;
-      this.insertImageBlock(`![image](${dataUrl})`, 2);
+      this.insertImageBlock(`![image](${dataUrl})`);
       this.setStatus(this.t('imagePasted'));
     }
   }
@@ -3891,10 +3892,12 @@ ${clone.innerHTML}
     const promises = Array.from(images).map(async (img) => {
       let src = img.getAttribute('src');
       if (!src || src.startsWith('data:') || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('file://')) return;
+      const gen = this._renderGeneration;
       // Absolute path (Unix /... or Windows D:/...) — load directly
       if (src.startsWith('/') || /^[a-zA-Z]:[/\\]/.test(src)) {
         try {
           const base64 = await invoke('fetch_image_as_base64', { url: src });
+          if (gen !== this._renderGeneration) return;
           const ext = src.split('.').pop().toLowerCase();
           let mime = 'image/png';
           if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
@@ -3904,6 +3907,9 @@ ${clone.innerHTML}
           img.src = `data:${mime};base64,${base64}`;
         } catch (e) {
           console.warn('[preview] Failed to load image:', src, e);
+          img.style.border = '1px solid #d00';
+          img.style.opacity = '0.4';
+          img.alt = (img.alt || '') + ' [加载失败]';
         }
         return;
       }
@@ -3911,6 +3917,7 @@ ${clone.innerHTML}
       const absPath = dir + '/' + src;
       try {
         const base64 = await invoke('fetch_image_as_base64', { url: absPath });
+        if (gen !== this._renderGeneration) return;
         const ext = src.split('.').pop().toLowerCase();
         let mime = 'image/png';
         if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
@@ -3920,6 +3927,9 @@ ${clone.innerHTML}
         img.src = `data:${mime};base64,${base64}`;
       } catch (e) {
         console.warn('[preview] Failed to load image:', absPath, e);
+        img.style.border = '1px solid #d00';
+        img.style.opacity = '0.4';
+        img.alt = (img.alt || '') + ' [加载失败]';
       }
     });
     await Promise.allSettled(promises);
@@ -4388,6 +4398,9 @@ ${clone.innerHTML}
     ['checking', 'available', 'latest'].forEach(s => {
       document.getElementById('update-state-' + s).classList.toggle('hidden', s !== state);
     });
+    const titles = { checking: '检查更新', available: '发现新版本', latest: '已是最新' };
+    const titleEl = document.getElementById('update-title');
+    if (titleEl) titleEl.textContent = titles[state] || '发现新版本';
     const btn = document.getElementById('update-action');
     if (state === 'checking') {
       btn.disabled = true;
@@ -4397,6 +4410,8 @@ ${clone.innerHTML}
   }
 
   async checkUpdate(showUpToDate = false) {
+    const checkId = (this._updateCheckId || 0) + 1;
+    this._updateCheckId = checkId;
     this._updateDismissed = false;
     if (showUpToDate) {
       this.showUpdateDialog();
@@ -4405,7 +4420,7 @@ ${clone.innerHTML}
     try {
       const { invoke } = window.__TAURI__.core;
       const result = await invoke('plugin:updater|check');
-      if (this._updateDismissed) return;
+      if (this._updateCheckId !== checkId || this._updateDismissed) return;
       if (!result) {
         if (showUpToDate) {
           this.showUpdateState('latest');
@@ -4421,6 +4436,7 @@ ${clone.innerHTML}
       document.getElementById('update-new-version').textContent = update.version;
       try {
         const ver = await window.__TAURI__.app.getVersion();
+        if (this._updateCheckId !== checkId || this._updateDismissed) return;
         document.getElementById('update-current-version').textContent = ver;
       } catch (_) {}
       const notesEl = document.getElementById('update-notes-body');
@@ -4503,12 +4519,14 @@ ${clone.innerHTML}
 
   async installUpdate() {
     if (!this.pendingUpdateRid || !this.pendingBytesRid) return;
+    document.getElementById('update-action').disabled = true;
     this.hideUpdateDialog();
     try {
       const { invoke } = window.__TAURI__.core;
       await invoke('plugin:updater|install', { updateRid: this.pendingUpdateRid, bytesRid: this.pendingBytesRid });
     } catch (err) {
       console.error('Install failed:', err);
+      document.getElementById('update-action').disabled = false;
       this.showToast(this.t('updateFailed'));
     }
   }
@@ -4596,7 +4614,7 @@ ${clone.innerHTML}
     this.cm.focus();
   }
 
-  insertImageBlock(text, cursorOffset) {
+  insertImageBlock(text) {
     const cursor = this.cm.getCursor();
     const line = this.cm.getLine(cursor.line);
     const afterText = line.slice(cursor.ch);
@@ -4873,10 +4891,10 @@ ${clone.innerHTML}
       );
       if (result === 'cancel') return;
       if (result === 'save') {
-        const ok = await this.batchSaveTabs(modified);
+        const ok = await this.batchSaveTabs(otherModified);
         if (!ok) return;
       } else {
-        for (const tab of modified) {
+        for (const tab of otherModified) {
           tab.content = tab.savedContent;
         }
         this.cm.setValue(this.activeTab.content);
@@ -4930,8 +4948,10 @@ ${clone.innerHTML}
   }
 
   async batchSaveTabs(tabs) {
+    const rollback = new Map();
     for (const tab of tabs) {
       if (!tab.isModified) continue;
+      rollback.set(tab, tab.savedContent);
       try {
         if (!tab.filePath) {
           const path = await dialogSave({
@@ -4940,7 +4960,12 @@ ${clone.innerHTML}
               { name: this.t('allFiles'), extensions: ['*'] }
             ]
           });
-          if (!path) return false;
+          if (!path) {
+            for (const [t, sc] of rollback) {
+              if (t !== tab) t.savedContent = sc;
+            }
+            return false;
+          }
           tab.filePath = path;
           tab.name = path.split(/[/\\]/).pop();
         }
@@ -4948,6 +4973,9 @@ ${clone.innerHTML}
         tab.savedContent = tab.content;
       } catch (error) {
         this.setStatus(`${this.t('saveFailed')}: ${error}`);
+        for (const [t, sc] of rollback) {
+          if (t !== tab) t.savedContent = sc;
+        }
         return false;
       }
     }
@@ -5181,7 +5209,7 @@ function initEula() {
       resolve(true);
     };
 
-    const autoTimer = setTimeout(autoAccept, 60000);
+    const autoTimer = setTimeout(autoAccept, 20000);
 
     const gplLink = overlay.querySelector('.gpl-link');
     if (gplLink) {
