@@ -178,6 +178,7 @@ const I18N = {
     exportedImg: '已导出长图',
     exportedHTML: '已导出 HTML',
     exportedPDF: '已导出 PDF',
+    exportError: '导出失败',
     printTip1: '可在<b>更多设置</b>中<b>取消勾选"页眉和页脚"</b>，去除 PDF 顶部的日期、标题等多余信息。',
     printTip2: '如果代码高亮或背景色显示异常，请在<b>更多设置</b>中<b>勾选"背景图形"</b>。',
     editor: '编辑器',
@@ -288,6 +289,11 @@ const I18N = {
     updateFailed: '检查更新失败',
     updateProgress: '下载中 {pct}%',
     noUpdateNotes: '暂无更新说明',
+    unsafeRegex: '正则表达式不安全或过长',
+    filesModifiedConfirm: '有 {n} 个文件未保存，是否保存更改？',
+    saveAll: '保存全部',
+    discardAll: '放弃全部',
+    fileOpened: '已打开: {name}',
   },
   en: {
     file: 'File',
@@ -443,6 +449,7 @@ const I18N = {
     exportedImg: 'Exported image',
     exportedHTML: 'Exported HTML',
     exportedPDF: 'PDF exported',
+    exportError: 'Export failed',
     printTip1: 'Go to <b>More settings</b> and <b>uncheck "Headers and footers"</b> to remove date, title and other extra info from the PDF.',
     printTip2: 'If code highlighting or background colors look wrong, go to <b>More settings</b> and <b>check "Background graphics"</b>.',
     editor: 'Editor',
@@ -554,6 +561,11 @@ const I18N = {
     updateFailed: 'Check for updates failed',
     updateProgress: 'Downloading {pct}%',
     noUpdateNotes: 'No release notes',
+    unsafeRegex: 'Unsafe or too long regex pattern',
+    filesModifiedConfirm: '{n} unsaved files. Save changes?',
+    saveAll: 'Save All',
+    discardAll: 'Discard All',
+    fileOpened: 'Opened: {name}',
   }
 };
 
@@ -565,6 +577,7 @@ class MarkdownEditor {
     this.cm = null;
     this.debounceTimer = null;
     this._renderGeneration = 0;
+    this._mermaidGeneration = 0;
     this._linePositions = [{ line: 0, fraction: 0 }];
     this._blocks = [];
     this._previewChildrenCount = 0;
@@ -720,29 +733,33 @@ class MarkdownEditor {
     document.querySelector('#preview-pane .pane-header span').textContent = t('panePreview');
     setText('outline-header-title', t('outline'));
 
-    // Settings dialog
+    // Settings dialog — use form element IDs as stable anchors
     document.querySelector('#settings-dialog .dialog-header h2').textContent = t('settings');
-    // 基本
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) h3').textContent = t('basic');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(2) label').textContent = t('language');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(3) label').textContent = t('themeMode');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(4) label').textContent = t('colorScheme');
-    document.querySelector('#settings-dialog .settings-section:nth-child(1) .settings-row:nth-child(5) label').textContent = t('fontScheme');
-    // 编辑器
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) h3').textContent = t('editor');
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(2) label').textContent = t('fontSize');
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(3) label').textContent = t('tabSize');
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(4) label').textContent = t('lineWrap');
-    document.querySelector('#settings-dialog .settings-section:nth-child(2) .settings-row:nth-child(5) label').textContent = t('lineNumbers');
-    // 预览
-    document.querySelector('#settings-dialog .settings-section:nth-child(3) h3').textContent = t('previewSection');
-    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row:nth-child(2) label').textContent = t('previewFontSize');
-    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row:nth-child(3) label').textContent = t('lineHeight');
-    document.querySelector('#settings-dialog .settings-section:nth-child(3) .settings-row:nth-child(4) label').textContent = t('maxWidth');
-    // 行为
-    document.querySelector('#settings-dialog .settings-section:nth-child(4) h3').textContent = t('behavior');
-    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(2) label').textContent = t('defaultView');
-    document.querySelector('#settings-dialog .settings-section:nth-child(4) .settings-row:nth-child(3) label').textContent = t('scrollSync');
+    const setSectionTitle = (anchorId, text) => {
+      const el = document.getElementById(anchorId);
+      if (el) { const h3 = el.closest('.settings-section').querySelector('h3'); if (h3) h3.textContent = text; }
+    };
+    const setRowLabel = (formId, text) => {
+      const el = document.getElementById(formId);
+      if (el) { const label = el.closest('.settings-row').querySelector(':scope > label:not(.toggle)'); if (label) label.textContent = text; }
+    };
+    setSectionTitle('set-language', t('basic'));
+    setRowLabel('set-language', t('language'));
+    setRowLabel('set-theme-mode', t('themeMode'));
+    setRowLabel('set-color-scheme', t('colorScheme'));
+    setRowLabel('set-font-scheme', t('fontScheme'));
+    setSectionTitle('set-font-size', t('editor'));
+    setRowLabel('set-font-size', t('fontSize'));
+    setRowLabel('set-tab-size', t('tabSize'));
+    setRowLabel('set-line-wrap', t('lineWrap'));
+    setRowLabel('set-line-numbers', t('lineNumbers'));
+    setSectionTitle('set-preview-font-size', t('previewSection'));
+    setRowLabel('set-preview-font-size', t('previewFontSize'));
+    setRowLabel('set-line-height', t('lineHeight'));
+    setRowLabel('set-max-width', t('maxWidth'));
+    setSectionTitle('set-default-view', t('behavior'));
+    setRowLabel('set-default-view', t('defaultView'));
+    setRowLabel('set-scroll-sync', t('scrollSync'));
     setText('setting-image-store-assets', t('imageSettingAssets'));
     setText('setting-image-store-base64', t('imageSettingBase64'));
     document.querySelector('#setting-image-store-hint .hint-text').textContent = t('imageSettingHint');
@@ -1063,7 +1080,7 @@ class MarkdownEditor {
   }
 
   saveSettings() {
-    localStorage.setItem('tizumark-settings', JSON.stringify(this.settings));
+    try { localStorage.setItem('tizumark-settings', JSON.stringify(this.settings)); } catch {}
   }
 
   async initSettings() {
@@ -1402,16 +1419,15 @@ class MarkdownEditor {
 
   async rerenderMermaid() {
     if (typeof mermaid === 'undefined') return;
+    const gen = ++this._mermaidGeneration;
     const containers = this.preview.querySelectorAll('.mermaid-container');
     if (containers.length === 0) return;
 
     // 保存代码并创建全新容器（避免复用旧容器的渲染状态）
-    const codes = [];
     const containerData = [];
     containers.forEach(container => {
       const code = container.getAttribute('data-code') || container.textContent;
       const sourceLine = container.getAttribute('data-source-line');
-      codes.push(code);
       containerData.push({
         code,
         sourceLine,
@@ -1438,16 +1454,16 @@ class MarkdownEditor {
     // 移除旧容器
     containers.forEach(c => c.remove());
 
+    if (this._mermaidGeneration !== gen) return;
+
     try {
-      const newContainers = this.preview.querySelectorAll('.mermaid-container');
-      if (newContainers.length === 0) return;
       mermaid.initialize({
         startOnLoad: false,
         theme: this.isDark ? 'dark' : 'default',
         securityLevel: 'loose',
         fontFamily: getComputedStyle(document.documentElement).getPropertyValue('--font-preview').trim() || '-apple-system, sans-serif',
       });
-      await mermaid.run({ nodes: Array.from(newContainers) });
+      await mermaid.run({ nodes: Array.from(this.preview.querySelectorAll('.mermaid-container')) });
     } catch (e) {
       console.error('Mermaid re-render error:', e);
     }
@@ -1564,7 +1580,7 @@ class MarkdownEditor {
   }
 
   saveShortcuts() {
-    localStorage.setItem('tizumark-shortcuts', JSON.stringify(this.shortcuts));
+    try { localStorage.setItem('tizumark-shortcuts', JSON.stringify(this.shortcuts)); } catch {}
   }
 
   resetShortcuts() {
@@ -1773,8 +1789,6 @@ class MarkdownEditor {
       this.activeTab.content = this.cm.getValue();
       this.updateTabDisplay();
       this.debounceUpdatePreview();
-      this.updateWordCount();
-      this.updateOutline();
     });
 
     this.cm.on('renderLine', (cm, line, el) => {
@@ -2218,14 +2232,25 @@ class MarkdownEditor {
     const findCount = document.getElementById('find-count');
     let lastQuery = '';
 
+    const isSafeRegex = (q) => {
+      if (q.length > 500) return false;
+      // Detect nested quantifiers — the most common ReDoS pattern
+      if (/[+*?}]\)[\s]*[+*{]|[+*}]\s*[+*{]/.test(q)) return false;
+      return true;
+    };
+
+    const makeRegex = (q, flags) => {
+      try { return new RegExp(q, flags); } catch { return null; }
+    };
+
     const getSearchCursor = () => {
       const query = findInput.value;
       if (!query) return null;
       const caseSensitive = document.getElementById('find-case').checked;
       const useRegex = document.getElementById('find-regex').checked;
-      let RegExpCtor = RegExp;
       if (useRegex) {
-        try { new RegExpCtor(query); } catch { return null; }
+        if (!isSafeRegex(query)) { this.setStatus(this.t('unsafeRegex')); return null; }
+        try { new RegExp(query); } catch { return null; }
       }
       const cursor = this.cm.getSearchCursor(
         useRegex ? new RegExpCtor(query, caseSensitive ? 'g' : 'gi') : query,
@@ -2243,10 +2268,9 @@ class MarkdownEditor {
       const text = this.cm.getValue();
       let count = 0;
       if (useRegex) {
-        try {
-          const re = new RegExp(query, caseSensitive ? 'g' : 'gi');
-          count = (text.match(re) || []).length;
-        } catch { count = 0; }
+        if (!isSafeRegex(query)) { findCount.textContent = ''; return; }
+        const re = makeRegex(query, caseSensitive ? 'g' : 'gi');
+        if (re) count = (text.match(re) || []).length;
       } else {
         const lower = caseSensitive ? text : text.toLowerCase();
         const q = caseSensitive ? query : query.toLowerCase();
@@ -2266,10 +2290,11 @@ class MarkdownEditor {
         this.cm.setSelection(cursor.from(), cursor.to());
         this.cm.scrollIntoView({ from: cursor.from(), to: cursor.to() }, 100);
       } else if (cursor) {
+        const q = findInput.value;
+        const useRegex = document.getElementById('find-regex').checked;
+        if (useRegex && !isSafeRegex(q)) return;
         const cursor2 = this.cm.getSearchCursor(
-          document.getElementById('find-regex').checked
-            ? new RegExp(findInput.value, document.getElementById('find-case').checked ? 'g' : 'gi')
-            : findInput.value,
+          useRegex ? new RegExp(q, document.getElementById('find-case').checked ? 'g' : 'gi') : q,
           { line: 0, ch: 0 },
           { caseFold: !document.getElementById('find-case').checked }
         );
@@ -2309,7 +2334,8 @@ class MarkdownEditor {
       
       const currentOffset = posToOffset(cursor);
       const flags = caseSensitive ? 'g' : 'gi';
-      const regex = useRegex 
+      if (useRegex && !isSafeRegex(query)) return;
+      const regex = useRegex
         ? new RegExp(query, flags)
         : new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
       
@@ -2342,17 +2368,26 @@ class MarkdownEditor {
       const caseSensitive = document.getElementById('find-case').checked;
       const useRegex = document.getElementById('find-regex').checked;
 
-      if (useRegex) {
-        const re = new RegExp(query, caseSensitive ? 'g' : 'gi');
-        this.cm.setValue(this.cm.getValue().replace(re, replacement));
-      } else {
-        const text = this.cm.getValue();
-        if (caseSensitive) {
-          this.cm.setValue(text.split(query).join(replacement));
-        } else {
-          const re = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-          this.cm.setValue(text.replace(re, replacement));
-        }
+      if (useRegex && !isSafeRegex(query)) return;
+      const text = this.cm.getValue();
+      const re = useRegex
+        ? new RegExp(query, caseSensitive ? 'g' : 'gi')
+        : new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), caseSensitive ? 'g' : 'gi');
+      const matches = [];
+      let m;
+      while ((m = re.exec(text)) !== null) {
+        matches.push({ from: m.index, to: m.index + m[0].length });
+        if (re.lastIndex === m.index) re.lastIndex++;
+      }
+      // Apply in reverse so positions stay valid, batched as one undo event
+      if (matches.length > 0) {
+        this.cm.operation(() => {
+          for (let i = matches.length - 1; i >= 0; i--) {
+            const from = this.cm.posFromIndex(matches[i].from);
+            const to = this.cm.posFromIndex(matches[i].to);
+            this.cm.replaceRange(replacement, from, to);
+          }
+        });
       }
     });
 
@@ -2391,10 +2426,9 @@ class MarkdownEditor {
       const text = this.preview.textContent;
       let count = 0;
       if (useRegex) {
-        try {
-          const re = new RegExp(query, caseSensitive ? 'g' : 'gi');
-          count = (text.match(re) || []).length;
-        } catch { count = 0; }
+        if (!isSafeRegex(query)) { previewFindCount.textContent = ''; return; }
+        const re = makeRegex(query, caseSensitive ? 'g' : 'gi');
+        if (re) count = (text.match(re) || []).length;
       } else {
         const lower = caseSensitive ? text : text.toLowerCase();
         const q = caseSensitive ? query : query.toLowerCase();
@@ -2414,14 +2448,15 @@ class MarkdownEditor {
       let matches = [];
       
       if (useRegex) {
-        try {
-          const regex = new RegExp(query, caseSensitive ? 'g' : 'gi');
+        if (!isSafeRegex(query)) return;
+        const regex = makeRegex(query, caseSensitive ? 'g' : 'gi');
+        if (regex) {
           let m;
           while ((m = regex.exec(text)) !== null) {
             matches.push({ start: m.index, end: m.index + m[0].length });
             if (matches.length > 10000) break;
           }
-        } catch { return; }
+        }
       } else {
         const flags = caseSensitive ? 'g' : 'gi';
         const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -3115,10 +3150,14 @@ class MarkdownEditor {
           this.switchTab(existingIndex);
           continue;
         }
-        const content = await invoke('read_file', { path: filePath });
-        const name = filePath.split(/[/\\]/).pop();
-        this.addTab(name, content, filePath);
-        openedCount++;
+        try {
+          const content = await invoke('read_file', { path: filePath });
+          const name = filePath.split(/[/\\]/).pop();
+          this.addTab(name, content, filePath);
+          openedCount++;
+        } catch (e) {
+          console.error('Failed to open file:', filePath, e);
+        }
       }
       this.viewMode = 'preview';
       this.applyViewMode();
@@ -3506,10 +3545,8 @@ input[type="checkbox"]:checked::after { display: none !important; }
 <div class="preview-content">${clone.innerHTML}</div>
 </body></html>`;
 
-      // Hide overlay before showing system print dialog
-      hideOverlay();
-      clearTimeout(safetyTimer);
-
+      // Hide overlay right before print dialog, so the user sees
+      // the spinner until the system print dialog appears.
       const iframe = document.createElement('iframe');
       iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;height:600px;border:none;';
       iframe.srcdoc = html;
@@ -3526,19 +3563,25 @@ input[type="checkbox"]:checked::after { display: none !important; }
           iframe.contentWindow.removeEventListener('afterprint', after);
           if (iframe.parentNode) iframe.remove();
         }, 30000);
-        hideOverlay(); // double-safety
+        hideOverlay();
+        clearTimeout(safetyTimer);
         iframe.contentWindow.print();
       };
     } catch (e) {
       console.error('exportPDF error:', e);
       hideOverlay();
       clearTimeout(safetyTimer);
+      this.setStatus(this.t('exportError'));
     }
   }
 
   debounceUpdatePreview() {
     clearTimeout(this.debounceTimer);
-    this.debounceTimer = setTimeout(() => this.updatePreview(), 30);
+    this.debounceTimer = setTimeout(() => {
+      this.updatePreview();
+      this.updateWordCount();
+      this.updateOutline();
+    }, 30);
   }
 
   // 按空行切分为逻辑块，跟踪围栏代码块（内部不切分）
@@ -4067,7 +4110,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
         if (this.preview.scrollTop > maxScroll) this.preview.scrollTop = maxScroll;
       }
       requestAnimationFrame(() => {
-        this._resumeScroll();
+        if (gen === this._renderGeneration) this._resumeScroll();
       });
     } catch (error) {
       if (gen !== this._renderGeneration) return;
@@ -4078,8 +4121,9 @@ input[type="checkbox"]:checked::after { display: none !important; }
   }
 
   async processImages() {
+    const gen = this._renderGeneration;
     const filePath = this.activeTab.filePath;
-    if (!filePath) return;
+    if (!filePath || gen !== this._renderGeneration) return;
     const dir = filePath.replace(/[/\\][^/\\]*$/, '');
     const images = this.preview.querySelectorAll('img');
     const promises = Array.from(images).map(async (img) => {
@@ -4150,7 +4194,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
       ':bear:': '🐻', ':bird:': '🐦', ':fish:': '🐟', ':turtle:': '🐢',
       ':octopus:': '🐙', ':penguin:': '🐧', ':butterfly:': '🦋', ':bee:': '🐝',
       ':art:': '🎨', ':music:': '🎵', ':film:': '🎬', ':camera:': '📷',
-      ':lock:': '🔓', ':link:': '🔗', ':scissors:': '✂️', ':pushpin:': '📌'
+      ':unlock:': '🔓', ':link:': '🔗', ':scissors:': '✂️', ':pushpin:': '📌'
     };
 
     const walker = document.createTreeWalker(this.preview, NodeFilter.SHOW_TEXT, null, false);
@@ -4354,7 +4398,8 @@ input[type="checkbox"]:checked::after { display: none !important; }
       + (type === 'danger'
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>')
-      + '</span><span class="toast-text">' + text + '</span>';
+      + '</span><span class="toast-text"></span>';
+    el.querySelector('.toast-text').textContent = text;
     container.appendChild(el);
     setTimeout(() => {
       el.style.transition = 'opacity 0.3s, transform 0.3s';
@@ -4635,7 +4680,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
       const notesEl = document.getElementById('update-notes-body');
       if (update.body) {
         if (window.markdownit) {
-          notesEl.innerHTML = window.markdownit({ html: true, linkify: true }).render(update.body);
+          notesEl.innerHTML = window.markdownit({ html: false, linkify: true }).render(update.body);
         } else {
           notesEl.innerHTML = update.body.replace(/\n/g, '<br>');
         }
@@ -5019,9 +5064,9 @@ input[type="checkbox"]:checked::after { display: none !important; }
 
   executeMenuAction(action) {
     switch (action) {
-      case 'cut': document.execCommand('cut'); this.cm.focus(); break;
-      case 'copy': document.execCommand('copy'); this.cm.focus(); break;
-      case 'paste': document.execCommand('paste'); this.cm.focus(); break;
+      case 'cut': { const s = this.cm.getSelection(); if (s) { navigator.clipboard.writeText(s); this.cm.replaceSelection(''); } this.cm.focus(); break; }
+      case 'copy': { const s = this.cm.getSelection(); if (s) navigator.clipboard.writeText(s); this.cm.focus(); break; }
+      case 'paste': { navigator.clipboard.readText().then(t => { if (t) this.cm.replaceSelection(t); }).catch(() => {}); this.cm.focus(); break; }
       case 'find-replace': this.toggleFindPanel(true); break;
       case 'select-all': this.cm.execCommand('selectAll'); break;
 
@@ -5061,7 +5106,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
       case 'insert-link': this.showInsertLinkDialog(); break;
       case 'insert-image': this.showInsertImageDialog(); break;
 
-      case 'preview-copy': document.execCommand('copy'); break;
+      case 'preview-copy': { const s = window.getSelection(); if (s && s.toString()) navigator.clipboard.writeText(s.toString()).catch(() => {}); break; }
       case 'preview-select-all': { const range = document.createRange(); range.selectNodeContents(this.preview); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); break; }
       case 'preview-copy-html': { const sel = window.getSelection(); if (sel.rangeCount > 0) { const range = sel.getRangeAt(0); const frag = range.cloneContents(); const div = document.createElement('div'); div.appendChild(frag); navigator.clipboard.writeText(div.innerHTML); } break; }
       case 'preview-find': this.toggleFindPanel(); break;
@@ -5079,8 +5124,8 @@ input[type="checkbox"]:checked::after { display: none !important; }
     if (otherModified.length > 0) {
       const result = await this.showSaveDialog(
         this.t('saveChanges'),
-        `有 ${otherModified.length} 个文件未保存，是否保存更改？`,
-        '保存全部', '放弃全部', '取消'
+        this.t('filesModifiedConfirm', { n: otherModified.length }),
+        this.t('saveAll'), this.t('discardAll'), this.t('cancel')
       );
       if (result === 'cancel') return;
       if (result === 'save') {
@@ -5109,8 +5154,8 @@ input[type="checkbox"]:checked::after { display: none !important; }
     if (modified.length > 0) {
       const result = await this.showSaveDialog(
         this.t('saveChanges'),
-        `有 ${modified.length} 个文件未保存，是否保存更改？`,
-        '保存全部', '放弃全部', '取消'
+        this.t('filesModifiedConfirm', { n: modified.length }),
+        this.t('saveAll'), this.t('discardAll'), this.t('cancel')
       );
       if (result === 'cancel') return;
       if (result === 'save') {
@@ -5141,10 +5186,8 @@ input[type="checkbox"]:checked::after { display: none !important; }
   }
 
   async batchSaveTabs(tabs) {
-    const rollback = new Map();
     for (const tab of tabs) {
       if (!tab.isModified) continue;
-      rollback.set(tab, tab.savedContent);
       try {
         if (!tab.filePath) {
           const path = await dialogSave({
@@ -5153,12 +5196,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
               { name: this.t('allFiles'), extensions: ['*'] }
             ]
           });
-          if (!path) {
-            for (const [t, sc] of rollback) {
-              if (t !== tab) t.savedContent = sc;
-            }
-            return false;
-          }
+          if (!path) return false;
           tab.filePath = path;
           tab.name = path.split(/[/\\]/).pop();
         }
@@ -5166,9 +5204,6 @@ input[type="checkbox"]:checked::after { display: none !important; }
         tab.savedContent = tab.content;
       } catch (error) {
         this.setStatus(`${this.t('saveFailed')}: ${error}`);
-        for (const [t, sc] of rollback) {
-          if (t !== tab) t.savedContent = sc;
-        }
         return false;
       }
     }
@@ -5185,8 +5220,8 @@ input[type="checkbox"]:checked::after { display: none !important; }
       }
       const result = await this.showSaveDialog(
         this.t('saveChanges'),
-        `有 ${modified.length} 个文件未保存，是否保存更改？`,
-        '保存全部', '放弃全部', '取消'
+        this.t('filesModifiedConfirm', { n: modified.length }),
+        this.t('saveAll'), this.t('discardAll'), this.t('cancel')
       );
       if (result === 'cancel') return;
       if (result === 'save') {
@@ -5471,7 +5506,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             window.editor.addTab(name, content, filePath);
             window.editor.updateWordCount();
             window.editor.updateOutline();
-            window.editor.setStatus(`已打开: ${name}`);
+            window.editor.setStatus(window.editor.t('fileOpened', { name }));
           } catch (_) {
           }
         }
@@ -5496,7 +5531,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         window.editor.updatePreview();
         window.editor.updateWordCount();
         window.editor.updateOutline();
-        window.editor.setStatus(`已打开: ${name}`);
+        window.editor.setStatus(window.editor.t('fileOpened', { name }));
       } else if (isFirstLaunch) {
         window.editor.openUserGuide();
       }
