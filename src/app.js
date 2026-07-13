@@ -178,6 +178,8 @@ const I18N = {
     exportedImg: '已导出长图',
     exportedHTML: '已导出 HTML',
     exportedPDF: '已导出 PDF',
+    printTip1: '可在<b>更多设置</b>中<b>取消勾选"页眉和页脚"</b>，去除 PDF 顶部的日期、标题等多余信息。',
+    printTip2: '如果代码高亮或背景色显示异常，请在<b>更多设置</b>中<b>勾选"背景图形"</b>。',
     editor: '编辑器',
     previewSection: '预览',
     paneEdit: '编辑',
@@ -441,6 +443,8 @@ const I18N = {
     exportedImg: 'Exported image',
     exportedHTML: 'Exported HTML',
     exportedPDF: 'PDF exported',
+    printTip1: 'Go to <b>More settings</b> and <b>uncheck "Headers and footers"</b> to remove date, title and other extra info from the PDF.',
+    printTip2: 'If code highlighting or background colors look wrong, go to <b>More settings</b> and <b>check "Background graphics"</b>.',
     editor: 'Editor',
     previewSection: 'Preview',
     paneEdit: 'Edit',
@@ -2826,7 +2830,7 @@ class MarkdownEditor {
     return new Promise((resolve) => {
       const dialog = document.getElementById('confirm-dialog');
       document.getElementById('confirm-dialog-title').textContent = title || this.t('confirm');
-      document.getElementById('confirm-dialog-message').textContent = message || '';
+      document.getElementById('confirm-dialog-message').innerHTML = message || '';
       dialog.classList.remove('hidden');
 
       const onConfirm = () => {
@@ -3393,75 +3397,95 @@ ${clone.innerHTML}
   }
 
   async exportPDF() {
-    this.setStatus(this.t('preparingPrint'));
+    // Print tips before starting
+    const proceed = await this.showConfirmDialog(
+      this.t('exportPDF'),
+      `<div style="text-align:left;line-height:1.7;">
+        <p style="margin:0 0 8px;">${this.t('printTip1')}</p>
+        <p style="margin:0;">${this.t('printTip2')}</p>
+      </div>`
+    );
+    if (!proceed) return;
 
-    const clone = this.preview.cloneNode(true);
-    clone.querySelectorAll('.copy-btn, #abbr-data').forEach(el => el.remove());
+    // --- Loading overlay ---
+    const overlay = document.createElement('div');
+    overlay.innerHTML = `<div class="pdf-loading-spinner"></div><div class="pdf-loading-text">${this.t('preparingPrint')}</div>`;
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);font-family:-apple-system,sans-serif;';
+    if (!document.getElementById('pdf-loading-style')) {
+      const s = document.createElement('style');
+      s.id = 'pdf-loading-style';
+      s.textContent = '.pdf-loading-spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,0.25);border-top-color:#fff;border-radius:50%;animation:pdf-spin .7s linear infinite;margin-bottom:14px;}@keyframes pdf-spin{to{transform:rotate(360deg)}}.pdf-loading-text{color:#fff;font-size:15px;letter-spacing:.5px;}';
+      document.head.appendChild(s);
+    }
+    document.body.appendChild(overlay);
 
-    // Re-render Mermaid at print width. Essential: narrow preview panes
-    // make Mermaid stack class/ER boxes vertically → tall viewBoxes that
-    // blow up when rendered at print width.
-    const mermaidContainers = Array.from(clone.querySelectorAll('.mermaid-container'));
-    if (typeof mermaid !== 'undefined' && mermaidContainers.length) {
-      const temp = document.createElement('div');
-      temp.style.cssText = 'position:absolute;width:680px;visibility:hidden;';
-      document.body.appendChild(temp);
-      mermaidContainers.forEach(c => {
-        const d = document.createElement('div');
-        d.className = 'mermaid-container';
-        d.textContent = c.getAttribute('data-code') || c.textContent;
-        temp.appendChild(d);
-      });
-      try {
+    let overlayDone = false;
+    const hideOverlay = () => {
+      if (overlayDone) return;
+      overlayDone = true;
+      if (overlay.parentNode) overlay.remove();
+    };
+    const safetyTimer = setTimeout(hideOverlay, 30000);
+
+    try {
+      // Yield so the overlay paints before CPU-heavy Mermaid work
+      await new Promise(r => requestAnimationFrame(r));
+
+      const clone = this.preview.cloneNode(true);
+      clone.querySelectorAll('.copy-btn, #abbr-data').forEach(el => el.remove());
+
+      // Re-render Mermaid via mermaid.render() so every diagram gets a
+      // consistent viewBox regardless of the current preview-pane width.
+      const mermaidContainers = Array.from(clone.querySelectorAll('.mermaid-container'));
+      if (typeof mermaid !== 'undefined' && mermaidContainers.length) {
         const ff = getComputedStyle(document.documentElement).getPropertyValue('--font-preview').trim() || '-apple-system, sans-serif';
         mermaid.initialize({ startOnLoad: false, theme: this.isDark ? 'dark' : 'default', securityLevel: 'loose', fontFamily: ff, themeVariables: { fontSize: '14px' } });
-        await mermaid.run({ nodes: Array.from(temp.querySelectorAll('.mermaid-container')) });
-        const rendered = Array.from(temp.querySelectorAll('.mermaid-container'));
-        mermaidContainers.forEach((oldC, i) => {
-          if (rendered[i]) {
-            const svg = rendered[i].querySelector('svg');
-            if (svg) svg.removeAttribute('style');
-            oldC.replaceWith(rendered[i].cloneNode(true));
+        for (let i = 0; i < mermaidContainers.length; i++) {
+          const code = (mermaidContainers[i].getAttribute('data-code') || mermaidContainers[i].textContent || '').trim();
+          if (!code) continue;
+          try {
+            const result = await mermaid.render('pdf-mermaid-' + i, code);
+            const wrapper = document.createElement('div');
+            wrapper.className = 'mermaid-container';
+            wrapper.innerHTML = result.svg;
+            const svgEl = wrapper.querySelector('svg');
+            if (svgEl) {
+              svgEl.removeAttribute('style');
+              svgEl.removeAttribute('width');
+              svgEl.removeAttribute('height');
+              const vb = svgEl.getAttribute('viewBox');
+              if (vb) {
+                const parts = vb.split(/\s+/);
+                if (parts.length >= 4) {
+                  svgEl.setAttribute('width', parts[2]);
+                  svgEl.setAttribute('height', parts[3]);
+                }
+              }
+            }
+            mermaidContainers[i].replaceWith(wrapper);
+          } catch (e) {
+            console.error('Mermaid PDF render error for diagram', i, ':', e);
           }
-        });
-      } catch (e) {
-        console.error('Mermaid PDF re-render error:', e);
-      } finally {
-        temp.remove();
+        }
       }
-    }
 
-    const escapedTitle = this.activeTab.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const escapedTitle = this.activeTab.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-    let appCSS = '';
-    try {
-      const resp = await fetch('styles.css');
-      if (resp.ok) appCSS = await resp.text();
-    } catch (e) { /* skip */ }
+      let appCSS = '';
+      try { const resp = await fetch('styles.css'); if (resp.ok) appCSS = await resp.text(); } catch (e) { /* skip */ }
+      let hljsCSS = '';
+      try { const themeLink = document.getElementById('highlight-theme'); if (themeLink) { const resp = await fetch(themeLink.getAttribute('href')); if (resp.ok) hljsCSS = await resp.text(); } } catch (e) { /* skip */ }
+      let katexCSS = '';
+      try { const resp = await fetch('lib/katex/katex.min.css'); if (resp.ok) katexCSS = await resp.text(); } catch (e) { /* skip */ }
 
-    let hljsCSS = '';
-    try {
-      const themeLink = document.getElementById('highlight-theme');
-      if (themeLink) {
-        const resp = await fetch(themeLink.getAttribute('href'));
-        if (resp.ok) hljsCSS = await resp.text();
-      }
-    } catch (e) { /* skip */ }
+      const colorScheme = document.documentElement.getAttribute('data-color-scheme') || 'default';
 
-    let katexCSS = '';
-    try {
-      const resp = await fetch('lib/katex/katex.min.css');
-      if (resp.ok) katexCSS = await resp.text();
-    } catch (e) { /* skip */ }
-
-    const colorScheme = document.documentElement.getAttribute('data-color-scheme') || 'default';
-
-    const printCSS = `
+      const printCSS = `
 @page { margin: 1.5cm; }
 html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
 .preview-content { max-width: 680px !important; margin: 0 auto !important; padding: 16px 24px !important; }
-.mermaid-container { max-width: 100% !important; overflow: hidden !important; break-inside: avoid; page-break-inside: avoid; }
-.mermaid-container svg { max-width: 100% !important; height: auto !important; display: block !important; margin: 0 auto !important; }
+.mermaid-container { margin: 8px 0 !important; max-width: 100% !important; overflow: hidden !important; break-inside: avoid; page-break-inside: avoid; }
+.mermaid-container svg { width: auto !important; max-width: 100% !important; height: auto !important; display: block !important; margin: 0 auto !important; }
 .mermaid-container svg text, .mermaid-container svg .nodeLabel, .mermaid-container svg .edgeLabel, .mermaid-container svg .label, .mermaid-container svg textPath { font-size: 14px !important; }
 .mermaid-container svg foreignObject,
 .mermaid-container svg foreignObject div,
@@ -3474,7 +3498,7 @@ input[type="checkbox"]:checked { background: #16a34a url("data:image/svg+xml;bas
 input[type="checkbox"]:checked::after { display: none !important; }
 `;
 
-    const html = `<!DOCTYPE html>
+      const html = `<!DOCTYPE html>
 <html lang="zh-CN" data-color-scheme="${colorScheme}" data-theme="light">
 <head><meta charset="UTF-8"><title>${escapedTitle}</title>
 <style>${appCSS}${hljsCSS}${katexCSS}${printCSS}</style></head>
@@ -3482,24 +3506,34 @@ input[type="checkbox"]:checked::after { display: none !important; }
 <div class="preview-content">${clone.innerHTML}</div>
 </body></html>`;
 
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;height:600px;border:none;';
-    iframe.srcdoc = html;
-    document.body.appendChild(iframe);
+      // Hide overlay before showing system print dialog
+      hideOverlay();
+      clearTimeout(safetyTimer);
 
-    iframe.onload = () => {
-      const after = () => {
-        iframe.contentWindow.removeEventListener('afterprint', after);
-        iframe.remove();
-        this.setStatus(this.t('exportedPDF'));
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:680px;height:600px;border:none;';
+      iframe.srcdoc = html;
+      document.body.appendChild(iframe);
+
+      iframe.onload = () => {
+        const after = () => {
+          iframe.contentWindow.removeEventListener('afterprint', after);
+          iframe.remove();
+          this.setStatus(this.t('exportedPDF'));
+        };
+        iframe.contentWindow.addEventListener('afterprint', after);
+        setTimeout(() => {
+          iframe.contentWindow.removeEventListener('afterprint', after);
+          if (iframe.parentNode) iframe.remove();
+        }, 30000);
+        hideOverlay(); // double-safety
+        iframe.contentWindow.print();
       };
-      iframe.contentWindow.addEventListener('afterprint', after);
-      setTimeout(() => {
-        iframe.contentWindow.removeEventListener('afterprint', after);
-        if (iframe.parentNode) iframe.remove();
-      }, 30000);
-      iframe.contentWindow.print();
-    };
+    } catch (e) {
+      console.error('exportPDF error:', e);
+      hideOverlay();
+      clearTimeout(safetyTimer);
+    }
   }
 
   debounceUpdatePreview() {
