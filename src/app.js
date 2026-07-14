@@ -168,7 +168,7 @@ const I18N = {
     copyrightLine: 'Copyright (c) 2024-2026 TizuMark',
     proprietary: '本软件基于 GPL v3 开源协议发布。',
     noUnauthorized: '欢迎自由使用、修改和分发，衍生作品须延续 GPL v3 协议。',
-    shortcutLabel: { newFile: '新建文件', openFile: '打开文件', saveFile: '保存文件', closeTab: '关闭标签页', find: '查找（编辑器）', findReplace: '查找替换', nextTab: '下一个标签页', prevTab: '上一个标签页', bold: '加粗', italic: '斜体', insertLink: '插入链接', exportPDF: '导出 PDF', inlineCode: '行内代码', strikethrough: '删除线', codeBlock: '代码块', blockquote: '引用块', toggleTheme: '切换主题', saveAs: '另存为', previewFind: '预览查找', insertTable: '插入表格', insertImage: '插入图片', insertUl: '无序列表', insertOl: '有序列表', insertTask: '任务列表', insertHr: '水平线', highlight: '高亮标记' },
+    shortcutLabel: { newFile: '新建文件', openFile: '打开文件', saveFile: '保存文件', closeTab: '关闭标签页', find: '查找（编辑器）', findReplace: '查找替换', nextTab: '下一个标签页', prevTab: '上一个标签页', bold: '加粗', italic: '斜体', insertLink: '插入链接', exportPDF: '导出 PDF', inlineCode: '行内代码', strikethrough: '删除线', codeBlock: '代码块', blockquote: '引用块', toggleView: '切换视图', toggleTheme: '切换主题', saveAs: '另存为', previewFind: '预览查找', insertTable: '插入表格', insertImage: '插入图片', insertUl: '无序列表', insertOl: '有序列表', insertTask: '任务列表', insertHr: '水平线', highlight: '高亮标记' },
     modify: '修改',
     clear: '清除',
     none: '无',
@@ -439,7 +439,7 @@ const I18N = {
     copyrightLine: 'Copyright (c) 2024-2026 TizuMark',
     proprietary: 'This software is released under the GPL v3 open-source license.',
     noUnauthorized: 'Free to use, modify, and distribute. Derivative works must remain under GPL v3.',
-    shortcutLabel: { newFile: 'New File', openFile: 'Open File', saveFile: 'Save File', closeTab: 'Close Tab', find: 'Find (Editor)', findReplace: 'Find & Replace', nextTab: 'Next Tab', prevTab: 'Previous Tab', bold: 'Bold', italic: 'Italic', insertLink: 'Insert Link', exportPDF: 'Export PDF', inlineCode: 'Inline Code', strikethrough: 'Strikethrough', codeBlock: 'Code Block', blockquote: 'Blockquote', toggleTheme: 'Toggle Theme', saveAs: 'Save As', previewFind: 'Find in Preview', insertTable: 'Insert Table', insertImage: 'Insert Image', insertUl: 'Unordered List', insertOl: 'Ordered List', insertTask: 'Task List', insertHr: 'Horizontal Rule', highlight: 'Highlight' },
+    shortcutLabel: { newFile: 'New File', openFile: 'Open File', saveFile: 'Save File', closeTab: 'Close Tab', find: 'Find (Editor)', findReplace: 'Find & Replace', nextTab: 'Next Tab', prevTab: 'Previous Tab', bold: 'Bold', italic: 'Italic', insertLink: 'Insert Link', exportPDF: 'Export PDF', inlineCode: 'Inline Code', strikethrough: 'Strikethrough', codeBlock: 'Code Block', blockquote: 'Blockquote', toggleView: 'Toggle View', toggleTheme: 'Toggle Theme', saveAs: 'Save As', previewFind: 'Find in Preview', insertTable: 'Insert Table', insertImage: 'Insert Image', insertUl: 'Unordered List', insertOl: 'Ordered List', insertTask: 'Task List', insertHr: 'Horizontal Rule', highlight: 'Highlight' },
     modify: 'Modify',
     clear: 'Clear',
     none: 'None',
@@ -1345,7 +1345,7 @@ class MarkdownEditor {
         html += '<div class="outline-item-wrapper">';
         html += `<div class="outline-item level-${node.level}" data-id="${node.id}" data-line="${node.line}">`;
         if (hasChildren) {
-          html += '<span class="outline-toggle">▶</span>';
+          html += '<span class="outline-toggle">▼</span>';
         }
         html += `<span class="outline-label">${this.escapeHtml(node.text)}</span>`;
         html += '</div>';
@@ -1631,6 +1631,7 @@ class MarkdownEditor {
       strikethrough: { key: 'Ctrl+Shift+S', label: '删除线' },
       codeBlock: { key: 'Ctrl+Shift+C', label: '代码块' },
       blockquote: { key: 'Ctrl+Shift+Q', label: '引用块' },
+      toggleView: { key: '', label: '切换视图' },
       toggleTheme: { key: 'Ctrl+Shift+T', label: '切换主题' },
       saveAs: { key: '', label: '另存为' },
       previewFind: { key: '', label: '预览查找' },
@@ -1743,6 +1744,7 @@ class MarkdownEditor {
       { id: 'insertHr', label: labels.insertHr || 'Horizontal Rule' },
       { id: 'insertLink', label: labels.insertLink || 'Insert Link' },
       { id: 'insertImage', label: labels.insertImage || 'Insert Image' },
+      { id: 'toggleView', label: labels.toggleView || 'Toggle View' },
       { id: 'toggleTheme', label: labels.toggleTheme || 'Toggle Theme' },
     ];
 
@@ -1903,6 +1905,7 @@ class MarkdownEditor {
       closeTab: () => this.closeTab(this.activeTabIndex),
       exportPDF: () => this.exportPDF(),
       saveAs: () => this.saveAsFile(),
+      toggleView: () => this.toggleViewMode(),
       toggleTheme: () => this.toggleTheme(),
       find: () => this.toggleFindPanel(),
       findReplace: () => this.toggleFindPanel(true),
@@ -2891,6 +2894,7 @@ class MarkdownEditor {
 
   showLightbox(content, type) {
     let scale = 1, tx = 0, ty = 0;
+    let naturalW = 0, naturalH = 0;
     let isDragging = false, startX = 0, startY = 0, startTx = 0, startTy = 0;
 
     const wasOverflow = document.body.style.overflow;
@@ -2908,6 +2912,11 @@ class MarkdownEditor {
       el = document.createElement('img');
       el.src = content;
     }
+    const hint = document.createElement('div');
+    hint.className = 'lightbox-hint';
+    hint.innerHTML = '<span>🖱 滚轮缩放 · 拖动平移 · 双击重置 · Esc 关闭</span><span class="lightbox-hint-close">&times;</span>';
+    hint.querySelector('.lightbox-hint-close').addEventListener('click', () => hint.remove());
+    overlay.appendChild(hint);
     overlay.appendChild(el);
     document.body.appendChild(overlay);
 
@@ -2916,24 +2925,38 @@ class MarkdownEditor {
     };
 
     const clampTransform = () => {
-      const rect = el.getBoundingClientRect();
-      const w = rect.width / scale;
-      const h = rect.height / scale;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      if (w * scale <= vw) {
-        tx = 0;
+      const maxTx = Math.abs(naturalW * scale - vw) / 2;
+      const maxTy = Math.abs(naturalH * scale - vh) / 2;
+      tx = Math.max(-maxTx, Math.min(maxTx, tx));
+      ty = Math.max(-maxTy, Math.min(maxTy, ty));
+    };
+
+    // Fit to viewport on open
+    const initFit = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        naturalW = rect.width;
+        naturalH = rect.height;
+        const fitScale = Math.min(window.innerWidth / naturalW, window.innerHeight / naturalH, 1);
+        if (fitScale < 1) {
+          scale = fitScale;
+          updateTransform();
+        }
       } else {
-        const maxTx = (w * scale - vw) / 2;
-        tx = Math.max(-maxTx, Math.min(maxTx, tx));
-      }
-      if (h * scale <= vh) {
-        ty = 0;
-      } else {
-        const maxTy = (h * scale - vh) / 2;
-        ty = Math.max(-maxTy, Math.min(maxTy, ty));
+        requestAnimationFrame(initFit);
       }
     };
+    if (type === 'image') {
+      if (el.complete) {
+        requestAnimationFrame(initFit);
+      } else {
+        el.addEventListener('load', () => requestAnimationFrame(initFit));
+      }
+    } else {
+      requestAnimationFrame(initFit);
+    }
 
     const close = () => {
       overlay.remove();
@@ -2952,7 +2975,7 @@ class MarkdownEditor {
       e.preventDefault();
       const oldS = scale;
       scale += e.deltaY < 0 ? 0.15 : -0.15;
-      scale = Math.max(0.2, Math.min(5, scale));
+      scale = Math.max(0.2, scale);
       const ratio = scale / oldS;
       const rect = el.getBoundingClientRect();
       const mx = e.clientX - rect.left - rect.width / 2;
@@ -4768,6 +4791,10 @@ input[type="checkbox"]:checked::after { display: none !important; }
     
     this.viewMode = mode;
     this.applyViewMode();
+  }
+
+  toggleViewMode() {
+    this.setViewMode(this.viewMode === 'preview' ? 'edit' : 'preview');
   }
 
   applyViewMode() {

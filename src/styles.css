@@ -1263,7 +1263,8 @@ body.is-resizing .side-btn {
 .preview-content th[align="center"], .preview-content td[align="center"] { text-align: center; }
 .preview-content th[align="right"], .preview-content td[align="right"] { text-align: right; }
 
-.preview-content img { max-width: 100%; height: auto; border-radius: 4px; cursor: zoom-in; }
+.preview-content img { max-width: 100%; height: auto; border-radius: 4px; cursor: pointer; }
+.mermaid-container svg { cursor: pointer; }
 
 /* Image Lightbox */
 .image-lightbox {
@@ -1283,9 +1284,36 @@ body.is-resizing .side-btn {
   border-radius: 4px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   cursor: default;
-  transition: transform 0.15s ease;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+.lightbox-hint {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,0.9);
+  font-size: 15px;
+  background: rgba(0,0,0,0.55);
+  padding: 10px 22px;
+  border-radius: 20px;
+  z-index: 10000;
+  user-select: none;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.lightbox-hint-close {
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+}
+.lightbox-hint-close:hover {
+  opacity: 1;
 }
 
 .preview-content hr {
@@ -1759,7 +1787,7 @@ body.is-resizing .side-btn {
 
 .outline-content {
   flex: 1;
-  overflow-y: auto;
+  overflow: auto;
   padding: 8px 0;
 }
 
@@ -1807,8 +1835,8 @@ body.is-resizing .side-btn {
 }
 
 .outline-label {
-  flex: 1;
-  min-width: 0;
+  flex: none;
+  max-width: 800px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1816,7 +1844,7 @@ body.is-resizing .side-btn {
 }
 
 .outline-children {
-  padding-left: 16px;
+  padding-left: 20px;
 }
 
 .outline-children.collapsed {
