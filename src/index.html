@@ -746,15 +746,10 @@
           <h3>编辑器</h3>
           <div class="settings-row">
             <label>字体大小</label>
-            <select id="set-font-size">
-              <option value="12">12px</option>
-              <option value="13">13px</option>
-              <option value="14" selected>14px</option>
-              <option value="15">15px</option>
-              <option value="16">16px</option>
-              <option value="18">18px</option>
-              <option value="20">20px</option>
-            </select>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="range" id="set-font-size" min="8" max="36" step="1" value="14">
+              <span class="range-label" id="font-size-label">14px</span>
+            </div>
           </div>
           <div class="settings-row">
             <label>Tab 宽度</label>
@@ -777,13 +772,10 @@
           <h3>预览</h3>
           <div class="settings-row">
             <label>正文字号</label>
-            <select id="set-preview-font-size">
-              <option value="14">14px</option>
-              <option value="15">15px</option>
-              <option value="16" selected>16px</option>
-              <option value="18">18px</option>
-              <option value="20">20px</option>
-            </select>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="range" id="set-preview-font-size" min="8" max="36" step="1" value="16">
+              <span class="range-label" id="preview-font-size-label">16px</span>
+            </div>
           </div>
           <div class="settings-row">
             <label>行高</label>

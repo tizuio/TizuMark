@@ -1095,10 +1095,12 @@ class MarkdownEditor {
 
     const s = this.settings;
     document.getElementById('set-font-size').value = s.fontSize;
+    document.getElementById('font-size-label').textContent = s.fontSize + 'px';
     document.getElementById('set-tab-size').value = s.tabSize;
     document.getElementById('set-line-wrap').checked = s.lineWrap;
     document.getElementById('set-line-numbers').checked = s.lineNumbers;
     document.getElementById('set-preview-font-size').value = s.previewFontSize;
+    document.getElementById('preview-font-size-label').textContent = s.previewFontSize + 'px';
     document.getElementById('set-line-height').value = s.lineHeight;
     document.getElementById('set-max-width').value = s.maxWidth;
     document.getElementById('set-theme-mode').value = s.themeMode;
@@ -1110,10 +1112,14 @@ class MarkdownEditor {
     const modeRadio = document.querySelector(`#settings-image-store-mode input[value="${s.imageInsertMode || 'assets'}"]`);
     if (modeRadio) modeRadio.checked = true;
 
+    document.getElementById('set-font-size').addEventListener('input', (e) => {
+      const v = Number(e.target.value);
+      this.cm.getWrapperElement().style.fontSize = v + 'px';
+      document.getElementById('font-size-label').textContent = v + 'px';
+      this.cm.refresh();
+    });
     document.getElementById('set-font-size').addEventListener('change', (e) => {
       this.settings.fontSize = Number(e.target.value);
-      this.cm.getWrapperElement().style.fontSize = e.target.value + 'px';
-      this.cm.refresh();
       this.saveSettings();
     });
     document.getElementById('set-tab-size').addEventListener('change', (e) => {
@@ -1131,9 +1137,13 @@ class MarkdownEditor {
       this.cm.setOption('lineNumbers', this.settings.lineNumbers);
       this.saveSettings();
     });
+    document.getElementById('set-preview-font-size').addEventListener('input', (e) => {
+      const v = Number(e.target.value);
+      this.preview.style.fontSize = v + 'px';
+      document.getElementById('preview-font-size-label').textContent = v + 'px';
+    });
     document.getElementById('set-preview-font-size').addEventListener('change', (e) => {
       this.settings.previewFontSize = Number(e.target.value);
-      this.preview.style.fontSize = e.target.value + 'px';
       this.saveSettings();
     });
     document.getElementById('set-line-height').addEventListener('change', (e) => {
@@ -1326,26 +1336,74 @@ class MarkdownEditor {
       return;
     }
 
-    outlineContent.innerHTML = headings.map(h =>
-      `<div class="outline-item level-${h.level}" data-id="${h.id}" data-line="${h.line}">${this.escapeHtml(h.text)}</div>`
-    ).join('');
+    const tree = this.buildOutlineTree(headings);
 
-    outlineContent.querySelectorAll('.outline-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const id = item.dataset.id;
-        const target = this.preview.querySelector(`#${CSS.escape(id)}`);
-        if (target) {
-          const previewHeight = this.preview.clientHeight;
-          const targetRect = target.getBoundingClientRect();
-          const previewRect = this.preview.getBoundingClientRect();
-          const top = targetRect.top - previewRect.top + this.preview.scrollTop
-                    - (previewHeight / 2) + (targetRect.height / 2);
-          this.preview.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+    const renderTree = (nodes) => {
+      let html = '';
+      for (const node of nodes) {
+        const hasChildren = node.children.length > 0;
+        html += '<div class="outline-item-wrapper">';
+        html += `<div class="outline-item level-${node.level}" data-id="${node.id}" data-line="${node.line}">`;
+        if (hasChildren) {
+          html += '<span class="outline-toggle">▶</span>';
         }
-        outlineContent.querySelectorAll('.outline-item').forEach(el => el.classList.remove('active'));
-        item.classList.add('active');
-      });
-    });
+        html += `<span class="outline-label">${this.escapeHtml(node.text)}</span>`;
+        html += '</div>';
+        if (hasChildren) {
+          html += `<div class="outline-children">${renderTree(node.children)}</div>`;
+        }
+        html += '</div>';
+      }
+      return html;
+    };
+
+    outlineContent.innerHTML = renderTree(tree);
+
+    // Event delegation on outline-content
+    outlineContent.onclick = (e) => {
+      const toggle = e.target.closest('.outline-toggle');
+      const item = e.target.closest('.outline-item');
+      if (!item) return;
+
+      if (toggle) {
+        e.stopPropagation();
+        const wrapper = item.closest('.outline-item-wrapper');
+        const children = wrapper?.querySelector('.outline-children');
+        if (children) {
+          const isCollapsed = children.classList.toggle('collapsed');
+          toggle.textContent = isCollapsed ? '▶' : '▼';
+        }
+        return;
+      }
+
+      // Label click → jump
+      const id = item.dataset.id;
+      const target = this.preview.querySelector(`#${CSS.escape(id)}`);
+      if (target) {
+        const previewHeight = this.preview.clientHeight;
+        const targetRect = target.getBoundingClientRect();
+        const previewRect = this.preview.getBoundingClientRect();
+        const top = targetRect.top - previewRect.top + this.preview.scrollTop
+                  - (previewHeight / 2) + (targetRect.height / 2);
+        this.preview.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+      }
+      outlineContent.querySelectorAll('.outline-item').forEach(el => el.classList.remove('active'));
+      item.classList.add('active');
+    };
+  }
+
+  buildOutlineTree(headings) {
+    const root = { level: 0, children: [] };
+    const stack = [root];
+    for (const h of headings) {
+      const node = { ...h, children: [], expanded: true };
+      while (stack.length > 1 && stack[stack.length - 1].level >= h.level) {
+        stack.pop();
+      }
+      stack[stack.length - 1].children.push(node);
+      stack.push(node);
+    }
+    return root.children;
   }
 
   headingToId(text) {
@@ -1507,10 +1565,12 @@ class MarkdownEditor {
     localStorage.removeItem('tizumark-settings');
 
     document.getElementById('set-font-size').value = defaults.fontSize;
+    document.getElementById('font-size-label').textContent = defaults.fontSize + 'px';
     document.getElementById('set-tab-size').value = defaults.tabSize;
     document.getElementById('set-line-wrap').checked = defaults.lineWrap;
     document.getElementById('set-line-numbers').checked = defaults.lineNumbers;
     document.getElementById('set-preview-font-size').value = defaults.previewFontSize;
+    document.getElementById('preview-font-size-label').textContent = defaults.previewFontSize + 'px';
     document.getElementById('set-line-height').value = defaults.lineHeight;
     document.getElementById('set-max-width').value = defaults.maxWidth;
     document.getElementById('set-theme-mode').value = defaults.themeMode;
@@ -2739,6 +2799,14 @@ class MarkdownEditor {
         return;
       }
 
+      const mermaidSvg = e.target.closest('.mermaid-container svg');
+      if (mermaidSvg) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.showLightbox(mermaidSvg, 'svg');
+        return;
+      }
+
       const link = e.target.closest('a');
       if (!link) return;
 
@@ -2818,17 +2886,61 @@ class MarkdownEditor {
   }
 
   showImageLightbox(src) {
-    let scale = 1;
+    this.showLightbox(src, 'image');
+  }
+
+  showLightbox(content, type) {
+    let scale = 1, tx = 0, ty = 0;
+    let isDragging = false, startX = 0, startY = 0, startTx = 0, startTy = 0;
+
+    const wasOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const overlay = document.createElement('div');
     overlay.className = 'image-lightbox';
-    const img = document.createElement('img');
-    img.src = src;
-    overlay.appendChild(img);
+
+    let el;
+    if (type === 'svg') {
+      el = document.createElement('div');
+      el.className = 'lightbox-svg-wrapper';
+      el.appendChild(content.cloneNode(true));
+    } else {
+      el = document.createElement('img');
+      el.src = content;
+    }
+    overlay.appendChild(el);
     document.body.appendChild(overlay);
+
+    const updateTransform = () => {
+      el.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    };
+
+    const clampTransform = () => {
+      const rect = el.getBoundingClientRect();
+      const w = rect.width / scale;
+      const h = rect.height / scale;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (w * scale <= vw) {
+        tx = 0;
+      } else {
+        const maxTx = (w * scale - vw) / 2;
+        tx = Math.max(-maxTx, Math.min(maxTx, tx));
+      }
+      if (h * scale <= vh) {
+        ty = 0;
+      } else {
+        const maxTy = (h * scale - vh) / 2;
+        ty = Math.max(-maxTy, Math.min(maxTy, ty));
+      }
+    };
 
     const close = () => {
       overlay.remove();
       document.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.overflow = wasOverflow;
     };
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) close();
@@ -2838,11 +2950,50 @@ class MarkdownEditor {
 
     overlay.addEventListener('wheel', (e) => {
       e.preventDefault();
-      e.stopPropagation();
+      const oldS = scale;
       scale += e.deltaY < 0 ? 0.15 : -0.15;
       scale = Math.max(0.2, Math.min(5, scale));
-      img.style.transform = `scale(${scale})`;
+      const ratio = scale / oldS;
+      const rect = el.getBoundingClientRect();
+      const mx = e.clientX - rect.left - rect.width / 2;
+      const my = e.clientY - rect.top - rect.height / 2;
+      tx = mx + (tx - mx) * ratio;
+      ty = my + (ty - my) * ratio;
+      clampTransform();
+      updateTransform();
     }, { passive: false });
+
+    el.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      startTx = tx;
+      startTy = ty;
+      el.style.cursor = 'grabbing';
+    });
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      tx = startTx + (e.clientX - startX);
+      ty = startTy + (e.clientY - startY);
+      clampTransform();
+      updateTransform();
+    };
+    document.addEventListener('mousemove', onMouseMove);
+
+    const onMouseUp = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      el.style.cursor = '';
+    };
+    document.addEventListener('mouseup', onMouseUp);
+
+    el.addEventListener('dblclick', () => {
+      scale = 1;
+      tx = 0;
+      ty = 0;
+      updateTransform();
+    });
   }
 
   initDragDrop() {
