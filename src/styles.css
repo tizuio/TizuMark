@@ -1763,16 +1763,18 @@ body.is-resizing .side-btn {
   padding: 8px 0;
 }
 
+.outline-item-wrapper {
+  /* container for item + children */
+}
+
 .outline-item {
-  display: block;
+  display: flex;
+  align-items: center;
   padding: 4px 12px;
   font-size: 12px;
   color: var(--text-secondary);
-  cursor: pointer;
+  cursor: default;
   text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   transition: background-color 0.15s, color 0.15s;
   border-left: 2px solid transparent;
 }
@@ -1788,12 +1790,45 @@ body.is-resizing .side-btn {
   background-color: var(--bg-secondary);
 }
 
-.outline-item.level-1 { padding-left: 12px; font-weight: 600; }
-.outline-item.level-2 { padding-left: 24px; }
-.outline-item.level-3 { padding-left: 36px; }
-.outline-item.level-4 { padding-left: 48px; }
-.outline-item.level-5 { padding-left: 60px; font-size: 11px; }
-.outline-item.level-6 { padding-left: 72px; font-size: 11px; }
+.outline-toggle {
+  cursor: pointer;
+  font-size: 8px;
+  margin-right: 4px;
+  user-select: none;
+  display: inline-block;
+  width: 12px;
+  text-align: center;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.outline-toggle:hover {
+  color: var(--accent-color);
+}
+
+.outline-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.outline-children {
+  padding-left: 16px;
+}
+
+.outline-children.collapsed {
+  display: none;
+}
+
+.outline-item.level-1 { font-weight: 600; }
+.outline-item.level-2 { }
+.outline-item.level-3 { }
+.outline-item.level-4 { }
+.outline-item.level-5 { font-size: 11px; }
+.outline-item.level-6 { font-size: 11px; }
 
 .outline-empty {
   padding: 16px 12px;
@@ -2925,6 +2960,36 @@ body.is-resizing .side-btn {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Range slider */
+.settings-row input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 120px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  outline: none;
+}
+.settings-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.settings-row input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+.settings-row .range-label {
+  min-width: 32px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
 }
 
 @media print {
