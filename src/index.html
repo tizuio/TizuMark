@@ -45,6 +45,7 @@
               <div class="dropdown-item" id="btn-save-as">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                 <span>另存为</span>
+                <span class="shortcut"></span>
               </div>
               <div class="dropdown-separator"></div>
               <div class="dropdown-item" id="btn-export-html">
@@ -58,6 +59,7 @@
               <div class="dropdown-item" id="btn-export-pdf">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
                 <span>导出 PDF</span>
+                <span class="shortcut"></span>
               </div>
               <div class="dropdown-item" id="btn-shortcuts">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.001"/><path d="M10 8h.001"/><path d="M14 8h.001"/><path d="M18 8h.001"/><path d="M8 12h.001"/><path d="M12 12h.001"/><path d="M16 12h.001"/><path d="M7 16h10"/></svg>
@@ -109,12 +111,15 @@
               </div>
               <div class="dropdown-item" data-action="insert-code-block">
                 <span>代码块</span>
+                <span class="shortcut"></span>
               </div>
               <div class="dropdown-item" data-action="insert-table">
                 <span>表格</span>
+                <span class="shortcut"></span>
               </div>
               <div class="dropdown-item" data-action="insert-quote">
                 <span>引用块</span>
+                <span class="shortcut"></span>
               </div>
               <div class="dropdown-separator"></div>
               <div class="dropdown-item insert-submenu-trigger" data-submenu="insert-callout">
@@ -130,6 +135,7 @@
               <div class="dropdown-separator"></div>
               <div class="dropdown-item" data-action="insert-hr">
                 <span>水平线</span>
+                <span class="shortcut"></span>
               </div>
               <div class="dropdown-item" data-action="insert-toc">
                 <span>目录 [TOC]</span>
@@ -164,12 +170,15 @@
               </div>
               <div class="dropdown-item" data-action="insert-strikethrough">
                 <span>删除线</span>
+                <span class="shortcut"></span>
               </div>
               <div class="dropdown-item" data-action="insert-inline-code">
                 <span>行内代码</span>
+                <span class="shortcut"></span>
               </div>
               <div class="dropdown-item" data-action="insert-highlight">
                 <span>高亮</span>
+                <span class="shortcut"></span>
               </div>
               <div class="dropdown-item" data-action="insert-superscript">
                 <span>上标</span>
@@ -182,12 +191,15 @@
             <div class="dropdown-menu submenu hidden" id="insert-list">
               <div class="dropdown-item" data-action="insert-ul">
                 <span>无序列表</span>
+                <span class="shortcut"></span>
               </div>
               <div class="dropdown-item" data-action="insert-ol">
                 <span>有序列表</span>
+                <span class="shortcut"></span>
               </div>
               <div class="dropdown-item" data-action="insert-task">
                 <span>任务列表</span>
+                <span class="shortcut"></span>
               </div>
             </div>
             <!-- 链接与媒体子菜单 -->
@@ -198,6 +210,7 @@
               </div>
               <div class="dropdown-item" data-action="insert-image">
                 <span>图片</span>
+                <span class="shortcut"></span>
               </div>
             </div>
           </div>
@@ -397,7 +410,7 @@
       <div class="dialog-content">
         <div class="about-section">
           <h3>版本信息</h3>
-          <p>TizuMark v0.1.0</p>
+          <p id="about-version">TizuMark v0.1.0</p>
           <p>轻量级跨平台 Markdown 编辑器</p>
           <p>基于 Tauri v2.5 + Rust 构建</p>
         </div>
@@ -864,15 +877,15 @@
   <!-- 结构插入子菜单 -->
   <div id="ctx-structure" class="context-menu submenu hidden">
     <div class="context-menu-item context-submenu-trigger" data-submenu="ctx-heading"><span>标题</span><span class="submenu-arrow">&#9656;</span></div>
-    <div class="context-menu-item" data-action="insert-code-block"><span>代码块</span></div>
-    <div class="context-menu-item" data-action="insert-table"><span>表格</span></div>
-    <div class="context-menu-item" data-action="insert-quote"><span>引用块</span></div>
+    <div class="context-menu-item" data-action="insert-code-block"><span>代码块</span><span class="shortcut"></span></div>
+    <div class="context-menu-item" data-action="insert-table"><span>表格</span><span class="shortcut"></span></div>
+    <div class="context-menu-item" data-action="insert-quote"><span>引用块</span><span class="shortcut"></span></div>
     <div class="context-menu-separator"></div>
     <div class="context-menu-item context-submenu-trigger" data-submenu="ctx-callout"><span>提示块</span><span class="submenu-arrow">&#9656;</span></div>
     <div class="context-menu-item" data-action="insert-math-block"><span>数学公式</span></div>
     <div class="context-menu-item" data-action="insert-mermaid"><span>Mermaid 图表</span></div>
     <div class="context-menu-separator"></div>
-    <div class="context-menu-item" data-action="insert-hr"><span>水平线</span></div>
+    <div class="context-menu-item" data-action="insert-hr"><span>水平线</span><span class="shortcut"></span></div>
     <div class="context-menu-item" data-action="insert-toc"><span>目录 [TOC]</span></div>
   </div>
 
@@ -899,24 +912,24 @@
   <div id="ctx-text-format" class="context-menu submenu hidden">
     <div class="context-menu-item" data-action="insert-bold"><span>加粗</span><span class="shortcut">Ctrl+B</span></div>
     <div class="context-menu-item" data-action="insert-italic"><span>斜体</span><span class="shortcut">Ctrl+I</span></div>
-    <div class="context-menu-item" data-action="insert-strikethrough"><span>删除线</span></div>
-    <div class="context-menu-item" data-action="insert-inline-code"><span>行内代码</span></div>
-    <div class="context-menu-item" data-action="insert-highlight"><span>高亮</span></div>
+    <div class="context-menu-item" data-action="insert-strikethrough"><span>删除线</span><span class="shortcut"></span></div>
+    <div class="context-menu-item" data-action="insert-inline-code"><span>行内代码</span><span class="shortcut"></span></div>
+    <div class="context-menu-item" data-action="insert-highlight"><span>高亮</span><span class="shortcut"></span></div>
     <div class="context-menu-item" data-action="insert-superscript"><span>上标</span></div>
     <div class="context-menu-item" data-action="insert-subscript"><span>下标</span></div>
   </div>
 
   <!-- 列表子菜单 -->
   <div id="ctx-list" class="context-menu submenu hidden">
-    <div class="context-menu-item" data-action="insert-ul"><span>无序列表</span></div>
-    <div class="context-menu-item" data-action="insert-ol"><span>有序列表</span></div>
-    <div class="context-menu-item" data-action="insert-task"><span>任务列表</span></div>
+    <div class="context-menu-item" data-action="insert-ul"><span>无序列表</span><span class="shortcut"></span></div>
+    <div class="context-menu-item" data-action="insert-ol"><span>有序列表</span><span class="shortcut"></span></div>
+    <div class="context-menu-item" data-action="insert-task"><span>任务列表</span><span class="shortcut"></span></div>
   </div>
 
   <!-- 链接与媒体子菜单 -->
   <div id="ctx-link-media" class="context-menu submenu hidden">
     <div class="context-menu-item" data-action="insert-link"><span>链接</span><span class="shortcut">Ctrl+K</span></div>
-    <div class="context-menu-item" data-action="insert-image"><span>图片</span></div>
+    <div class="context-menu-item" data-action="insert-image"><span>图片</span><span class="shortcut"></span></div>
   </div>
 
   <!-- 预览区域右键菜单 -->
@@ -926,7 +939,7 @@
     <div class="context-menu-separator"></div>
     <div class="context-menu-item" data-action="preview-copy-html"><span>复制为 HTML</span></div>
     <div class="context-menu-separator"></div>
-    <div class="context-menu-item" data-action="preview-find"><span>在预览中查找</span></div>
+    <div class="context-menu-item" data-action="preview-find"><span>在预览中查找</span><span class="shortcut"></span></div>
   </div>
 
   <!-- 标签页右键菜单 -->

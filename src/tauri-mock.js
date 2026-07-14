@@ -55,6 +55,11 @@ window.addEventListener('unhandledrejection', function(e) {
         return null;
       }
 
+      case 'open_devtools': {
+        console.log('[TAURI MOCK] open_devtools');
+        return null;
+      }
+
       case 'generate_toc': {
         // Simple TOC generation
         const content = args.content;

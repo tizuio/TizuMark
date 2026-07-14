@@ -218,6 +218,13 @@ fn sanitize_tag_attributes(tag_content: &str) -> String {
 }
 
 #[tauri::command]
+fn open_devtools(app_handle: tauri::AppHandle) {
+    if let Some(window) = app_handle.get_webview_window("main") {
+        let _ = window.open_devtools();
+    }
+}
+
+#[tauri::command]
 fn get_cli_args() -> Vec<String> {
     std::env::args().skip(1).collect()
 }
@@ -1148,6 +1155,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            open_devtools,
             get_cli_args,
             read_file,
             write_file,

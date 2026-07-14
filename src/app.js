@@ -168,7 +168,7 @@ const I18N = {
     copyrightLine: 'Copyright (c) 2024-2026 TizuMark',
     proprietary: '本软件基于 GPL v3 开源协议发布。',
     noUnauthorized: '欢迎自由使用、修改和分发，衍生作品须延续 GPL v3 协议。',
-    shortcutLabel: { newFile: '新建文件', openFile: '打开文件', saveFile: '保存文件', closeTab: '关闭标签页', find: '查找（编辑器）', findReplace: '查找替换', nextTab: '下一个标签页', prevTab: '上一个标签页', bold: '加粗', italic: '斜体', insertLink: '插入链接' },
+    shortcutLabel: { newFile: '新建文件', openFile: '打开文件', saveFile: '保存文件', closeTab: '关闭标签页', find: '查找（编辑器）', findReplace: '查找替换', nextTab: '下一个标签页', prevTab: '上一个标签页', bold: '加粗', italic: '斜体', insertLink: '插入链接', exportPDF: '导出 PDF', inlineCode: '行内代码', strikethrough: '删除线', codeBlock: '代码块', blockquote: '引用块', toggleTheme: '切换主题', saveAs: '另存为', previewFind: '预览查找', insertTable: '插入表格', insertImage: '插入图片', insertUl: '无序列表', insertOl: '有序列表', insertTask: '任务列表', insertHr: '水平线', highlight: '高亮标记' },
     modify: '修改',
     clear: '清除',
     none: '无',
@@ -439,7 +439,7 @@ const I18N = {
     copyrightLine: 'Copyright (c) 2024-2026 TizuMark',
     proprietary: 'This software is released under the GPL v3 open-source license.',
     noUnauthorized: 'Free to use, modify, and distribute. Derivative works must remain under GPL v3.',
-    shortcutLabel: { newFile: 'New File', openFile: 'Open File', saveFile: 'Save File', closeTab: 'Close Tab', find: 'Find (Editor)', findReplace: 'Find & Replace', nextTab: 'Next Tab', prevTab: 'Previous Tab', bold: 'Bold', italic: 'Italic', insertLink: 'Insert Link' },
+    shortcutLabel: { newFile: 'New File', openFile: 'Open File', saveFile: 'Save File', closeTab: 'Close Tab', find: 'Find (Editor)', findReplace: 'Find & Replace', nextTab: 'Next Tab', prevTab: 'Previous Tab', bold: 'Bold', italic: 'Italic', insertLink: 'Insert Link', exportPDF: 'Export PDF', inlineCode: 'Inline Code', strikethrough: 'Strikethrough', codeBlock: 'Code Block', blockquote: 'Blockquote', toggleTheme: 'Toggle Theme', saveAs: 'Save As', previewFind: 'Find in Preview', insertTable: 'Insert Table', insertImage: 'Insert Image', insertUl: 'Unordered List', insertOl: 'Ordered List', insertTask: 'Task List', insertHr: 'Horizontal Rule', highlight: 'Highlight' },
     modify: 'Modify',
     clear: 'Clear',
     none: 'None',
@@ -1566,6 +1566,21 @@ class MarkdownEditor {
       bold: { key: 'Ctrl+B', label: '加粗' },
       italic: { key: 'Ctrl+I', label: '斜体' },
       insertLink: { key: 'Ctrl+K', label: '插入链接' },
+      exportPDF: { key: 'Ctrl+P', label: '导出 PDF' },
+      inlineCode: { key: 'Ctrl+`', label: '行内代码' },
+      strikethrough: { key: 'Ctrl+Shift+S', label: '删除线' },
+      codeBlock: { key: 'Ctrl+Shift+C', label: '代码块' },
+      blockquote: { key: 'Ctrl+Shift+Q', label: '引用块' },
+      toggleTheme: { key: 'Ctrl+Shift+T', label: '切换主题' },
+      saveAs: { key: '', label: '另存为' },
+      previewFind: { key: '', label: '预览查找' },
+      insertTable: { key: '', label: '插入表格' },
+      insertImage: { key: '', label: '插入图片' },
+      insertUl: { key: '', label: '无序列表' },
+      insertOl: { key: '', label: '有序列表' },
+      insertTask: { key: '', label: '任务列表' },
+      insertHr: { key: '', label: '水平线' },
+      highlight: { key: '', label: '高亮标记' },
     };
   }
 
@@ -1596,21 +1611,79 @@ class MarkdownEditor {
     return key.split('+').map(k => `<kbd>${k}</kbd>`).join('<span class="key-separator">+</span>');
   }
 
+  updateShortcutHints() {
+    const s = this.shortcuts;
+    const map = {
+      'insert-bold': 'bold',
+      'insert-italic': 'italic',
+      'insert-strikethrough': 'strikethrough',
+      'insert-inline-code': 'inlineCode',
+      'insert-highlight': 'highlight',
+      'insert-code-block': 'codeBlock',
+      'insert-table': 'insertTable',
+      'insert-quote': 'blockquote',
+      'insert-hr': 'insertHr',
+      'insert-ul': 'insertUl',
+      'insert-ol': 'insertOl',
+      'insert-task': 'insertTask',
+      'insert-link': 'insertLink',
+      'insert-image': 'insertImage',
+      'find-replace': 'findReplace',
+      'preview-find': 'previewFind',
+    };
+    const idMap = {
+      'btn-new': 'newFile',
+      'btn-open': 'openFile',
+      'btn-save': 'saveFile',
+      'btn-save-as': 'saveAs',
+      'btn-export-pdf': 'exportPDF',
+    };
+    for (const [action, id] of Object.entries(map)) {
+      const els = document.querySelectorAll(`[data-action="${action}"] .shortcut`);
+      const key = s[id]?.key;
+      for (const el of els) {
+        el.textContent = key || '';
+      }
+    }
+    for (const [elId, id] of Object.entries(idMap)) {
+      const el = document.getElementById(elId);
+      if (!el) continue;
+      const span = el.querySelector('.shortcut');
+      if (!span) continue;
+      span.textContent = s[id]?.key || '';
+    }
+  }
+
   renderShortcutsList() {
     const container = document.getElementById('shortcuts-list');
     const labels = this.t('shortcutLabel');
     const actions = [
-      { id: 'newFile', label: labels.newFile },
-      { id: 'openFile', label: labels.openFile },
-      { id: 'saveFile', label: labels.saveFile },
-      { id: 'closeTab', label: labels.closeTab },
-      { id: 'find', label: labels.find },
-      { id: 'findReplace', label: labels.findReplace },
-      { id: 'nextTab', label: labels.nextTab },
-      { id: 'prevTab', label: labels.prevTab },
+      { id: 'newFile', label: labels.newFile || 'New File' },
+      { id: 'openFile', label: labels.openFile || 'Open File' },
+      { id: 'saveFile', label: labels.saveFile || 'Save File' },
+      { id: 'saveAs', label: labels.saveAs || 'Save As' },
+      { id: 'closeTab', label: labels.closeTab || 'Close Tab' },
+      { id: 'exportPDF', label: labels.exportPDF || 'Export PDF' },
+      { id: 'find', label: labels.find || 'Find' },
+      { id: 'findReplace', label: labels.findReplace || 'Find & Replace' },
+      { id: 'previewFind', label: labels.previewFind || 'Find in Preview' },
+      { id: 'nextTab', label: labels.nextTab || 'Next Tab' },
+      { id: 'prevTab', label: labels.prevTab || 'Previous Tab' },
       { id: 'bold', label: labels.bold || 'Bold' },
       { id: 'italic', label: labels.italic || 'Italic' },
+      { id: 'strikethrough', label: labels.strikethrough || 'Strikethrough' },
+      { id: 'inlineCode', label: labels.inlineCode || 'Inline Code' },
+      { id: 'highlight', label: labels.highlight || 'Highlight' },
+      { id: 'codeBlock', label: labels.codeBlock || 'Code Block' },
+      { id: 'blockquote', label: labels.blockquote || 'Blockquote' },
+      { id: 'insertTable', label: labels.insertTable || 'Insert Table' },
+      { id: 'insertUl', label: labels.insertUl || 'Unordered List' },
+      { id: 'insertOl', label: labels.insertOl || 'Ordered List' },
+      { id: 'insertTask', label: labels.insertTask || 'Task List' },
+      { id: 'insertHr', label: labels.insertHr || 'Horizontal Rule' },
       { id: 'insertLink', label: labels.insertLink || 'Insert Link' },
+      { id: 'insertImage', label: labels.insertImage || 'Insert Image' },
+      { id: 'toggleTheme', label: labels.toggleTheme || 'Toggle Theme' },
     ];
 
     container.innerHTML = actions.map(action => {
@@ -1674,12 +1747,28 @@ class MarkdownEditor {
     parts.push(e.key.length === 1 ? e.key.toUpperCase() : e.key);
 
     const keyStr = parts.join('+');
+    const dup = this.findDuplicateShortcut(keyStr, this.recordingAction);
+    if (dup) {
+      this.showToast(`快捷键 "${keyStr}" 已被「${this.t('shortcutLabel')[dup] || dup}」占用`);
+      this.recordingAction = null;
+      this.renderShortcutsList();
+      return true;
+    }
     this.shortcuts[this.recordingAction].key = keyStr;
     this.recordingAction = null;
     this.saveShortcuts();
     this.renderShortcutsList();
     this.applyShortcuts();
     return true;
+  }
+
+  findDuplicateShortcut(key, excludeAction) {
+    if (!key) return null;
+    for (const [action, config] of Object.entries(this.shortcuts)) {
+      if (action === excludeAction) continue;
+      if (config.key === key) return action;
+    }
+    return null;
   }
 
   initShortcutsDialog() {
@@ -1720,42 +1809,70 @@ class MarkdownEditor {
       'Shift-Tab': (cm) => cm.indentSelection('subtract'),
     });
 
-    const map = {
+    const toCmKey = (k) => {
+      const parts = k.split('+');
+      const key = parts.pop();
+      const order = { Shift: 0, Ctrl: 1, Alt: 2, Cmd: 3, Meta: 3 };
+      parts.sort((a, b) => (order[a] ?? 99) - (order[b] ?? 99));
+      return parts.concat([key]).join('-');
+    };
+
+    // Editor-only actions (work in CodeMirror extraKeys when editor is focused)
+    const editorMap = {
+      bold: () => this.wrapSelection('**', '**'),
+      italic: () => this.wrapSelection('*', '*'),
+      strikethrough: () => this.wrapSelection('~~', '~~'),
+      inlineCode: () => this.wrapSelection('`', '`'),
+      highlight: () => this.wrapSelection('==', '=='),
+      codeBlock: () => this.insertBlock('```javascript\n// code here\n```', 14),
+      blockquote: () => this.insertLinePrefix('> '),
+      insertTable: () => this.insertBlock('| 列1 | 列2 | 列3 |\n| --- | --- | --- |\n| 内容 | 内容 | 内容 |', 2),
+      insertUl: () => this.insertLinePrefix('- '),
+      insertOl: () => this.insertLinePrefix('1. '),
+      insertTask: () => this.insertLinePrefix('- [ ] '),
+      insertHr: () => this.insertBlock('---'),
+      insertLink: () => this.showInsertLinkDialog(),
+      insertImage: () => this.showInsertImageDialog(),
+    };
+
+    // Global actions (work anywhere via document keydown handler)
+    const globalMap = {
       saveFile: () => this.saveFile(),
       openFile: () => this.openFile(),
       newFile: () => this.newFile(),
       closeTab: () => this.closeTab(this.activeTabIndex),
+      exportPDF: () => this.exportPDF(),
+      saveAs: () => this.saveAsFile(),
+      toggleTheme: () => this.toggleTheme(),
       find: () => this.toggleFindPanel(),
       findReplace: () => this.toggleFindPanel(true),
-      bold: () => this.wrapSelection('**', '**'),
-      italic: () => this.wrapSelection('*', '*'),
-      insertLink: () => this.showInsertLinkDialog(),
+      previewFind: () => this.toggleFindPanel(),
+      nextTab: () => {
+        const next = (this.activeTabIndex + 1) % this.tabs.length;
+        this.switchTab(next);
+      },
+      prevTab: () => {
+        const prev = this.activeTabIndex > 0 ? this.activeTabIndex - 1 : this.tabs.length - 1;
+        this.switchTab(prev);
+      },
     };
 
-    const toCmKey = (k) => k.replace(/\+/g, '-');
-
+    // Register all shortcuts in extraKeys (overrides CM defaults when editor focused)
     const extraKeys = this.cm.getOption('extraKeys');
-    for (const [action, fn] of Object.entries(map)) {
+    for (const [action, fn] of Object.entries({ ...editorMap, ...globalMap })) {
       const key = s[action]?.key;
       if (key) extraKeys[toCmKey(key)] = fn;
     }
-
-    if (s.nextTab?.key) {
-      const k = toCmKey(s.nextTab.key);
-      extraKeys[k] = () => {
-        const next = (this.activeTabIndex + 1) % this.tabs.length;
-        this.switchTab(next);
-      };
-    }
-    if (s.prevTab?.key) {
-      const k = toCmKey(s.prevTab.key);
-      extraKeys[k] = () => {
-        const prev = this.activeTabIndex > 0 ? this.activeTabIndex - 1 : this.tabs.length - 1;
-        this.switchTab(prev);
-      };
-    }
-
     this.cm.setOption('extraKeys', extraKeys);
+
+    // Build global shortcut lookup for document-level handling
+    this.globalShortcutLookup = {};
+    for (const [action, fn] of Object.entries(globalMap)) {
+      const key = s[action]?.key;
+      if (key) this.globalShortcutLookup[key] = fn;
+    }
+
+    this.updateShortcutHints();
   }
 
   get activeTab() {
@@ -2162,25 +2279,27 @@ class MarkdownEditor {
         const key = e.key.toLowerCase();
 
         // Essential browser editing shortcuts — always let through
-        if (['a', 'c', 'v', 'x', 'z', 'y'].includes(key)) return;
+        if (['a', 'c', 'v', 'x', 'z', 'y'].includes(key)) {
+          if (!e.shiftKey) return;
+          if (key === 'z') return; // Ctrl+Shift+Z for redo
+          e.preventDefault(); // Block Ctrl+Shift+C (DevTools) etc.
+          return;
+        }
 
         // Block ALL other Ctrl shortcuts from triggering browser defaults
         e.preventDefault();
 
-        // Handle TizuMark's global shortcuts
-        if (key === 'w') {
-          await this.closeTab(this.activeTabIndex);
-        } else if (key === 'tab') {
-          if (e.shiftKey) {
-            const prev = this.activeTabIndex > 0 ? this.activeTabIndex - 1 : this.tabs.length - 1;
-            this.switchTab(prev);
-          } else {
-            const next = (this.activeTabIndex + 1) % this.tabs.length;
-            this.switchTab(next);
-          }
+        // Handle TizuMark's global shortcuts (work even when editor is not focused)
+        const gParts = [];
+        if (e.ctrlKey || e.metaKey) gParts.push('Ctrl');
+        if (e.shiftKey) gParts.push('Shift');
+        if (e.altKey) gParts.push('Alt');
+        gParts.push(e.key.length === 1 ? e.key.toUpperCase() : e.key);
+        const keyStr = gParts.join('+');
+        const gHandler = this.globalShortcutLookup?.[keyStr];
+        if (gHandler && !this.cm.hasFocus()) {
+          gHandler();
         }
-        // Ctrl+N/O/S/F/H/B/I/K and any user-customized shortcuts
-        // are handled by CodeMirror extraKeys when editor is focused
       }
     });
   }
@@ -4619,9 +4738,33 @@ input[type="checkbox"]:checked::after { display: none !important; }
     dialog.classList.remove('hidden');
     const details = document.querySelector('#about-dialog .dependency-details');
     if (details) details.open = false;
+    if (!dialog._devSetup) {
+      dialog._devSetup = true;
+      let cnt = 0;
+      let timer = null;
+      const verEl = document.getElementById('about-version');
+      if (verEl) {
+        verEl.addEventListener('click', async () => {
+          cnt++;
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => { cnt = 0; }, 400);
+          if (cnt >= 5) {
+            cnt = 0;
+            clearTimeout(timer);
+            timer = null;
+            try {
+              await window.__TAURI__.core.invoke('open_devtools');
+              this.showToast('DevTools 已打开', 'success');
+            } catch (e) {
+              this.showToast('DevTools 打开失败: ' + e, 'danger');
+            }
+          }
+        });
+      }
+    }
     try {
       const ver = await window.__TAURI__.app.getVersion();
-      const el = document.querySelector('#about-dialog .about-section h3 + p');
+      const el = document.getElementById('about-version');
       if (el) el.textContent = 'TizuMark v' + ver;
     } catch (_) {}
   }
@@ -4956,6 +5099,11 @@ input[type="checkbox"]:checked::after { display: none !important; }
 
     document.addEventListener('click', () => this.hideAllContextMenus());
     document.addEventListener('contextmenu', (e) => {
+      if (e.target.closest('input:not([type="file"]):not([type="checkbox"]):not([type="radio"]), textarea, select') &&
+          !e.target.closest('#editor-wrapper') && !e.target.closest('#preview-wrapper')) {
+        return;
+      }
+      e.preventDefault();
       if (!e.target.closest('.context-menu') && !e.target.closest('.dropdown-menu') && !e.target.closest('#editor-wrapper') && !e.target.closest('#preview-wrapper') && !e.target.closest('.tab')) {
         this.hideAllContextMenus();
       }
