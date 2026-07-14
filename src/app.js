@@ -2138,6 +2138,12 @@ class MarkdownEditor {
         return;
       }
 
+      // Block WebView history navigation (back/forward)
+      if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        return;
+      }
+
       if (e.key === 'Escape') {
         const aboutDialog = document.getElementById('about-dialog');
         if (!aboutDialog.classList.contains('hidden')) {
@@ -2150,20 +2156,21 @@ class MarkdownEditor {
           return;
         }
       }
-      
-      const ctrl = e.ctrlKey || e.metaKey;
-      if (ctrl && ['r', 'u'].includes(e.key.toLowerCase())) {
-        e.preventDefault();
-        return;
-      }
 
+      const ctrl = e.ctrlKey || e.metaKey;
       if (ctrl) {
         const key = e.key.toLowerCase();
+
+        // Essential browser editing shortcuts — always let through
+        if (['a', 'c', 'v', 'x', 'z', 'y'].includes(key)) return;
+
+        // Block ALL other Ctrl shortcuts from triggering browser defaults
+        e.preventDefault();
+
+        // Handle TizuMark's global shortcuts
         if (key === 'w') {
-          e.preventDefault();
           await this.closeTab(this.activeTabIndex);
         } else if (key === 'tab') {
-          e.preventDefault();
           if (e.shiftKey) {
             const prev = this.activeTabIndex > 0 ? this.activeTabIndex - 1 : this.tabs.length - 1;
             this.switchTab(prev);
@@ -2172,6 +2179,8 @@ class MarkdownEditor {
             this.switchTab(next);
           }
         }
+        // Ctrl+N/O/S/F/H/B/I/K and any user-customized shortcuts
+        // are handled by CodeMirror extraKeys when editor is focused
       }
     });
   }
