@@ -4396,10 +4396,15 @@ input[type="checkbox"]:checked::after { display: none !important; }
         this.preview.querySelectorAll('pre code').forEach((block) => {
           const lines = block.innerHTML.split('\n');
           while (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
-          if (lines.length <= 1) return;
-          block.innerHTML = lines.map((line, i) =>
-            `<span class="code-line"><span class="code-line-num">${i + 1}</span><span class="code-line-text">${line || '&nbsp;'}</span></span>`
-          ).join('\n');
+          if (lines.length <= 1) {
+            block.innerHTML = `<div class="code-scroll">${lines[0] || ''}</div>`;
+            return;
+          }
+          block.innerHTML = `<div class="code-scroll">${
+            lines.map((line, i) =>
+              `<span class="code-line"><span class="code-line-num">${i + 1}</span><span class="code-line-text">${line || '&nbsp;'}</span></span>`
+            ).join('')
+          }</div>`;
         });
       } catch (e) { console.warn('[preview] Code line error:', e); }
 

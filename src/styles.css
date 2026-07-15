@@ -1163,7 +1163,6 @@ body.is-resizing .side-btn {
   padding: 16px;
   background-color: var(--code-bg);
   border-radius: 6px;
-  overflow-x: auto;
   margin: 16px 0;
   max-width: 100%;
   border: 1px solid var(--border-color);
@@ -1183,10 +1182,15 @@ body.is-resizing .side-btn {
   display: block;
 }
 
+.code-scroll {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
 /* 代码块行号 & 自动换行 */
 .code-line {
   display: flex;
-  line-height: 1;
+  line-height: 1.8;
   min-width: 0;
 }
 .code-line-num {
