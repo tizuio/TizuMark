@@ -543,7 +543,7 @@ function renderMarkdown(content) {
   try {
     html = unified()
       .use(remarkParse)
-      .use(remarkGfm)
+      .use(remarkGfm, { singleTilde: false })
       .use(remarkSourceLine)
       .use(remarkRehype, { allowDangerousHtml: true })
       .use(rehypeRaw)

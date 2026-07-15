@@ -24149,31 +24149,36 @@ var UnifiedRenderer = (() => {
         return html7 + `<div id="abbr-data" style="display:none" data-abbrs='` + json + "'></div>";
       }
       function convertHighlights(html7) {
-        var result = "";
-        var i = 0;
-        var len = html7.length;
-        var skipStack = [];
+        let result = "";
+        let i = 0;
+        const len = html7.length;
+        const skipTags = ["code", "pre", "katex", "mermaid", "script", "style", "textarea"];
+        const skipStack = [];
         while (i < len) {
           if (html7[i] === "<") {
-            var end = html7.indexOf(">", i);
-            if (end === -1) { result += html7[i]; i++; continue; }
-            var inner = html7.substring(i + 1, end);
-            var tagName = inner.split(/\s/)[0].toLowerCase();
+            const end = html7.indexOf(">", i);
+            if (end === -1) {
+              result += html7[i];
+              i++;
+              continue;
+            }
+            const inner = html7.substring(i + 1, end);
+            const tagName = inner.split(/\s/)[0].toLowerCase();
             if (tagName[0] === "/") {
-              var closingTag = tagName.substring(1);
+              const closingTag = tagName.substring(1);
               if (skipStack[skipStack.length - 1] === closingTag) skipStack.pop();
-            } else if (/^(code|pre|katex|mermaid|script|style|textarea|math-placeholder)$/.test(tagName)) {
+            } else if (skipTags.includes(tagName)) {
               skipStack.push(tagName);
             }
             result += html7.substring(i, end + 1);
             i = end + 1;
           } else if (skipStack.length === 0 && html7[i] === "=" && html7[i + 1] === "=" && (i === 0 || html7[i - 1] !== "=")) {
-            var end2 = html7.indexOf("==", i + 2);
-            if (end2 !== -1 && html7[end2 + 2] !== "=") {
-              var text = html7.substring(i + 2, end2);
-              if (text.length > 0 && !/[\n\r]/.test(text)) {
-                result += "<mark>" + text + "</mark>";
-                i = end2 + 2;
+            const end = html7.indexOf("==", i + 2);
+            if (end !== -1 && html7[end + 2] !== "=") {
+              const text9 = html7.substring(i + 2, end);
+              if (text9.length > 0 && !/[\n\r]/.test(text9)) {
+                result += "<mark>" + text9 + "</mark>";
+                i = end + 2;
                 continue;
               }
             }
@@ -24197,7 +24202,7 @@ var UnifiedRenderer = (() => {
         let processed = convertDefLists(alertResult.content);
         let html7;
         try {
-          html7 = unified2().use(remarkParse2).use(remarkGfm2).use(remarkSourceLine).use(remarkRehype2, { allowDangerousHtml: true }).use(rehypeRaw2).use(rehypeStringify2, { allowDangerousHtml: true }).processSync(processed).toString();
+          html7 = unified2().use(remarkParse2).use(remarkGfm2, { singleTilde: false }).use(remarkSourceLine).use(remarkRehype2, { allowDangerousHtml: true }).use(rehypeRaw2).use(rehypeStringify2, { allowDangerousHtml: true }).processSync(processed).toString();
         } catch (e) {
           console.error("Unified rendering error:", e);
           return "<pre>" + escapeHTML(content3) + "</pre>";
