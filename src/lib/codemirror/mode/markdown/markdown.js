@@ -600,7 +600,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
     }
 
     if (modeCfg.strikethrough) {
-      if (ch === '~' && stream.eatWhile(ch)) {
+      if (ch === '~' && stream.match('~~')) {
         if (state.strikethrough) {// Remove strikethrough
           if (modeCfg.highlightFormatting) state.formatting = "strikethrough";
           var t = getType(state);
