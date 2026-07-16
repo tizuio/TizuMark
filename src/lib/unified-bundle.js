@@ -23753,6 +23753,24 @@ var UnifiedRenderer = (() => {
           });
         };
       }
+      function remarkBreaks() {
+        return (tree) => {
+          visit2(tree, "text", (node, index, parent) => {
+            if (parent && (parent.type === "paragraph" || parent.type === "heading")) {
+              const parts = node.value.split("\n");
+              if (parts.length > 1) {
+                const children = [];
+                for (let i = 0; i < parts.length; i++) {
+                  if (i > 0) children.push({ type: "break" });
+                  if (parts[i] !== "") children.push({ type: "text", value: parts[i] });
+                }
+                parent.children.splice(index, 1, ...children);
+                return index + children.length;
+              }
+            }
+          });
+        };
+      }
       function guardMathBlocks(content3) {
         const placeholders = [];
         let result = "";
@@ -24202,7 +24220,7 @@ var UnifiedRenderer = (() => {
         let processed = convertDefLists(alertResult.content);
         let html7;
         try {
-          html7 = unified2().use(remarkParse2).use(remarkGfm2, { singleTilde: false }).use(remarkSourceLine).use(remarkRehype2, { allowDangerousHtml: true }).use(rehypeRaw2).use(rehypeStringify2, { allowDangerousHtml: true }).processSync(processed).toString();
+          html7 = unified2().use(remarkParse2).use(remarkGfm2, { singleTilde: false }).use(remarkSourceLine).use(remarkBreaks).use(remarkRehype2, { allowDangerousHtml: true }).use(rehypeRaw2).use(rehypeStringify2, { allowDangerousHtml: true }).processSync(processed).toString();
         } catch (e) {
           console.error("Unified rendering error:", e);
           return "<pre>" + escapeHTML(content3) + "</pre>";
