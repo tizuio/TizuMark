@@ -517,9 +517,50 @@ function convertHighlights(html) {
   return result;
 }
 
+// ---- remark plugin: convert soft breaks & hard breaks to <br> ----
+// When softBreaks is enabled, both single newlines (softbreak) and
+// "two spaces + newline" (break) render as <br>, matching the user's
+// writing habit (回车即换行).
+// Note: remark keeps single newlines INSIDE text nodes rather than as
+// separate softbreak nodes, so we split text nodes on "\n" and insert
+// <br> between the fragments. Inline code / fenced code are untouched
+// because their content lives in `.value`, not in `.children`.
+function remarkSoftBreaks() {
+  return (tree) => {
+    const toBr = () => ({ type: 'html', value: '<br>' });
+
+    const walk = (node) => {
+      if (!node.children) return;
+      const out = [];
+      for (const child of node.children) {
+        if (child.type === 'break' || child.type === 'softbreak') {
+          out.push(toBr());
+          continue;
+        }
+        if (child.type === 'text' && child.value.indexOf('\n') !== -1) {
+          const parts = child.value.split('\n');
+          for (let i = 0; i < parts.length; i++) {
+            if (parts[i] !== '') out.push({ type: 'text', value: parts[i] });
+            if (i < parts.length - 1) out.push(toBr());
+          }
+          continue;
+        }
+        walk(child);
+        out.push(child);
+      }
+      node.children = out;
+    };
+
+    walk(tree);
+  };
+}
+
 // ---- main pipeline ----
 
-function renderMarkdown(content) {
+function renderMarkdown(content, options) {
+  const opts = options || {};
+  const softBreaks = opts.softBreaks === true;
+
   // 0. 统一换行符为 LF，避免 CRLF 的 \r 污染后续行数统计
   content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
@@ -541,15 +582,18 @@ function renderMarkdown(content) {
   // 5. Unified pipeline
   let html;
   try {
-    html = unified()
+    const processor = unified()
       .use(remarkParse)
       .use(remarkGfm, { singleTilde: false })
-      .use(remarkSourceLine)
+      .use(remarkSourceLine);
+    if (softBreaks) {
+      processor.use(remarkSoftBreaks);
+    }
+    processor
       .use(remarkRehype, { allowDangerousHtml: true })
       .use(rehypeRaw)
-      .use(rehypeStringify, { allowDangerousHtml: true })
-      .processSync(processed)
-      .toString();
+      .use(rehypeStringify, { allowDangerousHtml: true });
+    html = processor.processSync(processed).toString();
   } catch (e) {
     // Fallback: return raw content wrapped in <pre>
     console.error('Unified rendering error:', e);

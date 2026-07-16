@@ -24191,7 +24191,36 @@ var UnifiedRenderer = (() => {
         }
         return result;
       }
-      function renderMarkdown(content3) {
+      function remarkSoftBreaks() {
+        return (tree) => {
+          const toBr = () => ({ type: "html", value: "<br>" });
+          const walk = (node2) => {
+            if (!node2.children) return;
+            const out = [];
+            for (const child of node2.children) {
+              if (child.type === "break" || child.type === "softbreak") {
+                out.push(toBr());
+                continue;
+              }
+              if (child.type === "text" && child.value.indexOf("\n") !== -1) {
+                const parts = child.value.split("\n");
+                for (let i = 0; i < parts.length; i++) {
+                  if (parts[i] !== "") out.push({ type: "text", value: parts[i] });
+                  if (i < parts.length - 1) out.push(toBr());
+                }
+                continue;
+              }
+              walk(child);
+              out.push(child);
+            }
+            node2.children = out;
+          };
+          walk(tree);
+        };
+      }
+      function renderMarkdown(content3, options) {
+        const opts = options || {};
+        const softBreaks = opts.softBreaks === true;
         content3 = content3.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
         const abbrResult = extractAbbreviations(content3);
         const abbreviations = abbrResult.abbreviations;
@@ -24202,7 +24231,12 @@ var UnifiedRenderer = (() => {
         let processed = convertDefLists(alertResult.content);
         let html7;
         try {
-          html7 = unified2().use(remarkParse2).use(remarkGfm2, { singleTilde: false }).use(remarkSourceLine).use(remarkRehype2, { allowDangerousHtml: true }).use(rehypeRaw2).use(rehypeStringify2, { allowDangerousHtml: true }).processSync(processed).toString();
+          const processor = unified2().use(remarkParse2).use(remarkGfm2, { singleTilde: false }).use(remarkSourceLine);
+          if (softBreaks) {
+            processor.use(remarkSoftBreaks);
+          }
+          processor.use(remarkRehype2, { allowDangerousHtml: true }).use(rehypeRaw2).use(rehypeStringify2, { allowDangerousHtml: true });
+          html7 = processor.processSync(processed).toString();
         } catch (e) {
           console.error("Unified rendering error:", e);
           return "<pre>" + escapeHTML(content3) + "</pre>";

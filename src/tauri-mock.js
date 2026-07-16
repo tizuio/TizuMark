@@ -63,6 +63,10 @@ window.addEventListener('unhandledrejection', function(e) {
         return null;
       }
 
+      case 'app_data_dir': {
+        return 'C:/mock-app-data';
+      }
+
       case 'file_meta': {
         const path = args.path;
         if (metaStore.has(path)) return metaStore.get(path);

@@ -322,6 +322,14 @@ async fn fetch_image_as_base64(url: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+fn app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
+    app.path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())
+        .map(|p| p.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 fn generate_toc(content: String) -> String {
     let mut items: Vec<(usize, String, String)> = Vec::new();
     let mut in_code_block = false;
@@ -1190,6 +1198,7 @@ pub fn run() {
             file_meta,
             write_binary_file,
             ensure_dir,
+            app_data_dir,
             save_image_to_assets,
             fetch_image_as_base64,
             generate_toc
