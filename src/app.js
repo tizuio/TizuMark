@@ -16,6 +16,8 @@ class Tab {
     this.filePath = filePath;
     this.cursorPos = { line: 0, ch: 0 };
     this.scrollPos = { top: 0, left: 0 };
+    this.fileMeta = null;
+    this.pendingExternalChange = false;
   }
 
   get isModified() {
@@ -110,6 +112,13 @@ const I18N = {
     saved: '已保存',
     savedAs: '已另存为',
     saveFailed: '保存失败',
+    externalChanged: '文件已在外部被修改',
+    externalChangedDirty: '文件已在外部被修改，重新加载将丢失未保存的内容',
+    reloadFailed: '重新加载失败',
+    ecbReload: '重新加载',
+    ecbIgnore: '忽略',
+    ecbReloadAll: '全部重新加载',
+    ecbIgnoreAll: '全部忽略',
     openFailed: '打开失败',
     exportFailed: '导出失败',
     fileModified: '已修改，是否保存？',
@@ -317,6 +326,13 @@ const I18N = {
     callout: 'Callout',
     expandToolbar: 'Expand Toolbar',
     collapseToolbar: 'Collapse Toolbar',
+    externalChanged: 'File changed externally',
+    externalChangedDirty: 'File changed externally; reloading will discard unsaved changes',
+    reloadFailed: 'Reload failed',
+    ecbReload: 'Reload',
+    ecbIgnore: 'Ignore',
+    ecbReloadAll: 'Reload All',
+    ecbIgnoreAll: 'Ignore All',
     mathBlock: 'Math Block',
     mermaidChart: 'Mermaid Chart',
     hr: 'Horizontal Rule',
@@ -2052,6 +2068,7 @@ class MarkdownEditor {
     this.updatePreview();
     this.updateWordCount();
     this.updateOutline();
+    this.updateExternalChangeBanner();
   }
 
   addTab(name = '', content = '', filePath = null) {
@@ -2062,6 +2079,7 @@ class MarkdownEditor {
     content = content.replace(/\r\n/g, '\n');
     const tab = new Tab(name, content, filePath);
     this.tabs.push(tab);
+    this.refreshFileMeta(tab);
     this.switchTab(this.tabs.length - 1);
     this.updateTabBar();
   }
@@ -2090,6 +2108,7 @@ class MarkdownEditor {
           }
           await invoke('write_file', { path: tab.filePath, content: tab.content });
           tab.savedContent = tab.content;
+          await this.refreshFileMeta(tab);
           this.setStatus(`${this.t('saved')}: ${tab.filePath}`);
         } catch (error) {
           this.setStatus(`${this.t('saveFailed')}: ${error}`);
@@ -2101,6 +2120,7 @@ class MarkdownEditor {
     const removeIndex = this.tabs.indexOf(tab);
     if (removeIndex === -1) return;
 
+    if (this._externalQueue) this._externalQueue = this._externalQueue.filter(t => t !== tab);
     this.tabs.splice(removeIndex, 1);
     if (this.tabs.length === 0) {
       this.tabs.push(new Tab(`${this.t('untitled')}${this.untitledCounter++}`));
@@ -2166,7 +2186,7 @@ class MarkdownEditor {
     const tabs = document.querySelectorAll('.tab');
     tabs.forEach((tab, i) => {
       if (i >= this.tabs.length) return;
-      tab.className = `tab${i === this.activeTabIndex ? ' active' : ''}${this.tabs[i].isModified ? ' modified' : ''}`;
+      tab.className = `tab${i === this.activeTabIndex ? ' active' : ''}${this.tabs[i].isModified ? ' modified' : ''}${this.tabs[i].pendingExternalChange ? ' external-change' : ''}`;
       tab.querySelector('.tab-name').textContent = this.tabs[i].name;
     });
   }
@@ -3503,6 +3523,7 @@ class MarkdownEditor {
       }
       this.activeTab.savedContent = this.activeTab.content;
       this.updateTabDisplay();
+      await this.refreshFileMeta(this.activeTab);
       this.setStatus(`${this.t('saved')}: ${this.activeTab.filePath}`);
     } catch (error) {
       this.setStatus(`${this.t('saveFailed')}: ${error}`);
@@ -3525,6 +3546,7 @@ class MarkdownEditor {
       this.activeTab.name = path.split(/[/\\]/).pop();
       this.activeTab.savedContent = this.activeTab.content;
       this.updateTabBar();
+      await this.refreshFileMeta(this.activeTab);
       this.setStatus(`${this.t('savedAs')}: ${path}`);
     } catch (error) {
       this.setStatus(`${this.t('saveFailed')}: ${error}`);
@@ -4755,6 +4777,168 @@ input[type="checkbox"]:checked::after { display: none !important; }
     }, 3000);
   }
 
+  // ====== 外部文件变更检测 ======
+  async refreshFileMeta(tab) {
+    if (!tab) return;
+    if (!tab.filePath) { tab.fileMeta = null; return; }
+    try {
+      tab.fileMeta = await invoke('file_meta', { path: tab.filePath });
+    } catch (e) {
+      tab.fileMeta = null;
+    }
+  }
+
+  async reloadTabFromDisk(tab) {
+    if (!tab || !tab.filePath) return;
+    try {
+      const content = await invoke('read_file', { path: tab.filePath });
+      tab.content = content;
+      tab.savedContent = content;
+      await this.refreshFileMeta(tab);
+      tab.pendingExternalChange = false;
+      if (tab === this.activeTab) {
+        this.cm.setValue(content);
+        this.updatePreview();
+        this.updateOutline();
+        this.updateWordCount();
+      }
+      this.updateTabDisplay();
+    } catch (e) {
+      this.showToast(this.t('reloadFailed') + ': ' + e, 'danger');
+    }
+  }
+
+  enqueueExternalChange(tab) {
+    if (!tab || !tab.filePath) return;
+    if (this._externalQueue.includes(tab)) return;
+    tab.pendingExternalChange = true;
+    this._externalQueue.push(tab);
+    this.updateTabDisplay();
+    this.updateExternalChangeBanner();
+  }
+
+  // 提示条始终反映当前激活标签页的外部变更
+  updateExternalChangeBanner() {
+    const tab = this.activeTab;
+    if (tab && tab.pendingExternalChange) {
+      this.renderExternalChangeBanner(tab);
+    } else {
+      this.hideExternalChangeBanner();
+    }
+  }
+
+  async dismissExternalChange(tab, reload) {
+    const idx = this._externalQueue.indexOf(tab);
+    if (idx !== -1) this._externalQueue.splice(idx, 1);
+    if (reload) {
+      await this.reloadTabFromDisk(tab);
+    } else {
+      await this.refreshFileMeta(tab);
+      tab.pendingExternalChange = false;
+    }
+    this.updateTabDisplay();
+    this.updateExternalChangeBanner();
+  }
+
+  async reloadAllExternalChanges() {
+    const queue = this._externalQueue.slice();
+    for (const tab of queue) {
+      await this.reloadTabFromDisk(tab);
+      const i = this._externalQueue.indexOf(tab);
+      if (i !== -1) this._externalQueue.splice(i, 1);
+    }
+    this.updateTabDisplay();
+    this.updateExternalChangeBanner();
+  }
+
+  ignoreAllExternalChanges() {
+    this._externalQueue.slice().forEach(t => {
+      t.pendingExternalChange = false;
+      this.refreshFileMeta(t);
+    });
+    this._externalQueue = [];
+    this.updateTabDisplay();
+    this.updateExternalChangeBanner();
+  }
+
+  renderExternalChangeBanner(tab) {
+    const banner = document.getElementById('external-change-banner');
+    if (!banner) return;
+    const dirty = tab.isModified;
+    banner.querySelector('.ecb-name').textContent = tab.name || tab.filePath || '';
+    banner.querySelector('.ecb-msg').textContent = dirty ? this.t('externalChangedDirty') : this.t('externalChanged');
+    banner.querySelector('.ecb-reload').textContent = this.t('ecbReload');
+    banner.querySelector('.ecb-ignore').textContent = this.t('ecbIgnore');
+    banner.querySelector('.ecb-reload-all').textContent = this.t('ecbReloadAll');
+    banner.querySelector('.ecb-ignore-all').textContent = this.t('ecbIgnoreAll');
+    banner.dataset.tabIndex = this.activeTabIndex;
+    banner.classList.add('visible');
+    this._externalBannerVisible = true;
+  }
+
+  hideExternalChangeBanner() {
+    const banner = document.getElementById('external-change-banner');
+    if (banner) banner.classList.remove('visible');
+    this._externalBannerVisible = false;
+  }
+
+  initFileWatcher() {
+    if (this._fileWatcherStarted) return;
+    this._fileWatcherStarted = true;
+    this._externalQueue = [];
+    this._externalBannerVisible = false;
+    this._watching = false;
+
+    const banner = document.getElementById('external-change-banner');
+    if (banner) {
+      banner.querySelector('.ecb-reload').addEventListener('click', () => {
+        const i = parseInt(banner.dataset.tabIndex, 10);
+        const tab = this.tabs[i];
+        if (tab) this.dismissExternalChange(tab, true);
+      });
+      banner.querySelector('.ecb-ignore').addEventListener('click', () => {
+        const i = parseInt(banner.dataset.tabIndex, 10);
+        const tab = this.tabs[i];
+        if (tab) this.dismissExternalChange(tab, false);
+      });
+      banner.querySelector('.ecb-reload-all').addEventListener('click', () => this.reloadAllExternalChanges());
+      banner.querySelector('.ecb-ignore-all').addEventListener('click', () => this.ignoreAllExternalChanges());
+    }
+
+    const pass = async () => {
+      for (const tab of this.tabs) {
+        if (!tab.filePath) continue;
+        let meta;
+        try { meta = await invoke('file_meta', { path: tab.filePath }); }
+        catch (e) { meta = undefined; }
+        if (meta === undefined) continue;
+        if (!meta) {
+          if (tab.fileMeta !== null && !tab.pendingExternalChange) this.enqueueExternalChange(tab);
+          continue;
+        }
+        if (!tab.fileMeta) { tab.fileMeta = meta; continue; }
+        if (meta.mtime !== tab.fileMeta.mtime || meta.size !== tab.fileMeta.size) {
+          let disk = null;
+          try { disk = await invoke('read_file', { path: tab.filePath }); } catch (e) { disk = null; }
+          if (disk !== null && disk !== tab.savedContent) this.enqueueExternalChange(tab);
+          else tab.fileMeta = meta;
+        }
+      }
+    };
+
+    setInterval(async () => {
+      if (this._watching) return;
+      this._watching = true;
+      try { await pass(); } catch (e) { /* ignore */ } finally { this._watching = false; }
+    }, 1500);
+
+    window.addEventListener('focus', () => {
+      if (this._watching) return;
+      this._watching = true;
+      pass().catch(() => {}).finally(() => { this._watching = false; });
+    });
+  }
+
   setStatus(text) {
     this.statusText.textContent = text;
     setTimeout(() => {
@@ -5581,6 +5765,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
         }
         await invoke('write_file', { path: tab.filePath, content: tab.content });
         tab.savedContent = tab.content;
+        await this.refreshFileMeta(tab);
       } catch (error) {
         this.setStatus(`${this.t('saveFailed')}: ${error}`);
         return false;
@@ -5830,6 +6015,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         window.editor.activeTab.savedContent = content;
         window.editor.activeTab.filePath = filePath;
         window.editor.activeTab.name = name;
+        await this.refreshFileMeta(window.editor.activeTab);
         window.editor.cm.setValue(content);
         window.editor.updateTabDisplay();
         window.editor.updatePreview();
@@ -5844,6 +6030,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
     updateLoadingProgress(100, '准备就绪');
+    await window.editor.initFileWatcher();
     await new Promise(r => setTimeout(r, 300));
   } catch (e) {
     console.error('Initialization error:', e);

@@ -15,6 +15,9 @@ window.addEventListener('unhandledrejection', function(e) {
   // In-memory file system simulation
   const vfs = new Map();
 
+  // Controllable file metadata store (for external-change tests)
+  const metaStore = new Map();
+
   // Load demo.md into VFS
   function initVFS() {
     // Will be populated when demo.md is loaded
@@ -57,6 +60,12 @@ window.addEventListener('unhandledrejection', function(e) {
 
       case 'open_devtools': {
         console.log('[TAURI MOCK] open_devtools');
+        return null;
+      }
+
+      case 'file_meta': {
+        const path = args.path;
+        if (metaStore.has(path)) return metaStore.get(path);
         return null;
       }
 
@@ -200,6 +209,18 @@ window.addEventListener('unhandledrejection', function(e) {
     window: mockWindow,
     event: mockEvent,
     shell: mockShell
+  };
+
+  // Test helpers for simulating external file changes
+  window.__mockSetMeta = function(path, mtime, size) {
+    metaStore.set(path, { mtime: mtime, size: size });
+  };
+  window.__mockClearMeta = function(path) {
+    if (path === undefined) metaStore.clear();
+    else metaStore.delete(path);
+  };
+  window.__mockSetContent = function(path, content) {
+    vfs.set(path, content);
   };
 
   // Mock the dialog functions used globally
