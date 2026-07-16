@@ -949,6 +949,18 @@ body {
 
 .tab.modified .tab-name::after { content: " *"; color: var(--accent-color); }
 
+/* 外部文件已变更待处理：标签左侧琥珀色圆点（与未保存的 * 区分） */
+.tab.external-change::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warning-border, #ffa940);
+  flex: none;
+  align-self: center;
+  margin-right: 5px;
+}
+
 .tab-close {
   font-size: 14px;
   line-height: 1;
@@ -2884,6 +2896,75 @@ body.is-resizing .side-btn {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 外部文件变更提示条（位于菜单栏以下，作为正常布局的一行，不覆盖标题栏/工具栏/窗口按钮） */
+.external-change-banner {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 16px;
+  background: var(--warning-bg, #fff7e6);
+  border-bottom: 1px solid var(--warning-border, #ffd591);
+  color: var(--warning-text, #874d00);
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.external-change-banner.visible {
+  display: flex;
+}
+.ecb-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+.ecb-icon {
+  font-size: 15px;
+  flex: none;
+}
+.ecb-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+.ecb-msg {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ecb-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.ecb-btn {
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--warning-border, #ffd591);
+  background: transparent;
+  color: var(--warning-text, #874d00);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.ecb-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.ecb-reload,
+.ecb-reload-all {
+  border-color: var(--accent, #4a90d9);
+  color: var(--accent, #4a90d9);
+}
+.ecb-reload:hover,
+.ecb-reload-all:hover {
+  background: rgba(74, 144, 217, 0.08);
 }
 .loading-overlay.hidden {
   display: none;

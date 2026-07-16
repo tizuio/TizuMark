@@ -234,6 +234,34 @@ fn read_file(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| e.to_string())
 }
 
+#[derive(serde::Serialize, Clone, Copy)]
+struct FileMeta {
+    mtime: u64,
+    size: u64,
+}
+
+#[tauri::command]
+fn file_meta(path: String) -> Result<Option<FileMeta>, String> {
+    let p = std::path::Path::new(&path);
+    if !p.exists() {
+        return Ok(None);
+    }
+    let meta = fs::metadata(p).map_err(|e| e.to_string())?;
+    if !meta.is_file() {
+        return Ok(None);
+    }
+    let mtime = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    Ok(Some(FileMeta {
+        mtime,
+        size: meta.len(),
+    }))
+}
+
 #[tauri::command]
 fn write_file(path: String, content: String) -> Result<(), String> {
     fs::write(&path, &content).map_err(|e| e.to_string())
@@ -1159,6 +1187,7 @@ pub fn run() {
             get_cli_args,
             read_file,
             write_file,
+            file_meta,
             write_binary_file,
             ensure_dir,
             save_image_to_assets,
