@@ -161,8 +161,8 @@
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/></svg>
           </button>
           <button class="fmt-btn fmt-icon-btn" data-action="insert-highlight" title="高亮"><span class="fmt-hl">H</span></button>
-          <button class="fmt-btn fmt-icon-btn" data-action="insert-superscript" title="上标">x²</button>
-          <button class="fmt-btn fmt-icon-btn" data-action="insert-subscript" title="下标">x₂</button>
+          <button class="fmt-btn fmt-icon-btn" data-action="insert-superscript" title="上标"><span class="fmt-script">x<sup>2</sup></span></button>
+          <button class="fmt-btn fmt-icon-btn" data-action="insert-subscript" title="下标"><span class="fmt-script">x<sub>2</sub></span></button>
           <span class="fmt-sep"></span>
           <!-- 复合按钮（次常用，悬停展开） -->
           <div class="fmt-dropdown">
@@ -760,6 +760,14 @@
             <label class="toggle"><input type="checkbox" id="set-scroll-sync" checked><span class="toggle-slider"></span></label>
           </div>
           <div class="settings-row settings-row-stacked">
+            <label>软换行（回车即换行）</label>
+            <label class="toggle"><input type="checkbox" id="set-soft-breaks" checked><span class="toggle-slider"></span></label>
+            <p class="form-hint" id="setting-soft-breaks-hint">
+              <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <span class="hint-text">开启后，段落内单个回车直接换行（与「空格+空格+回车」一致），更符合日常写作习惯，也便于从其他笔记软件迁移。关闭则恢复 CommonMark 标准（回车视为空格）。</span>
+            </p>
+          </div>
+          <div class="settings-row settings-row-stacked">
             <label>图片存储方式</label>
             <div class="radio-group" id="settings-image-store-mode">
               <label><input type="radio" name="settings-image-store" value="assets" checked /> <span id="setting-image-store-assets">复制到 assets/（推荐）</span></label>
@@ -781,6 +789,25 @@
               <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               <span class="hint-text" id="setting-image-asset-path-hint-text">相对于 markdown 文件所在目录的路径。例如 <code>assets</code> → 图片将保存在 <code>docs/assets/</code>。将整个文件夹移动到其他位置后，路径仍然有效，无需额外操作。</span>
             </p>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>自定义字体</h3>
+          <div class="settings-row settings-row-stacked">
+            <button type="button" id="btn-add-font" class="dialog-btn dialog-btn-primary">添加字体…</button>
+          </div>
+          <div id="custom-font-list" class="custom-font-list"></div>
+          <div class="settings-row">
+            <label>编辑器字体</label>
+            <select id="set-editor-font"></select>
+          </div>
+          <div class="settings-row">
+            <label>预览字体</label>
+            <select id="set-preview-font"></select>
+          </div>
+          <div class="settings-row settings-row-stacked">
+            <label>字体预览</label>
+            <div id="font-preview-sample" class="font-preview-sample">永和九年岁在癸丑 暮春之初 ABC abc 123</div>
           </div>
         </div>
       </div>

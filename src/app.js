@@ -112,6 +112,7 @@ const I18N = {
     saved: '已保存',
     savedAs: '已另存为',
     saveFailed: '保存失败',
+    failed: '失败',
     externalChanged: '文件已在外部被修改',
     externalChangedDirty: '文件已在外部被修改，重新加载将丢失未保存的内容',
     reloadFailed: '重新加载失败',
@@ -144,6 +145,8 @@ const I18N = {
     schemeSunset: '暖橙风',
     defaultView: '默认视图',
     scrollSync: '滚动同步',
+    softBreaks: '软换行（回车即换行）',
+    softBreaksHint: '开启后，段落内单个回车直接换行（与「空格+空格+回车」一致），更符合日常写作习惯，也便于从其他笔记软件迁移。关闭则恢复 CommonMark 标准（回车视为空格）。',
     followSystem: '跟随系统',
     resetDefault: '恢复默认',
     done: '完成',
@@ -153,6 +156,20 @@ const I18N = {
     fontScheme: '字体方案',
     fontSchemeSystemSans: '简约风格',
     fontSchemeClassicSerif: '印刷风格',
+    customFonts: '自定义字体',
+    addFont: '添加字体',
+    editorFont: '编辑器字体',
+    previewFont: '预览字体',
+    followScheme: '跟随方案',
+    fontPreview: '字体预览',
+    deleteFont: '删除',
+    noCustomFont: '尚未添加自定义字体',
+    importingFonts: '正在导入字体 ({n}/{total})…',
+    confirmDeleteFont: '确定要删除字体「{name}」吗？此操作不可恢复。',
+    importSuccess: '成功导入 {n} 个字体',
+    importFailed: '失败 {n} 个字体：{detail}',
+    fontAlreadyExists: '已存在',
+    processing: '处理中…',
     scrollTop: 'TOP',
     collapseEditor: '折叠编辑器',
     collapsePreview: '折叠预览',
@@ -399,6 +416,7 @@ const I18N = {
     saved: 'Saved',
     savedAs: 'Saved as',
     saveFailed: 'Save failed',
+    failed: 'Failed',
     openFailed: 'Open failed',
     exportFailed: 'Export failed',
     fileModified: ' has been modified. Save?',
@@ -424,6 +442,8 @@ const I18N = {
     schemeSunset: 'Sunset',
     defaultView: 'Default View',
     scrollSync: 'Scroll Sync',
+    softBreaks: 'Soft Line Break (Enter = newline)',
+    softBreaksHint: 'When enabled, a single Enter inside a paragraph creates a line break (same as "two spaces + Enter"), matching everyday writing and easing migration from other note apps. When disabled, CommonMark standard applies (Enter is treated as a space).',
     followSystem: 'Follow System',
     resetDefault: 'Reset Default',
     done: 'Done',
@@ -433,6 +453,20 @@ const I18N = {
     fontScheme: 'Font Scheme',
     fontSchemeSystemSans: 'Minimalist',
     fontSchemeClassicSerif: 'Print Style',
+    customFonts: 'Custom Fonts',
+    addFont: 'Add Font',
+    editorFont: 'Editor Font',
+    previewFont: 'Preview Font',
+    followScheme: 'Follow Scheme',
+    fontPreview: 'Font Preview',
+    deleteFont: 'Delete',
+    noCustomFont: 'No custom font added yet',
+    importingFonts: 'Importing fonts ({n}/{total})…',
+    confirmDeleteFont: 'Are you sure you want to delete the font "{name}"? This cannot be undone.',
+    importSuccess: 'Successfully imported {n} font(s)',
+    importFailed: 'Failed to import {n} font(s): {detail}',
+    fontAlreadyExists: 'already exists',
+    processing: 'Processing…',
     scrollTop: 'TOP',
     collapseEditor: 'Collapse Editor',
     collapsePreview: 'Collapse Preview',
@@ -779,6 +813,9 @@ class MarkdownEditor {
     setSectionTitle('set-default-view', t('behavior'));
     setRowLabel('set-default-view', t('defaultView'));
     setRowLabel('set-scroll-sync', t('scrollSync'));
+    setRowLabel('set-soft-breaks', t('softBreaks'));
+    const softBreaksHint = document.querySelector('#setting-soft-breaks-hint .hint-text');
+    if (softBreaksHint) softBreaksHint.textContent = t('softBreaksHint');
     setText('setting-image-store-assets', t('imageSettingAssets'));
     setText('setting-image-store-base64', t('imageSettingBase64'));
     document.querySelector('#setting-image-store-hint .hint-text').textContent = t('imageSettingHint');
@@ -1071,7 +1108,11 @@ class MarkdownEditor {
       outlineWidth: 240,
       codeLineNumbers: false,
       codeWrap: false,
+      softBreaks: true,
       toolbarCollapsed: false,
+      customFonts: [],
+      editorFont: '',
+      previewFont: '',
     };
     try {
       const saved = JSON.parse(localStorage.getItem('tizumark-settings'));
@@ -1202,6 +1243,12 @@ class MarkdownEditor {
       this.settings.scrollSync = e.target.checked;
       this.saveSettings();
     });
+    document.getElementById('set-soft-breaks').checked = s.softBreaks !== false;
+    document.getElementById('set-soft-breaks').addEventListener('change', (e) => {
+      this.settings.softBreaks = e.target.checked;
+      this.saveSettings();
+      this.updatePreview();
+    });
     document.getElementById('set-code-line-numbers').addEventListener('change', (e) => {
       this.settings.codeLineNumbers = e.target.checked;
       this.preview.classList.toggle('code-line-numbers', e.target.checked);
@@ -1244,6 +1291,27 @@ class MarkdownEditor {
       });
     });
     this.updateImageAssetPathHint();
+
+    // ====== 自定义字体 ======
+    const addFontBtn = document.getElementById('btn-add-font');
+    if (addFontBtn) addFontBtn.addEventListener('click', () => this.addFontFiles());
+    const edFont = document.getElementById('set-editor-font');
+    if (edFont) edFont.addEventListener('change', (e) => {
+      this.settings.editorFont = e.target.value;
+      this.saveSettings();
+      this.applyCustomFonts();
+      this.refreshFontSelectors();
+    });
+    const pvFont = document.getElementById('set-preview-font');
+    if (pvFont) pvFont.addEventListener('change', (e) => {
+      this.settings.previewFont = e.target.value;
+      this.saveSettings();
+      this.applyCustomFonts();
+      this.refreshFontSelectors();
+    });
+
+    await this.registerCustomFonts();
+    this.renderCustomFontSettings();
 
     this.applySettings();
   }
@@ -1339,6 +1407,7 @@ class MarkdownEditor {
     const outlineContent = document.getElementById('outline-content');
     const lines = content.split('\n');
     const headings = [];
+    const idCount = {};
     let inCodeBlock = false;
 
     for (let i = 0; i < lines.length; i++) {
@@ -1353,7 +1422,11 @@ class MarkdownEditor {
       if (match) {
         const level = match[1].length;
         const text = match[2].replace(/[*`~\[\]]/g, '').trim();
-        const id = this.headingToId(text);
+        const baseId = this.headingToId(text);
+        // 与 processHeadings 保持一致的去重方案：首次无后缀，第 n 次为 baseId-n
+        const n = idCount[baseId] || 0;
+        idCount[baseId] = n + 1;
+        const id = n === 0 ? baseId : baseId + '-' + (n + 1);
         headings.push({ level, text, id, line: i });
       }
     }
@@ -1480,6 +1553,201 @@ class MarkdownEditor {
     this.preview.classList.toggle('code-wrap', s.codeWrap);
     await this.applyThemeMode();
     this.applyFontScheme();
+    this.applyCustomFonts();
+  }
+
+  // ====== 自定义字体 ======
+  async addFontFiles() {
+    const btn = document.getElementById('btn-add-font');
+    const originalHTML = btn ? btn.innerHTML : '';
+    const setLoading = (n, total) => {
+      if (!btn) return;
+      btn.classList.add('is-loading');
+      btn.innerHTML = `<span class="btn-spinner"></span>` + this.t('importingFonts', { n, total });
+    };
+    try {
+      const selected = await dialogOpen({
+        multiple: true,
+        filters: [{ name: '字体', extensions: ['ttf', 'otf', 'woff', 'woff2'] }],
+      });
+      if (!selected) return;
+      const paths = Array.isArray(selected) ? selected : [selected];
+      const imported = [];
+      const success = [];
+      const skipped = [];
+      const failed = [];
+      setLoading(0, paths.length);
+      // 先让 spinner 绘制出来，再做大字体解码等阻塞主线程的工作，避免看起来卡死
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const appDir = await invoke('app_data_dir');
+      const fontsDir = appDir.replace(/[\\\/]$/, '') + '/tizu-mark/fonts';
+      await invoke('ensure_dir', { path: fontsDir });
+      for (let i = 0; i < paths.length; i++) {
+        const p = paths[i];
+        const name = p.split(/[\\\/]/).pop();
+        setLoading(i + 1, paths.length);
+        try {
+          const b64 = await invoke('fetch_image_as_base64', { url: p });
+          const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+          let hash = '';
+          if (crypto && crypto.subtle && crypto.subtle.digest) {
+            const buf = await crypto.subtle.digest('SHA-256', bytes);
+            hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+          }
+          const fonts = this.settings.customFonts || [];
+          const existing = hash ? fonts.find(f => f.hash === hash) : fonts.find(f => f.name === name);
+          if (existing) {
+            skipped.push(name);
+            imported.push(existing.id);
+            continue;
+          }
+          const ext = (p.split('.').pop() || 'ttf').toLowerCase();
+          const id = 'cf' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+          const fileName = id + '.' + ext;
+          await invoke('write_binary_file', { path: fontsDir + '/' + fileName, contents: Array.from(bytes) });
+          this.settings.customFonts.push({ id, name, fileName, hash });
+          success.push(name);
+          imported.push(id);
+        } catch (err) {
+          failed.push({ name, reason: String(err && err.message ? err.message : err) });
+        }
+      }
+      if (imported.length) {
+        const last = imported[imported.length - 1];
+        this.settings.editorFont = last;
+        this.settings.previewFont = last;
+      }
+      this.saveSettings();
+      await this.registerCustomFonts();
+      this.applyCustomFonts();
+      this.renderCustomFontSettings();
+      if (success.length) {
+        this.showToast(this.t('importSuccess', { n: success.length }), 'success');
+      }
+      const totalFail = skipped.length + failed.length;
+      if (totalFail) {
+        const parts = [];
+        if (skipped.length) parts.push(skipped.join('、') + ' ' + this.t('fontAlreadyExists'));
+        failed.forEach(f => parts.push(`${f.name}（${f.reason}）`));
+        this.showToast(this.t('importFailed', { n: totalFail, detail: parts.join('；') }), 'danger');
+      }
+    } catch (e) {
+      this.showToast(this.t('addFont') + ' ' + this.t('failed') + ': ' + e, 'danger');
+    } finally {
+      if (btn) {
+        btn.classList.remove('is-loading');
+        btn.innerHTML = originalHTML;
+      }
+    }
+  }
+
+  async registerCustomFonts() {
+    let style = document.getElementById('custom-fonts-style');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'custom-fonts-style';
+      document.head.appendChild(style);
+    }
+    const fonts = this.settings.customFonts || [];
+    if (fonts.length === 0) {
+      style.textContent = '';
+      return;
+    }
+    const appDir = await invoke('app_data_dir');
+    const fontsDir = appDir.replace(/[\\\/]$/, '') + '/tizu-mark/fonts';
+    const mimeMap = { ttf: 'font/ttf', otf: 'font/otf', woff: 'font/woff', woff2: 'font/woff2' };
+    const fmtMap = { ttf: 'truetype', otf: 'opentype', woff: 'woff', woff2: 'woff2' };
+    let css = '';
+    for (const f of fonts) {
+      const ext = (f.fileName.split('.').pop() || 'ttf').toLowerCase();
+      const mime = mimeMap[ext] || 'font/ttf';
+      const fmt = fmtMap[ext] || 'truetype';
+      const b64 = await invoke('fetch_image_as_base64', { url: fontsDir + '/' + f.fileName });
+      css += `@font-face{font-family:'tizumark-custom-${f.id}';src:url(data:${mime};base64,${b64}) format('${fmt}');font-display:swap;}\n`;
+    }
+    style.textContent = css;
+  }
+
+  applyCustomFonts() {
+    const fam = (id) => id ? `'tizumark-custom-${id}'` : '';
+    const ef = fam(this.settings.editorFont);
+    this.cm.getWrapperElement().style.fontFamily = ef;
+    const pf = fam(this.settings.previewFont);
+    this.preview.style.fontFamily = pf;
+  }
+
+  async removeCustomFont(id) {
+    const font = (this.settings.customFonts || []).find(f => f.id === id);
+    const name = font ? font.name : '';
+    await this.showConfirmDialog(
+      this.t('deleteFont'),
+      this.t('confirmDeleteFont', { name: `<b>${this.escapeHtml(name)}</b>` }),
+      async () => {
+        this.settings.customFonts = (this.settings.customFonts || []).filter(f => f.id !== id);
+        if (this.settings.editorFont === id) this.settings.editorFont = '';
+        if (this.settings.previewFont === id) this.settings.previewFont = '';
+        this.saveSettings();
+        await this.registerCustomFonts();
+        this.applyCustomFonts();
+        this.renderCustomFontSettings();
+      }
+    );
+  }
+
+  renderCustomFontSettings() {
+    const list = document.getElementById('custom-font-list');
+    if (list) {
+      list.innerHTML = '';
+      const fonts = this.settings.customFonts || [];
+      if (fonts.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'custom-font-empty';
+        empty.textContent = this.t('noCustomFont');
+        list.appendChild(empty);
+      } else {
+        fonts.forEach(f => {
+          const row = document.createElement('div');
+          row.className = 'custom-font-item';
+          const name = document.createElement('span');
+          name.className = 'custom-font-name';
+          name.textContent = f.name;
+          const del = document.createElement('button');
+          del.className = 'custom-font-del dialog-btn';
+          del.type = 'button';
+          del.textContent = this.t('deleteFont');
+          del.addEventListener('click', () => this.removeCustomFont(f.id));
+          row.appendChild(name);
+          row.appendChild(del);
+          list.appendChild(row);
+        });
+      }
+    }
+    this.refreshFontSelectors();
+  }
+
+  refreshFontSelectors() {
+    ['editor', 'preview'].forEach(k => {
+      const sel = document.getElementById('set-' + k + '-font');
+      if (!sel) return;
+      const cur = this.settings[k + 'Font'] || '';
+      sel.innerHTML = '';
+      const opt0 = document.createElement('option');
+      opt0.value = '';
+      opt0.textContent = this.t('followScheme');
+      sel.appendChild(opt0);
+      (this.settings.customFonts || []).forEach(f => {
+        const o = document.createElement('option');
+        o.value = f.id;
+        o.textContent = f.name;
+        sel.appendChild(o);
+      });
+      sel.value = cur;
+    });
+    const sample = document.getElementById('font-preview-sample');
+    if (sample) {
+      const pf = this.settings.previewFont;
+      sample.style.fontFamily = pf ? `'tizumark-custom-${pf}'` : '';
+    }
   }
 
   async applyThemeMode() {
@@ -1591,6 +1859,10 @@ class MarkdownEditor {
       outlineWidth: 240,
       codeLineNumbers: false,
       codeWrap: false,
+      softBreaks: true,
+      customFonts: [],
+      editorFont: '',
+      previewFont: '',
     };
     this.settings = defaults;
     localStorage.removeItem('tizumark-settings');
@@ -1609,6 +1881,7 @@ class MarkdownEditor {
     document.getElementById('set-font-scheme').value = defaults.fontScheme;
     document.getElementById('set-default-view').value = defaults.defaultView;
     document.getElementById('set-scroll-sync').checked = defaults.scrollSync;
+    document.getElementById('set-soft-breaks').checked = defaults.softBreaks !== false;
     document.getElementById('set-language').value = defaults.language;
     const defaultRadio = document.querySelector(`#settings-image-store-mode input[value="${defaults.imageInsertMode}"]`);
     if (defaultRadio) defaultRadio.checked = true;
@@ -1618,6 +1891,7 @@ class MarkdownEditor {
     this.updateImageAssetPathHint();
 
     await this.applySettings();
+    this.renderCustomFontSettings();
     this.setStatus(this.t('settingsReset'));
   }
 
@@ -3194,14 +3468,31 @@ class MarkdownEditor {
     });
   }
 
-  showConfirmDialog(title, message) {
+  showConfirmDialog(title, message, action = null) {
     return new Promise((resolve) => {
       const dialog = document.getElementById('confirm-dialog');
+      const confirmBtn = document.getElementById('confirm-dialog-confirm');
+      const cancelBtn = document.getElementById('confirm-dialog-cancel');
       document.getElementById('confirm-dialog-title').textContent = title || this.t('confirm');
       document.getElementById('confirm-dialog-message').innerHTML = message || '';
       dialog.classList.remove('hidden');
 
-      const onConfirm = () => {
+      const onConfirm = async () => {
+        if (action) {
+          confirmBtn.disabled = true;
+          cancelBtn.disabled = true;
+          const originalHTML = confirmBtn.innerHTML;
+          confirmBtn.innerHTML = `<span class="btn-spinner"></span>` + this.t('processing');
+          try {
+            await action();
+          } catch (e) {
+            this.showToast(this.t('deleteFont') + ' ' + this.t('failed') + ': ' + e, 'danger');
+          } finally {
+            confirmBtn.disabled = false;
+            cancelBtn.disabled = false;
+            confirmBtn.innerHTML = originalHTML;
+          }
+        }
         cleanup();
         resolve(true);
       };
@@ -3211,12 +3502,12 @@ class MarkdownEditor {
       };
       const cleanup = () => {
         dialog.classList.add('hidden');
-        document.getElementById('confirm-dialog-confirm').removeEventListener('click', onConfirm);
-        document.getElementById('confirm-dialog-cancel').removeEventListener('click', onCancel);
+        confirmBtn.removeEventListener('click', onConfirm);
+        cancelBtn.removeEventListener('click', onCancel);
       };
 
-      document.getElementById('confirm-dialog-confirm').addEventListener('click', onConfirm);
-      document.getElementById('confirm-dialog-cancel').addEventListener('click', onCancel);
+      confirmBtn.addEventListener('click', onConfirm);
+      cancelBtn.addEventListener('click', onCancel);
     });
   }
 
@@ -4372,7 +4663,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
         if (gen !== this._renderGeneration) return;
       }
 
-      const html = UnifiedRenderer.renderMarkdown(content);
+      const html = UnifiedRenderer.renderMarkdown(content, { softBreaks: this.settings.softBreaks });
       if (gen !== this._renderGeneration) return;
 
       let finalHtml = html;

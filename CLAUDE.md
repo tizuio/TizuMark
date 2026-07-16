@@ -321,3 +321,10 @@ Token：`0dac842444bee19c14975bac33431437`
 - 构建产物：`src-tauri\target\release\bundle\nsis\` 和 `\msi\`
 - 本地归档：`release\`
 - 临时脚本：`scripts\`
+
+## 提交规范（commit / push）
+
+- **只用一个 commit**：提交时把所有改动合并为一个 commit，不按功能拆成多个。
+- **注释列全功能改动点、不遗漏**：commit message 简洁地列出本次涉及的所有功能改动点（如「自定义字体移至设置底部 / 添加字体按钮样式统一 / 导入 loading 与进度 / 导入后自动选中 / 列表限高+删除确认 / 内容哈希去重+汇总提示 / 删除确认后 loading」），不漏掉任何改动，但表述要简洁。
+- 提交前检查 `git status`，把本次相关改动文件全部纳入（如 `src/app.js`、`src/index.html`、`src/styles.css` 等）。
+- 提交/推送是红线操作，必须用户明确说"提交/commit"或"推送/push"后才执行，且执行前先确认。
