@@ -16,6 +16,7 @@ class Tab {
     this.filePath = filePath;
     this.cursorPos = { line: 0, ch: 0 };
     this.scrollPos = { top: 0, left: 0 };
+    this.previewScrollTop = 0;
   }
 
   get isModified() {
@@ -2044,17 +2045,32 @@ class MarkdownEditor {
     oldTab.content = this.cm.getValue();
     oldTab.cursorPos = this.cm.getCursor();
     oldTab.scrollPos = { top: this.cm.getScrollInfo().top, left: this.cm.getScrollInfo().left };
+    oldTab.previewScrollTop = this.preview.scrollTop;
 
     this.activeTabIndex = index;
     const newTab = this.activeTab;
 
     this.cm.setValue(newTab.content);
+    clearTimeout(this.debounceTimer);
     this.cm.setCursor(newTab.cursorPos);
     this.cm.scrollTo(newTab.scrollPos.left, newTab.scrollPos.top);
     this.cm.clearHistory();
 
     this.updateTabDisplay();
     this.updatePreview();
+    // 恢复预览滚动位置：
+    // - 非 scrollSync：立即独立恢复（scroll sync 只做 cap，不会覆盖）
+    // - 预览模式 + scrollSync：延迟恢复，等滚动同步完成后覆盖
+    // - split 模式 + scrollSync：由滚动同步自动处理，无需恢复
+    if (!this.settings.scrollSync) {
+      const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+      this.preview.scrollTop = Math.min(newTab.previewScrollTop, maxScroll);
+    } else if (document.querySelector('.editor-container').classList.contains('preview-mode')) {
+      setTimeout(() => {
+        const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+        this.preview.scrollTop = Math.min(newTab.previewScrollTop, maxScroll);
+      }, 0);
+    }
     this.updateWordCount();
     this.updateOutline();
   }
@@ -3485,16 +3501,17 @@ class MarkdownEditor {
       this.cm.clearHistory();
       this.updatePreview();
       // 恢复预览滚动位置：
-      // - 非 scrollSync 模式：直接独立恢复
-      // - 预览模式（preview-mode）：编辑器隐藏导致其滚动位置不可靠，独立恢复预览位置
-      // 双重 rAF 确保在 updatePreview 的所有异步渲染（含内部 rAF 等待）完成后才恢复
-      if (!this.settings.scrollSync || document.querySelector('.editor-container').classList.contains('preview-mode')) {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
-            this.preview.scrollTop = Math.min(previewScrollTop, maxScroll);
-          });
-        });
+      // - 非 scrollSync：立即独立恢复
+      // - 预览模式 + scrollSync：延迟恢复，等滚动同步完成后覆盖
+      // - split 模式 + scrollSync：由滚动同步自动处理
+      if (!this.settings.scrollSync) {
+        const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+        this.preview.scrollTop = Math.min(previewScrollTop, maxScroll);
+      } else if (document.querySelector('.editor-container').classList.contains('preview-mode')) {
+        setTimeout(() => {
+          const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+          this.preview.scrollTop = Math.min(previewScrollTop, maxScroll);
+        }, 0);
       }
       this.updateWordCount();
       this.updateOutline();
