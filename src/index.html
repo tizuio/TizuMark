@@ -48,6 +48,15 @@
                 <span class="shortcut"></span>
               </div>
               <div class="dropdown-separator"></div>
+              <div class="dropdown-item" id="btn-reload-menu">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+                <span>重新加载</span>
+                <span class="shortcut">Ctrl+R</span>
+              </div>
+              <div class="dropdown-separator"></div>
               <div class="dropdown-item" id="btn-export-html">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                 <span>导出 HTML</span>
@@ -243,6 +252,12 @@
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                 <span>检查更新</span>
               </div>
+              <div class="dropdown-separator"></div>
+              <div class="dropdown-item" id="btn-devtools">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                <span>开发者工具</span>
+                <span class="shortcut">Ctrl+Shift+I</span>
+              </div>
               <div class="dropdown-item" id="btn-about">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
                 <span>关于</span>
@@ -263,6 +278,12 @@
           </div>
         </div>
         <div class="toolbar-right">
+          <button id="btn-reload" class="toolbar-btn" title="重新加载文件">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </button>
           <button id="btn-theme" class="toolbar-btn" title="切换主题">
             <svg class="icon" id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="4"/>

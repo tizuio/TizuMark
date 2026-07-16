@@ -2256,6 +2256,11 @@ class MarkdownEditor {
       document.getElementById('file-menu').classList.add('hidden');
       this.saveAsFile();
     });
+    document.getElementById('btn-reload').addEventListener('click', () => this.reloadFile());
+    document.getElementById('btn-reload-menu').addEventListener('click', () => {
+      document.getElementById('file-menu').classList.add('hidden');
+      this.reloadFile();
+    });
     document.getElementById('btn-export-html').addEventListener('click', () => {
       document.getElementById('file-menu').classList.add('hidden');
       this.exportHTML();
@@ -2285,7 +2290,14 @@ class MarkdownEditor {
       document.getElementById('help-menu').classList.add('hidden');
       this.checkUpdate(true);
     });
-    document.getElementById('btn-add-tab').addEventListener('click', () => this.newFile());
+    document.getElementById('btn-devtools').addEventListener('click', () => {
+      document.getElementById('help-menu').classList.add('hidden');
+      try {
+        window.__TAURI__.core.invoke('plugin:webview|internal_toggle_devtools');
+      } catch (e) {
+        this.setStatus('无法打开开发者工具');
+      }
+    });
     document.querySelector('.tab-bar-wrapper').addEventListener('dblclick', (e) => {
       if (!e.target.closest('.tab') && !e.target.closest('.tab-add')) {
         this.newFile();
@@ -3449,6 +3461,50 @@ class MarkdownEditor {
     this.setViewMode('edit');
     this.addTab(this.t('untitled'), '', null);
     this.setStatus(this.t('newFileCreated'));
+  }
+
+  async reloadFile() {
+    const tab = this.activeTab;
+    if (!tab || !tab.filePath) {
+      this.setStatus(this.t('noFileToReload') || '当前文件无关联路径，无法重新加载');
+      return;
+    }
+    this.showLoading();
+    try {
+      const scrollInfo = this.cm.getScrollInfo();
+      const cursorPos = this.cm.getCursor();
+      const previewScrollTop = this.preview.scrollTop;
+      const content = await invoke('read_file', { path: tab.filePath });
+      tab.content = content;
+      tab.savedContent = content;
+      this.cm.setValue(content);
+      // 取消 change 事件调度的 debounced 预览更新，后续显式调用 updatePreview 替代
+      clearTimeout(this.debounceTimer);
+      this.cm.setCursor(cursorPos);
+      this.cm.scrollTo(scrollInfo.left, scrollInfo.top);
+      this.cm.clearHistory();
+      this.updatePreview();
+      // 恢复预览滚动位置：
+      // - 非 scrollSync 模式：直接独立恢复
+      // - 预览模式（preview-mode）：编辑器隐藏导致其滚动位置不可靠，独立恢复预览位置
+      // 双重 rAF 确保在 updatePreview 的所有异步渲染（含内部 rAF 等待）完成后才恢复
+      if (!this.settings.scrollSync || document.querySelector('.editor-container').classList.contains('preview-mode')) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+            this.preview.scrollTop = Math.min(previewScrollTop, maxScroll);
+          });
+        });
+      }
+      this.updateWordCount();
+      this.updateOutline();
+      this.updateTabDisplay();
+      this.setStatus(`${this.t('reloaded') || '已重新加载'}: ${tab.name}`);
+    } catch (err) {
+      this.setStatus(`${this.t('reloadFailed') || '重新加载失败'}: ${err}`);
+    } finally {
+      this.hideLoading();
+    }
   }
 
   async openFile() {
