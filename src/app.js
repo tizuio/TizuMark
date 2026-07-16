@@ -42,6 +42,8 @@ const I18N = {
     table: '表格',
     quoteBlock: '引用块',
     callout: '提示块',
+    expandToolbar: '展开工具栏',
+    collapseToolbar: '收起工具栏',
     mathBlock: '数学公式',
     mermaidChart: 'Mermaid 图表',
     hr: '水平线',
@@ -313,6 +315,8 @@ const I18N = {
     table: 'Table',
     quoteBlock: 'Blockquote',
     callout: 'Callout',
+    expandToolbar: 'Expand Toolbar',
+    collapseToolbar: 'Collapse Toolbar',
     mathBlock: 'Math Block',
     mermaidChart: 'Mermaid Chart',
     hr: 'Horizontal Rule',
@@ -612,7 +616,7 @@ class MarkdownEditor {
     this.initOutlineResizer();
     this.updateOutlineCheck();
     this.initContextMenu();
-    this.initInsertMenu();
+    this.initFormatToolbar();
     this.initInsertDialogs();
     this.initImagePaste();
     this.initTabScroll();
@@ -671,7 +675,6 @@ class MarkdownEditor {
       if (span) span.textContent = text;
     };
     updateToolbarBtn('btn-file', t('file'));
-    updateToolbarBtn('btn-insert', t('insert'));
     updateToolbarBtn('btn-view', t('view'));
     updateToolbarBtn('btn-help', t('help'));
 
@@ -883,7 +886,6 @@ class MarkdownEditor {
 
     // Toolbar button titles
     setTitle('btn-file', t('file'));
-    setTitle('btn-insert', t('insert'));
     setTitle('btn-view', t('view'));
     setTitle('btn-help', t('help'));
     setTitle('btn-view-preview', t('previewMode'));
@@ -896,25 +898,7 @@ class MarkdownEditor {
       if (labelSpan) labelSpan.textContent = t('outline');
     }
 
-    // ====== INSERT MENU ======
-    // Submenu triggers (items with data-submenu)
-    const subTriggerKeys = {
-      'insert-structure': 'structure',
-      'insert-text-format': 'textFormat',
-      'insert-list': 'list',
-      'insert-link-media': 'linkMedia',
-      'insert-heading': 'heading',
-      'insert-callout': 'callout',
-    };
-    document.querySelectorAll('.insert-submenu-trigger').forEach(el => {
-      const key = subTriggerKeys[el.dataset.submenu];
-      if (key) {
-        const span = el.querySelector('span:first-of-type');
-        if (span) span.textContent = t(key);
-      }
-    });
-
-    // Items with data-action inside insert submenus
+    // Items with data-action (format toolbar + context menus)
     const insActionKeys = {
       'insert-code-block': 'codeBlock',
       'insert-table': 'table',
@@ -948,12 +932,7 @@ class MarkdownEditor {
       'insert-callout-important': 'importantHint',
     };
     document.querySelectorAll(
-      '#insert-structure .dropdown-item[data-action],' +
-      '#insert-heading .dropdown-item[data-action],' +
-      '#insert-callout .dropdown-item[data-action],' +
-      '#insert-text-format .dropdown-item[data-action],' +
-      '#insert-list .dropdown-item[data-action],' +
-      '#insert-link-media .dropdown-item[data-action],' +
+      '#format-toolbar .dropdown-item[data-action],' +
       // Also cover context menu submenus
       '#ctx-structure .context-menu-item[data-action],' +
       '#ctx-heading .context-menu-item[data-action],' +
@@ -968,6 +947,21 @@ class MarkdownEditor {
         if (span) span.textContent = t(key);
       }
     });
+
+    // ====== data-i18n (category labels without actions, e.g. toolbar dropdowns) ======
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      if (key) {
+        const lbl = el.querySelector('.lbl');
+        if (lbl) lbl.textContent = t(key);
+      }
+    });
+
+    // 折叠切换按钮文案随展开/收起状态变化
+    const fmtLabel = document.querySelector('#fmt-collapse .fmt-toggle-label');
+    if (fmtLabel) {
+      fmtLabel.textContent = this.settings.toolbarCollapsed ? t('expandToolbar') : t('collapseToolbar');
+    }
 
     // ====== CONTEXT MENUS ======
     // Submenu triggers
@@ -1061,6 +1055,7 @@ class MarkdownEditor {
       outlineWidth: 240,
       codeLineNumbers: false,
       codeWrap: false,
+      toolbarCollapsed: false,
     };
     try {
       const saved = JSON.parse(localStorage.getItem('tizumark-settings'));
@@ -2181,7 +2176,6 @@ class MarkdownEditor {
       { btn: 'btn-file', menu: 'file-menu' },
       { btn: 'btn-view', menu: 'view-menu' },
       { btn: 'btn-help', menu: 'help-menu' },
-      { btn: 'btn-insert', menu: 'insert-menu' },
     ];
 
     let toolbarHideTimer = null;
@@ -2212,7 +2206,6 @@ class MarkdownEditor {
           const m = document.getElementById(d.menu);
           if (d.menu !== menu) m.classList.add('hidden');
         });
-        document.getElementById('insert-menu').classList.add('hidden');
         const isOpening = menuEl.classList.contains('hidden');
         menuEl.classList.toggle('hidden');
         anyToolbarOpen = isOpening;
@@ -2224,7 +2217,6 @@ class MarkdownEditor {
           toolbarDropdowns.forEach(d => {
             document.getElementById(d.menu).classList.add('hidden');
           });
-          document.getElementById('insert-menu').classList.add('hidden');
           menuEl.classList.remove('hidden');
         }
       });
@@ -2234,7 +2226,6 @@ class MarkdownEditor {
 
     document.addEventListener('click', () => {
       toolbarDropdowns.forEach(d => document.getElementById(d.menu).classList.add('hidden'));
-      document.querySelectorAll('#insert-menu ~ .dropdown-menu.submenu').forEach(m => m.classList.add('hidden'));
       this.hideAllContextMenus();
     });
     document.getElementById('btn-outline-toggle').addEventListener('click', () => {
@@ -4536,7 +4527,23 @@ input[type="checkbox"]:checked::after { display: none !important; }
       ':unlock:': '🔓', ':link:': '🔗', ':scissors:': '✂️', ':pushpin:': '📌'
     };
 
-    const walker = document.createTreeWalker(this.preview, NodeFilter.SHOW_TEXT, null, false);
+    const skipTags = ['CODE', 'PRE', 'ABBR', 'SCRIPT', 'STYLE', 'TEXTAREA', 'A'];
+    const walker = document.createTreeWalker(
+      this.preview,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: (node) => {
+          let p = node.parentElement;
+          while (p) {
+            if (skipTags.includes(p.tagName)) return NodeFilter.FILTER_REJECT;
+            if (p.classList && p.classList.contains('katex')) return NodeFilter.FILTER_REJECT;
+            p = p.parentElement;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      },
+      false
+    );
     const textNodes = [];
     let node;
     while (node = walker.nextNode()) textNodes.push(node);
@@ -4565,7 +4572,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
       // Sort by term length descending to avoid partial matches
       abbrs.sort((a, b) => b[0].length - a[0].length);
 
-      const skipTags = ['CODE', 'PRE', 'ABBR', 'SCRIPT', 'STYLE', 'TEXTAREA', 'A'];
+    const skipTags = ['CODE', 'PRE'];
       const walker = document.createTreeWalker(
         this.preview,
         NodeFilter.SHOW_TEXT,
@@ -5630,104 +5637,29 @@ input[type="checkbox"]:checked::after { display: none !important; }
     }
   }
 
-  initInsertMenu() {
-    const insertMenu = document.getElementById('insert-menu');
-
-    let hideAllTimer = null;
-
-    const hideAllSubmenus = () => {
-      document.querySelectorAll('#insert-menu ~ .dropdown-menu.submenu').forEach(m => m.classList.add('hidden'));
-    };
-
-    const scheduleHideAll = (delay = 300) => {
-      clearTimeout(hideAllTimer);
-      hideAllTimer = setTimeout(() => {
-        if (!document.querySelector('#insert-menu:hover, #insert-menu ~ .dropdown-menu.submenu:hover')) {
-          hideAllSubmenus();
-        }
-      }, delay);
-    };
-
-    const cancelHideAll = () => {
-      clearTimeout(hideAllTimer);
-    };
-
-    insertMenu.addEventListener('mouseleave', () => scheduleHideAll());
-
-    document.querySelectorAll('#insert-menu ~ .dropdown-menu.submenu').forEach(submenu => {
-      submenu.addEventListener('mouseenter', cancelHideAll);
-      submenu.addEventListener('mouseleave', () => scheduleHideAll());
-    });
-
-    document.querySelectorAll('.insert-submenu-trigger').forEach(trigger => {
-      const showSubmenu = () => {
-        cancelHideAll();
-        const submenuId = trigger.dataset.submenu;
-        const parentMenu = trigger.closest('.dropdown-menu');
-        if (!parentMenu) return;
-
-        const ancestors = [];
-        let el = parentMenu;
-        while (el) {
-          if (el.classList && el.classList.contains('dropdown-menu')) {
-            ancestors.push(el);
-          }
-          el = el.parentElement;
-        }
-
-        document.querySelectorAll('.dropdown-menu.submenu').forEach(s => {
-          if (!ancestors.includes(s) && s.id !== submenuId) {
-            s.classList.add('hidden');
-          }
-        });
-
-        const submenu = document.getElementById(submenuId);
-        if (!submenu) return;
-        submenu.classList.remove('hidden');
-        const parentRect = trigger.getBoundingClientRect();
-        submenu.style.left = (parentRect.right - 1) + 'px';
-        submenu.style.top = parentRect.top + 'px';
-        requestAnimationFrame(() => {
-          const subRect = submenu.getBoundingClientRect();
-          if (subRect.right > window.innerWidth) {
-            submenu.style.left = (parentRect.left - subRect.width + 1) + 'px';
-          }
-          if (subRect.bottom > window.innerHeight) {
-            submenu.style.top = (window.innerHeight - subRect.height - 4) + 'px';
-          }
-        });
-      };
-
-      trigger.addEventListener('mouseenter', showSubmenu);
-      trigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const submenuId = trigger.dataset.submenu;
-        const submenu = document.getElementById(submenuId);
-        if (submenu && submenu.classList.contains('hidden')) {
-          showSubmenu();
-        }
-      });
-    });
-
-    document.querySelectorAll('.dropdown-menu .dropdown-item:not(.insert-submenu-trigger)').forEach(item => {
-      item.addEventListener('mouseenter', () => {
-        const parentMenu = item.closest('.dropdown-menu');
-        parentMenu.querySelectorAll('.insert-submenu-trigger').forEach(trigger => {
-          const sub = document.getElementById(trigger.dataset.submenu);
-          if (sub) sub.classList.add('hidden');
+  initFormatToolbar() {
+    // 格式工具栏：直接按钮 + 复合下拉（悬停展开），折叠状态持久化
+    const fmtToolbar = document.getElementById('format-toolbar');
+    if (fmtToolbar) {
+      fmtToolbar.classList.toggle('collapsed', !!this.settings.toolbarCollapsed);
+      fmtToolbar.querySelectorAll('[data-action]').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.executeMenuAction(item.dataset.action);
         });
       });
-    });
-
-    document.querySelectorAll('#insert-menu .dropdown-item[data-action], .dropdown-menu.submenu .dropdown-item[data-action]').forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const action = item.dataset.action;
-        insertMenu.classList.add('hidden');
-        document.querySelectorAll('#insert-menu ~ .dropdown-menu.submenu').forEach(m => m.classList.add('hidden'));
-        this.executeMenuAction(action);
-      });
-    });
+      const fmtCollapse = document.getElementById('fmt-collapse');
+      if (fmtCollapse) {
+        fmtCollapse.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.settings.toolbarCollapsed = !this.settings.toolbarCollapsed;
+          fmtToolbar.classList.toggle('collapsed', this.settings.toolbarCollapsed);
+          const lbl = fmtCollapse.querySelector('.fmt-toggle-label');
+          if (lbl) lbl.textContent = this.settings.toolbarCollapsed ? this.t('expandToolbar') : this.t('collapseToolbar');
+          this.saveSettings();
+        });
+      }
+    }
   }
 
   // ========== 标签栏滚动 ==========

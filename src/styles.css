@@ -751,6 +751,138 @@ body {
   display: block;
 }
 
+/* ===== 格式工具栏 ===== */
+.format-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  height: 28px;
+  min-height: 28px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  -webkit-app-region: no-drag;
+  position: relative;
+  overflow: visible;
+  z-index: 50;
+  transition: height .2s, min-height .2s, background-color .2s, border-color .2s;
+}
+.format-toolbar.collapsed {
+  height: 0;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  background: transparent;
+  border-bottom: 2px solid var(--border-color);
+}
+.format-toolbar.collapsed .fmt-content {
+  display: none;
+}
+.fmt-content {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.fmt-btn {
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  padding: 0 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  align-self: center;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.fmt-btn:hover {
+  background: var(--bg-secondary);
+}
+.fmt-btn .icon {
+  width: 14px;
+  height: 14px;
+}
+.fmt-icon-btn {
+  min-width: 24px;
+  font-style: normal;
+}
+.fmt-icon-btn b,
+.fmt-icon-btn i,
+.fmt-icon-btn s {
+  font-size: 12px;
+  line-height: 1;
+}
+.fmt-hl {
+  background: #ffe58f;
+  color: #000;
+  padding: 0 3px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+.fmt-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border-color);
+  margin: 0 4px;
+}
+.fmt-dropdown {
+  position: relative;
+  display: flex;
+  padding-bottom: 6px;
+}
+.fmt-dropdown > .dropdown-menu {
+  display: none;
+  top: 100%;
+  left: 0;
+  margin-top: 0;
+  z-index: 200;
+}
+.fmt-dropdown:hover > .dropdown-menu {
+  display: block;
+}
+.fmt-dropdown .dropdown-item {
+  white-space: nowrap;
+}
+.fmt-collapse-toggle {
+  margin-left: auto;
+  padding: 0 6px;
+  gap: 4px;
+}
+.fmt-collapse-toggle .icon {
+  transition: transform .2s;
+}
+.format-toolbar:not(.collapsed) .fmt-chevron {
+  transform: rotate(180deg);
+}
+.fmt-toggle-label {
+  display: none;
+}
+.format-toolbar.collapsed .fmt-collapse-toggle {
+  position: absolute;
+  right: 8px;
+  top: 2px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  margin-left: 0;
+  padding: 0 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .12);
+}
+.format-toolbar.collapsed .fmt-toggle-label {
+  display: inline;
+}
+
 .tab-bar {
   display: flex;
   gap: 2px;
@@ -1981,11 +2113,6 @@ body.is-resizing .side-btn {
   position: fixed;
   animation: contextMenuFadeIn 0.12s ease-out;
   margin-left: -2px;
-}
-
-/* 插入按钮子菜单箭头 */
-.insert-submenu-trigger .submenu-arrow {
-  margin-left: auto;
 }
 
 /* 对话框样式 */
