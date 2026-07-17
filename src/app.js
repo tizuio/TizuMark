@@ -5424,6 +5424,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
       try { PreviewPost.processEmojiShortcodes(this.preview); } catch (e) { console.warn('[preview] Emoji error:', e); }
       try { PreviewPost.processMath(this.preview); } catch (e) { console.warn('[preview] Math error:', e); }
       try { PreviewPost.processAbbreviations(this.preview, postOpts); } catch (e) { console.warn('[preview] Abbr error:', e); }
+      try { this.processFootnotes(); } catch (e) { console.warn('[preview] Footnotes error:', e); }
       try { PreviewPost.processHeadings(this.preview, postOpts); } catch (e) { console.warn('[preview] Headings error:', e); }
       try { await PreviewPost.processMermaid(this.preview, postOpts); } catch (e) { console.warn('[preview] Mermaid error:', e); }
       if (gen !== this._renderGeneration) { this._resumeScroll(); return; }
@@ -5556,6 +5557,36 @@ input[type="checkbox"]:checked::after { display: none !important; }
       }
     });
     await Promise.allSettled(promises);
+  }
+
+  processFootnotes() {
+    this.preview.querySelectorAll('.footnote-ref a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const href = link.getAttribute('href');
+        if (!href) return;
+        const target = this.preview.querySelector(href);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          target.classList.add('footnote-flash');
+          setTimeout(() => target.classList.remove('footnote-flash'), 1500);
+        }
+      });
+    });
+
+    this.preview.querySelectorAll('.footnote-backref').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const href = link.getAttribute('href');
+        if (!href) return;
+        const target = this.preview.querySelector(href);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          target.classList.add('footnote-flash');
+          setTimeout(() => target.classList.remove('footnote-flash'), 1500);
+        }
+      });
+    });
   }
 
   showToast(text, type = 'danger') {
