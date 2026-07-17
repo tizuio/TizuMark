@@ -7,7 +7,8 @@
     "dev": "tauri dev",
     "build": "tauri build",
     "postbuild": "node -e \"const{existsSync,copyFileSync}=require('fs');const{version}=require('./package.json');const src='src-tauri/target/release/tizumark.exe';const dst='src-tauri/target/release/TizuMark_'+version+'_x64.exe';existsSync(src)&&(copyFileSync(src,dst),console.log('版本化可执行文件已输出: '+dst))\"",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "node --test test/*.test.cjs"
   },
   "author": "TizuMark",
   "license": "GPL-3.0",

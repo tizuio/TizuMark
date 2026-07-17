@@ -1257,6 +1257,37 @@ body.is-resizing .side-btn {
   transition: max-width 0.2s ease;
 }
 
+.large-file-banner {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 14px;
+  background-color: var(--accent-color, #4a90d9);
+  color: #fff;
+  font-size: 12.5px;
+  line-height: 1.4;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.large-file-banner.hidden { display: none; }
+
+.large-file-banner-close {
+  margin-left: auto;
+  flex: none;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.large-file-banner-close:hover { background: rgba(255, 255, 255, 0.35); }
+
 .preview-content.max-width-active {
   flex: none;
   width: 100%;

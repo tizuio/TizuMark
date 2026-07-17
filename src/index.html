@@ -278,8 +278,12 @@
           </div>
       </div>
       <div class="outline-resizer" id="outline-resizer"></div>
-      <div class="editor-column">
-        <div class="tab-bar-wrapper">
+       <div class="editor-column">
+         <div id="large-file-banner" class="large-file-banner hidden">
+           <span id="large-file-banner-text"></span>
+           <button id="large-file-banner-close" class="large-file-banner-close" title="关闭提示">&times;</button>
+         </div>
+         <div class="tab-bar-wrapper">
           <button id="tab-scroll-left" class="tab-scroll-arrow hidden" title="向左滚动">&#9664;</button>
           <div class="tab-bar-scroll" id="tab-bar-scroll">
             <div id="tab-bar" class="tab-bar" role="tablist" aria-label="标签页">
@@ -947,6 +951,7 @@
   </div>
 
   <script src="lib/unified-bundle.js"></script>
+  <script src="lib/md-links.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
