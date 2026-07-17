@@ -1563,6 +1563,33 @@ body.is-resizing .side-btn {
 
 .preview-content sup a:hover { text-decoration: underline; }
 
+/* Footnotes separator & section */
+.preview-content .footnotes-sep {
+  margin: 32px 0 16px;
+  border: none;
+  border-top: 1px solid var(--border-color, #ddd);
+}
+.preview-content .footnotes {
+  font-size: 0.92em;
+  color: var(--text-secondary);
+}
+.preview-content .footnotes ol {
+  padding-left: 1.6em;
+  margin: 0;
+}
+.preview-content .footnote-backref {
+  margin-left: 4px;
+  text-decoration: none;
+  font-size: 0.85em;
+  opacity: 0.6;
+}
+.preview-content .footnote-backref:hover {
+  opacity: 1;
+}
+.preview-content .footnote-ref {
+  scroll-margin-top: 80px;
+}
+
 /* Inline HTML support */
 .preview-content ins { text-decoration: underline; }
 .preview-content center { text-align: center; }

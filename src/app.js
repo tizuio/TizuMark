@@ -4682,6 +4682,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
       try { this.processEmojiShortcodes(); } catch (e) { console.warn('[preview] Emoji error:', e); }
       try { this.processMath(); } catch (e) { console.warn('[preview] Math error:', e); }
       try { this.processAbbreviations(); } catch (e) { console.warn('[preview] Abbr error:', e); }
+      try { this.processFootnotes(); } catch (e) { console.warn('[preview] Footnotes error:', e); }
       try { this.processHeadings(); } catch (e) { console.warn('[preview] Headings error:', e); }
       try { await this.processMermaid(); } catch (e) { console.warn('[preview] Mermaid error:', e); }
       if (gen !== this._renderGeneration) { this._resumeScroll(); return; }
@@ -4935,6 +4936,38 @@ input[type="checkbox"]:checked::after { display: none !important; }
       console.warn('[preview] Abbreviations error:', e);
       dataDiv.remove();
     }
+  }
+
+  processFootnotes() {
+    // 1. Footnote reference → definition: smooth scroll + highlight
+    this.preview.querySelectorAll('.footnote-ref a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const href = link.getAttribute('href');
+        if (!href) return;
+        const target = this.preview.querySelector(href);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          target.classList.add('footnote-flash');
+          setTimeout(() => target.classList.remove('footnote-flash'), 1500);
+        }
+      });
+    });
+
+    // 2. Backref (↩) → reference: smooth scroll + highlight
+    this.preview.querySelectorAll('.footnote-backref').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const href = link.getAttribute('href');
+        if (!href) return;
+        const target = this.preview.querySelector(href);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          target.classList.add('footnote-flash');
+          setTimeout(() => target.classList.remove('footnote-flash'), 1500);
+        }
+      });
+    });
   }
 
   // Render both display math ($$...$$) and inline math ($...$ / \(...\))
