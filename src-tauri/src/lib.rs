@@ -262,6 +262,63 @@ fn file_meta(path: String) -> Result<Option<FileMeta>, String> {
     }))
 }
 
+#[derive(serde::Serialize, Clone)]
+struct DirEntryInfo {
+    name: String,
+    path: String,
+    is_dir: bool,
+}
+
+#[tauri::command]
+fn list_dir(path: String) -> Result<Vec<DirEntryInfo>, String> {
+    let p = std::path::Path::new(&path);
+    let mut entries: Vec<DirEntryInfo> = Vec::new();
+    let read = std::fs::read_dir(&p).map_err(|e| e.to_string())?;
+    for entry in read {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        let meta = match entry.metadata() {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
+        let is_dir = meta.is_dir();
+        let name = entry.file_name().to_string_lossy().to_string();
+        if name.starts_with('.') {
+            continue;
+        }
+        let ext = if is_dir {
+            String::new()
+        } else {
+            std::path::Path::new(&name)
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("")
+                .to_lowercase()
+        };
+        if !is_dir && !["md", "markdown", "txt"].contains(&ext.as_str()) {
+            continue;
+        }
+        entries.push(DirEntryInfo {
+            name,
+            path: entry.path().to_string_lossy().to_string(),
+            is_dir,
+        });
+    }
+    entries.sort_by(|a, b| {
+        if a.is_dir != b.is_dir {
+            return if a.is_dir {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Greater
+            };
+        }
+        a.name.to_lowercase().cmp(&b.name.to_lowercase())
+    });
+    Ok(entries)
+}
+
 #[tauri::command]
 fn write_file(path: String, content: String) -> Result<(), String> {
     fs::write(&path, &content).map_err(|e| e.to_string())
@@ -1196,6 +1253,7 @@ pub fn run() {
             read_file,
             write_file,
             file_meta,
+            list_dir,
             write_binary_file,
             ensure_dir,
             app_data_dir,

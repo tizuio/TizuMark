@@ -18,6 +18,7 @@ class Tab {
     this.scrollPos = { top: 0, left: 0 };
     this.fileMeta = null;
     this.pendingExternalChange = false;
+    this._loaded = true;
   }
 
   get isModified() {
@@ -322,6 +323,11 @@ const I18N = {
     saveAll: '保存全部',
     discardAll: '放弃全部',
     fileOpened: '已打开: {name}',
+    openFolder: '打开文件夹',
+    files: '文件',
+    closeFolder: '关闭文件夹',
+    folderOpened: '已打开文件夹: {path}',
+    sidebar: '侧边栏',
   },
   en: {
     file: 'File',
@@ -620,6 +626,11 @@ const I18N = {
     saveAll: 'Save All',
     discardAll: 'Discard All',
     fileOpened: 'Opened: {name}',
+    openFolder: 'Open Folder',
+    files: 'Files',
+    closeFolder: 'Close Folder',
+    folderOpened: 'Opened folder: {path}',
+    sidebar: 'Sidebar',
   }
 };
 
@@ -629,6 +640,8 @@ class MarkdownEditor {
     this.tabs = [];
     this.activeTabIndex = 0;
     this.cm = null;
+    this.workspaceFolder = null;
+    this.expandedFolders = new Set();
     this.debounceTimer = null;
     this._renderGeneration = 0;
     this._mermaidGeneration = 0;
@@ -667,6 +680,7 @@ class MarkdownEditor {
     this.updateOutlineCheck();
     this.initContextMenu();
     this.initFormatToolbar();
+    this.applySidebarState();
     this.initInsertDialogs();
     this.initImagePaste();
     this.initTabScroll();
@@ -695,6 +709,25 @@ class MarkdownEditor {
       await new Promise(r => setTimeout(r, minDuration - elapsed));
     }
     document.getElementById('loading-overlay').classList.add('hidden');
+  }
+
+  showPaneLoading() {
+    const el = document.getElementById('pane-loading');
+    if (el && el.classList.contains('hidden')) {
+      this._paneLoadingStart = Date.now();
+      el.classList.remove('hidden');
+    }
+  }
+
+  async hidePaneLoading() {
+    const el = document.getElementById('pane-loading');
+    if (!el) return;
+    const elapsed = Date.now() - (this._paneLoadingStart || 0);
+    const minDuration = 180;
+    if (elapsed < minDuration) {
+      await new Promise(r => setTimeout(r, minDuration - elapsed));
+    }
+    el.classList.add('hidden');
   }
 
   t(key, params = {}) {
@@ -784,7 +817,6 @@ class MarkdownEditor {
     // Pane headers & outline
     document.querySelector('#editor-pane .pane-header span').textContent = t('paneEdit');
     document.querySelector('#preview-pane .pane-header span').textContent = t('panePreview');
-    setText('outline-header-title', t('outline'));
 
     // Settings dialog — use form element IDs as stable anchors
     document.querySelector('#settings-dialog .dialog-header h2').textContent = t('settings');
@@ -944,11 +976,11 @@ class MarkdownEditor {
     setTitle('btn-view-preview', t('previewMode'));
     setTitle('btn-view-edit', t('editMode'));
 
-    // View menu outline toggle
-    const outlineToggle = document.getElementById('btn-outline-toggle');
-    if (outlineToggle) {
-      const labelSpan = outlineToggle.querySelector('span:last-of-type');
-      if (labelSpan) labelSpan.textContent = t('outline');
+    // View menu sidebar toggle
+    const sidebarToggle = document.getElementById('btn-sidebar-toggle');
+    if (sidebarToggle) {
+      const labelSpan = sidebarToggle.querySelector('span:last-of-type');
+      if (labelSpan) labelSpan.textContent = t('sidebar');
     }
 
     // Items with data-action (format toolbar + context menus)
@@ -1110,6 +1142,7 @@ class MarkdownEditor {
       codeWrap: false,
       softBreaks: true,
       toolbarCollapsed: false,
+      sidebarHidden: false,
       customFonts: [],
       editorFont: '',
       previewFont: '',
@@ -1325,6 +1358,8 @@ class MarkdownEditor {
       this.saveSettings();
       outlineSidebar.style.width = '';
       outlineSidebar.classList.add('hidden');
+      this.settings.sidebarHidden = true;
+      this.saveSettings();
       this.updateOutlineCheck();
       this.updateSideButtons();
     });
@@ -1339,23 +1374,68 @@ class MarkdownEditor {
     sideRight.style.left = '';
   }
 
-  toggleOutline() {
-    const outlineSidebar = document.getElementById('outline-sidebar');
-    const wasHidden = outlineSidebar.classList.contains('hidden');
-    if (wasHidden) {
-      outlineSidebar.style.width = (this.settings.outlineWidth ?? 240) + 'px';
-      outlineSidebar.classList.remove('hidden');
-    } else {
-      this.settings.outlineWidth = outlineSidebar.offsetWidth;
+    toggleSidebar() {
+      const sidebar = document.getElementById('outline-sidebar');
+      const wasHidden = sidebar.classList.contains('hidden');
+      if (wasHidden) {
+        sidebar.style.width = (this.settings.outlineWidth ?? 240) + 'px';
+        sidebar.classList.remove('hidden');
+      } else {
+        this.settings.outlineWidth = sidebar.offsetWidth;
+        sidebar.style.width = '';
+        sidebar.classList.add('hidden');
+      }
+      this.settings.sidebarHidden = sidebar.classList.contains('hidden');
       this.saveSettings();
-      outlineSidebar.style.width = '';
-      outlineSidebar.classList.add('hidden');
+      this.updateSidebarChecks();
+      if (!sidebar.classList.contains('hidden')) {
+        this.updateOutline();
+      }
+      this.updateSideButtons();
     }
-    this.updateOutlineCheck();
-    if (!outlineSidebar.classList.contains('hidden')) {
-      this.updateOutline();
+
+    setSidebarTab(tab) {
+      const sidebar = document.getElementById('outline-sidebar');
+      const isOutline = tab === 'outline';
+      document.getElementById('tab-outline').classList.toggle('active', isOutline);
+      document.getElementById('tab-files').classList.toggle('active', !isOutline);
+      document.getElementById('outline-content').classList.toggle('hidden', !isOutline);
+      document.getElementById('folder-content').classList.toggle('hidden', isOutline);
+      this.updateSidebarChecks();
+      if (!sidebar.classList.contains('hidden')) this.updateOutline();
+      this.updateSideButtons();
+      if (tab === 'files' && !this.workspaceFolder) this.renderFolderTree();
     }
-    this.updateSideButtons();
+
+    showSidebarTab(tab) {
+      const sidebar = document.getElementById('outline-sidebar');
+      if (sidebar.classList.contains('hidden')) {
+        sidebar.style.width = (this.settings.outlineWidth ?? 240) + 'px';
+        sidebar.classList.remove('hidden');
+        this.settings.sidebarHidden = false;
+        this.saveSettings();
+      }
+      this.setSidebarTab(tab);
+    }
+
+    applySidebarState() {
+      const sidebar = document.getElementById('outline-sidebar');
+      if (this.settings.sidebarHidden) {
+        sidebar.style.width = '';
+        sidebar.classList.add('hidden');
+      } else {
+        sidebar.style.width = (this.settings.outlineWidth ?? 240) + 'px';
+        sidebar.classList.remove('hidden');
+      }
+      this.updateSidebarChecks();
+      this.updateSideButtons();
+    }
+
+  updateSidebarChecks() {
+    const sidebar = document.getElementById('outline-sidebar');
+    const visible = !sidebar.classList.contains('hidden');
+    const sidebarToggle = document.getElementById('btn-sidebar-toggle');
+    if (sidebarToggle) sidebarToggle.classList.toggle('checked', visible);
   }
 
   initOutlineResizer() {
@@ -1393,13 +1473,7 @@ class MarkdownEditor {
   }
 
   updateOutlineCheck() {
-    const outlineSidebar = document.getElementById('outline-sidebar');
-    const checkItem = document.getElementById('btn-outline-toggle');
-    if (outlineSidebar.classList.contains('hidden')) {
-      checkItem.classList.remove('checked');
-    } else {
-      checkItem.classList.add('checked');
-    }
+    this.updateSidebarChecks();
   }
 
   updateOutline() {
@@ -2322,27 +2396,52 @@ class MarkdownEditor {
     });
   }
 
-  switchTab(index) {
+  async ensureTabLoaded(tab) {
+    if (!tab) return;
+    if (tab._loaded || !tab.filePath) { tab._loaded = true; return; }
+    try {
+      const content = (await invoke('read_file', { path: tab.filePath })).replace(/\r\n/g, '\n');
+      tab.content = content;
+      tab.savedContent = content;
+      await this.refreshFileMeta(tab);
+    } catch (e) {
+      tab.content = '';
+      tab.savedContent = '';
+    }
+    tab._loaded = true;
+  }
+
+  async switchTab(index) {
     if (index === this.activeTabIndex || index < 0 || index >= this.tabs.length) return;
 
-    const oldTab = this.activeTab;
-    oldTab.content = this.cm.getValue();
-    oldTab.cursorPos = this.cm.getCursor();
-    oldTab.scrollPos = { top: this.cm.getScrollInfo().top, left: this.cm.getScrollInfo().left };
+    this.showPaneLoading();
+    try {
+      const oldTab = this.activeTab;
+      oldTab.content = this.cm.getValue();
+      oldTab.cursorPos = this.cm.getCursor();
+      oldTab.scrollPos = { top: this.cm.getScrollInfo().top, left: this.cm.getScrollInfo().left };
 
-    this.activeTabIndex = index;
-    const newTab = this.activeTab;
+      this.activeTabIndex = index;
+      const newTab = this.activeTab;
 
-    this.cm.setValue(newTab.content);
-    this.cm.setCursor(newTab.cursorPos);
-    this.cm.scrollTo(newTab.scrollPos.left, newTab.scrollPos.top);
-    this.cm.clearHistory();
+      if (!newTab._loaded && newTab.filePath) {
+        await this.ensureTabLoaded(newTab);
+      }
 
-    this.updateTabDisplay();
-    this.updatePreview();
-    this.updateWordCount();
-    this.updateOutline();
-    this.updateExternalChangeBanner();
+      this.cm.setValue(newTab.content || '');
+      this.cm.setCursor(newTab.cursorPos || { line: 0, ch: 0 });
+      this.cm.scrollTo((newTab.scrollPos && newTab.scrollPos.left) || 0, (newTab.scrollPos && newTab.scrollPos.top) || 0);
+      this.cm.clearHistory();
+
+      this.updateTabDisplay();
+      this.updatePreview();
+      this.updateWordCount();
+      this.updateOutline();
+      this.updateExternalChangeBanner();
+      this.highlightTreeActiveFile();
+    } finally {
+      this.hidePaneLoading();
+    }
   }
 
   addTab(name = '', content = '', filePath = null) {
@@ -2356,6 +2455,7 @@ class MarkdownEditor {
     this.refreshFileMeta(tab);
     this.switchTab(this.tabs.length - 1);
     this.updateTabBar();
+    this.saveSession();
   }
 
   async closeTab(index) {
@@ -2409,10 +2509,12 @@ class MarkdownEditor {
     }
     this.updateTabBar();
     if (this.tabs.length > 0) {
-      this.cm.setValue(this.activeTab.content);
-      this.cm.setCursor(this.activeTab.cursorPos);
+      await this.ensureTabLoaded(this.activeTab);
+      this.cm.setValue(this.activeTab.content || '');
+      this.cm.setCursor(this.activeTab.cursorPos || { line: 0, ch: 0 });
       this.updatePreview();
     }
+    this.saveSession();
   }
 
   updateTabBar() {
@@ -2522,8 +2624,8 @@ class MarkdownEditor {
       toolbarDropdowns.forEach(d => document.getElementById(d.menu).classList.add('hidden'));
       this.hideAllContextMenus();
     });
-    document.getElementById('btn-outline-toggle').addEventListener('click', () => {
-      this.toggleOutline();
+    document.getElementById('btn-sidebar-toggle').addEventListener('click', () => {
+      this.toggleSidebar();
     });
     document.getElementById('btn-new').addEventListener('click', () => {
       document.getElementById('file-menu').classList.add('hidden');
@@ -2532,6 +2634,19 @@ class MarkdownEditor {
     document.getElementById('btn-open').addEventListener('click', () => {
       document.getElementById('file-menu').classList.add('hidden');
       this.openFile();
+    });
+    document.getElementById('btn-open-folder').addEventListener('click', () => {
+      document.getElementById('file-menu').classList.add('hidden');
+      this.openFolder();
+    });
+    document.getElementById('folder-close').addEventListener('click', () => {
+      this.closeFolder();
+    });
+    document.getElementById('tab-outline').addEventListener('click', () => {
+      this.showSidebarTab('outline');
+    });
+    document.getElementById('tab-files').addEventListener('click', () => {
+      this.showSidebarTab('files');
     });
     document.getElementById('btn-save').addEventListener('click', () => {
       document.getElementById('file-menu').classList.add('hidden');
@@ -3794,6 +3909,267 @@ class MarkdownEditor {
     }
   }
 
+  loadSession() {
+    try {
+      const raw = localStorage.getItem('tizumark-session');
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || data.version !== 2) return null;
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  saveSession() {
+    try {
+      const tabs = this.tabs
+        .filter(t => t.filePath)
+        .map(t => ({
+          name: t.name,
+          filePath: t.filePath,
+          cursorPos: t.cursorPos || { line: 0, ch: 0 },
+          scrollPos: t.scrollPos || { top: 0, left: 0 },
+          fileMeta: t.fileMeta || null,
+        }));
+      const data = {
+        version: 2,
+        activeFilePath: (this.activeTab && this.activeTab.filePath) ? this.activeTab.filePath : null,
+        tabs,
+        workspaceFolder: this.workspaceFolder || null,
+        expandedFolders: this.expandedFolders ? Array.from(this.expandedFolders) : [],
+      };
+      localStorage.setItem('tizumark-session', JSON.stringify(data));
+    } catch (e) { /* ignore */ }
+  }
+
+  async restoreSession() {
+    const session = this.loadSession();
+    if (!session) return false;
+    const tabs = session.tabs || [];
+    const workspaceFolder = session.workspaceFolder || null;
+    if (tabs.length === 0 && !workspaceFolder) return false;
+
+    const restored = [];
+    for (const st of tabs) {
+      if (!st.filePath) continue;
+      const tab = new Tab(st.name || st.filePath.split(/[/\\]/).pop(), '', st.filePath);
+      tab.cursorPos = st.cursorPos || { line: 0, ch: 0 };
+      tab.scrollPos = st.scrollPos || { top: 0, left: 0 };
+      tab.fileMeta = st.fileMeta || null;
+      tab._loaded = false;
+      restored.push(tab);
+    }
+    if (restored.length === 0 && !workspaceFolder) return false;
+    if (restored.length === 0) {
+      restored.push(new Tab(`${this.t('untitled')}${this.untitledCounter++}`));
+    }
+
+    this.tabs = restored;
+    this.activeTabIndex = 0;
+    if (session.activeFilePath) {
+      const idx = this.tabs.findIndex(t => t.filePath === session.activeFilePath);
+      if (idx !== -1) this.activeTabIndex = idx;
+    }
+
+    const active = this.activeTab;
+    if (active && active.filePath) {
+      try {
+        const content = (await invoke('read_file', { path: active.filePath })).replace(/\r\n/g, '\n');
+        active.content = content;
+        active.savedContent = content;
+      } catch (e) {
+        active.content = '';
+        active.savedContent = '';
+      }
+      active._loaded = true;
+    } else if (active) {
+      active._loaded = true;
+    }
+
+    await Promise.all(this.tabs.map(t => this.refreshFileMeta(t)));
+
+    this.cm.setValue(this.activeTab.content || '');
+    this.cm.setCursor(this.activeTab.cursorPos || { line: 0, ch: 0 });
+    this.cm.scrollTo((this.activeTab.scrollPos && this.activeTab.scrollPos.left) || 0, (this.activeTab.scrollPos && this.activeTab.scrollPos.top) || 0);
+    this.cm.clearHistory();
+    this.updateTabBar();
+    this.updateTabDisplay();
+    this.updatePreview();
+    this.updateOutline();
+    this.updateWordCount();
+    this.highlightTreeActiveFile();
+
+    if (workspaceFolder) {
+      this.workspaceFolder = workspaceFolder;
+      this.expandedFolders = new Set(session.expandedFolders || []);
+      await this.renderFolderTree();
+      this.setSidebarTab('files');
+      this.saveSession();
+    }
+    return true;
+  }
+
+  async openFilePath(filePath) {
+    this.showPaneLoading();
+    try {
+      const existingIndex = this.tabs.findIndex(t => t.filePath === filePath);
+      if (existingIndex !== -1) {
+        await this.switchTab(existingIndex);
+        this.saveSession();
+        return;
+      }
+      const content = (await invoke('read_file', { path: filePath })).replace(/\r\n/g, '\n');
+      const name = filePath.split(/[/\\]/).pop();
+      this.addTab(name, content, filePath);
+      this.viewMode = 'preview';
+      this.applyViewMode();
+      this.updateWordCount();
+      this.setStatus(this.t('fileOpened', { name }));
+      this.saveSession();
+    } catch (e) {
+      this.setStatus(this.t('openFailed') + ': ' + e);
+    } finally {
+      this.hidePaneLoading();
+    }
+  }
+
+  async openFolder() {
+    try {
+      const selected = await dialogOpen({ directory: true });
+      if (!selected) return;
+      const folderPath = Array.isArray(selected) ? selected[0] : selected;
+      if (!folderPath) return;
+      this.showLoading();
+      this.workspaceFolder = folderPath;
+      this.expandedFolders = new Set();
+      await this.renderFolderTree();
+      this.showSidebarTab('files');
+      this.saveSession();
+      this.setStatus(this.t('folderOpened', { path: folderPath }));
+    } catch (e) {
+      this.setStatus(this.t('openFailed') + ': ' + e);
+    } finally {
+      this.hideLoading();
+    }
+  }
+
+  closeFolder() {
+    this.workspaceFolder = null;
+    this.expandedFolders = new Set();
+    this.saveSession();
+    this.renderFolderTree();
+  }
+
+  async renderFolderTree() {
+    const treeEl = document.getElementById('folder-tree');
+    if (!treeEl) return;
+    const headerEl = document.getElementById('folder-header');
+    const pathEl = document.getElementById('folder-path');
+    treeEl.innerHTML = '';
+    if (pathEl) pathEl.textContent = this.workspaceFolder || '';
+    if (headerEl) headerEl.classList.toggle('hidden', !this.workspaceFolder);
+    if (!this.workspaceFolder) {
+      const empty = document.createElement('button');
+      empty.className = 'folder-empty';
+      empty.textContent = this.t('openFolder');
+      empty.addEventListener('click', () => this.openFolder());
+      treeEl.appendChild(empty);
+      return;
+    }
+    await this.renderFolderLevel(this.workspaceFolder, treeEl, 0);
+  }
+
+  async renderFolderLevel(dirPath, containerEl, depth) {
+    const CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>';
+    const FOLDER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+    const FOLDER_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1H3z"/><path d="M3 10h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+    const FILE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/></svg>';
+
+    let entries;
+    try {
+      entries = await invoke('list_dir', { path: dirPath });
+    } catch (e) {
+      return;
+    }
+    for (const entry of entries) {
+      const node = document.createElement('div');
+      node.className = 'tree-node ' + (entry.is_dir ? 'tree-folder' : 'tree-file');
+      node.dataset.path = entry.path;
+
+      const row = document.createElement('div');
+      row.className = 'tree-row';
+      row.style.paddingLeft = (8 + depth * 14) + 'px';
+
+      const arrow = document.createElement('span');
+      arrow.className = 'tree-arrow';
+      arrow.innerHTML = CHEVRON;
+      const icon = document.createElement('span');
+      const label = document.createElement('span');
+      label.className = 'tree-label';
+      label.textContent = entry.name;
+
+      if (entry.is_dir) {
+        const expanded = this.expandedFolders.has(entry.path);
+        icon.className = 'tree-icon folder';
+        icon.innerHTML = expanded ? FOLDER_OPEN : FOLDER;
+        node.classList.toggle('expanded', expanded);
+        const childContainer = document.createElement('div');
+        childContainer.className = 'tree-children' + (expanded ? '' : ' hidden');
+        node.appendChild(row);
+        node.appendChild(childContainer);
+        if (expanded) {
+          await this.renderFolderLevel(entry.path, childContainer, depth + 1);
+        }
+        row.addEventListener('click', async () => {
+          const isOpen = !childContainer.classList.contains('hidden');
+          if (isOpen) {
+            childContainer.classList.add('hidden');
+            node.classList.remove('expanded');
+            icon.innerHTML = FOLDER;
+            this.expandedFolders.delete(entry.path);
+          } else {
+            childContainer.classList.remove('hidden');
+            node.classList.add('expanded');
+            icon.innerHTML = FOLDER_OPEN;
+            this.expandedFolders.add(entry.path);
+            if (childContainer.childElementCount === 0) {
+              await this.renderFolderLevel(entry.path, childContainer, depth + 1);
+            }
+          }
+          this.saveSession();
+        });
+      } else {
+        arrow.innerHTML = '';
+        icon.className = 'tree-icon file';
+        icon.innerHTML = FILE;
+        node.appendChild(row);
+        row.addEventListener('click', () => {
+          this.openFilePath(entry.path);
+        });
+      }
+      row.appendChild(arrow);
+      row.appendChild(icon);
+      row.appendChild(label);
+      containerEl.appendChild(node);
+    }
+    this.highlightTreeActiveFile();
+  }
+
+  highlightTreeActiveFile() {
+    const treeEl = document.getElementById('folder-tree');
+    if (!treeEl) return;
+    const activePath = (this.activeTab && this.activeTab.filePath) ? this.activeTab.filePath : null;
+    treeEl.querySelectorAll('.tree-row.active').forEach(el => el.classList.remove('active'));
+    if (!activePath) return;
+    treeEl.querySelectorAll('.tree-node.tree-file').forEach(node => {
+      if (node.dataset.path === activePath) {
+        const row = node.querySelector('.tree-row');
+        if (row) row.classList.add('active');
+      }
+    });
+  }
+
   async saveFile() {
     try {
       let path = this.activeTab.filePath;
@@ -3816,6 +4192,7 @@ class MarkdownEditor {
       this.updateTabDisplay();
       await this.refreshFileMeta(this.activeTab);
       this.setStatus(`${this.t('saved')}: ${this.activeTab.filePath}`);
+      this.saveSession();
     } catch (error) {
       this.setStatus(`${this.t('saveFailed')}: ${error}`);
     }
@@ -3839,6 +4216,7 @@ class MarkdownEditor {
       this.updateTabBar();
       await this.refreshFileMeta(this.activeTab);
       this.setStatus(`${this.t('savedAs')}: ${path}`);
+      this.saveSession();
     } catch (error) {
       this.setStatus(`${this.t('saveFailed')}: ${error}`);
     }
@@ -5997,10 +6375,12 @@ input[type="checkbox"]:checked::after { display: none !important; }
     const tab = this.tabs[keepIndex];
     this.tabs = [tab];
     this.activeTabIndex = 0;
-    this.cm.setValue(tab.content);
-    this.cm.setCursor(tab.cursorPos);
+    await this.ensureTabLoaded(tab);
+    this.cm.setValue(tab.content || '');
+    this.cm.setCursor(tab.cursorPos || { line: 0, ch: 0 });
     this.updateTabBar();
     this.updatePreview();
+    this.saveSession();
   }
 
   async closeAllTabs() {
@@ -6022,6 +6402,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
     this.cm.setValue('');
     this.updateTabBar();
     this.updatePreview();
+    this.saveSession();
   }
 
   async copyTabPath(index) {
@@ -6070,6 +6451,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
       const { getCurrentWindow } = window.__TAURI__.window;
       const modified = this.tabs.filter(t => t.isModified);
       if (modified.length === 0) {
+        this.saveSession();
         await getCurrentWindow().hide();
         return;
       }
@@ -6101,6 +6483,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
         this.updateTabBar();
         this.updatePreview();
       }
+      this.saveSession();
       await getCurrentWindow().hide();
     } catch (error) {
       console.error('handleAppClose error:', error);
@@ -6274,21 +6657,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       try {
         for (const filePath of args) {
           if (filePath.startsWith('-')) continue;
-
-          const existingIndex = window.editor.tabs.findIndex(t => t.filePath === filePath);
-          if (existingIndex !== -1) {
-            window.editor.switchTab(existingIndex);
-            continue;
-          }
-          try {
-            const content = await invoke('read_file', { path: filePath });
-            const name = filePath.split(/[/\\]/).pop();
-            window.editor.addTab(name, content, filePath);
-            window.editor.updateWordCount();
-            window.editor.updateOutline();
-            window.editor.setStatus(window.editor.t('fileOpened', { name }));
-          } catch (_) {
-          }
+          await window.editor.openFilePath(filePath);
         }
       } finally {
         window.editor.hideLoading();
@@ -6298,26 +6667,17 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateLoadingProgress(85, '正在加载文件…');
     try {
       const args = await invoke('get_cli_args');
-      if (args.length > 0) {
-        const filePath = args[0];
-        const content = (await invoke('read_file', { path: filePath })).replace(/\r\n/g, '\n');
-        const name = filePath.split(/[/\\]/).pop();
-        window.editor.activeTab.content = content;
-        window.editor.activeTab.savedContent = content;
-        window.editor.activeTab.filePath = filePath;
-        window.editor.activeTab.name = name;
-        await this.refreshFileMeta(window.editor.activeTab);
-        window.editor.cm.setValue(content);
-        window.editor.updateTabDisplay();
-        window.editor.updatePreview();
-        window.editor.updateWordCount();
-        window.editor.updateOutline();
-        window.editor.setStatus(window.editor.t('fileOpened', { name }));
-      } else if (isFirstLaunch) {
+      const hadSession = await window.editor.restoreSession();
+      if (args && args.length > 0) {
+        for (const filePath of args) {
+          if (filePath.startsWith('-')) continue;
+          await window.editor.openFilePath(filePath);
+        }
+      } else if (!hadSession && isFirstLaunch) {
         window.editor.openUserGuide();
       }
     } catch (e) {
-      console.warn('Failed to open file from CLI args:', e);
+      console.warn('Failed to load session / cli args:', e);
     }
 
     updateLoadingProgress(100, '准备就绪');

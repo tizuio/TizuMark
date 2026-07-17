@@ -37,6 +37,10 @@
                 <span>打开</span>
                 <span class="shortcut">Ctrl+O</span>
               </div>
+              <div class="dropdown-item" id="btn-open-folder">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><path d="M2 8h20"/><path d="M6 12h4"/><path d="M6 16h4"/></svg>
+                <span>打开文件夹</span>
+              </div>
               <div class="dropdown-item" id="btn-save">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
                 <span>保存</span>
@@ -79,10 +83,10 @@
               <span class="dropdown-arrow">&#9662;</span>
             </button>
             <div class="dropdown-menu hidden" id="view-menu">
-              <div class="dropdown-item" id="btn-outline-toggle">
-                <span class="dropdown-check" id="outline-check"></span>
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                <span>大纲</span>
+              <div class="dropdown-item" id="btn-sidebar-toggle">
+                <span class="dropdown-check" id="sidebar-check"></span>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                <span>侧边栏</span>
               </div>
             </div>
           </div>
@@ -213,19 +217,6 @@
           <svg class="icon fmt-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
       </div>
-      <div class="tab-bar-wrapper">
-        <button id="tab-scroll-left" class="tab-scroll-arrow hidden" title="向左滚动">&#9664;</button>
-        <div class="tab-bar-scroll" id="tab-bar-scroll">
-          <div id="tab-bar" class="tab-bar" role="tablist" aria-label="标签页">
-            <div class="tab active" data-index="0">
-              <span class="tab-name">未命名1</span>
-              <span class="tab-close">&times;</span>
-            </div>
-            <button id="btn-add-tab" class="tab-add" title="新建标签页">+</button>
-          </div>
-        </div>
-        <button id="tab-scroll-right" class="tab-scroll-arrow hidden" title="向右滚动">&#9654;</button>
-      </div>
     </header>
 
     <div id="external-change-banner" class="external-change-banner">
@@ -272,32 +263,58 @@
 
     <main class="editor-container">
       <div id="outline-sidebar" class="outline-sidebar">
-        <div class="outline-header">
-          <span id="outline-header-title">大纲</span>
-          <button id="outline-close" class="outline-close-btn">&times;</button>
+        <div class="sidebar-tabs">
+          <button class="sidebar-tab active" data-tab="outline" id="tab-outline" data-i18n="outline"><span class="lbl">大纲</span></button>
+          <button class="sidebar-tab" data-tab="files" id="tab-files" data-i18n="files"><span class="lbl">文件</span></button>
+          <button id="outline-close" class="outline-close-btn" title="关闭">&times;</button>
         </div>
-        <div id="outline-content" class="outline-content"></div>
+        <div id="outline-content" class="outline-content sidebar-panel"></div>
+          <div id="folder-content" class="folder-content sidebar-panel hidden">
+            <div class="folder-header" id="folder-header">
+              <span class="folder-path" id="folder-path"></span>
+              <button id="folder-close" class="folder-close-btn" title="关闭文件夹">&times;</button>
+            </div>
+            <div id="folder-tree" class="folder-tree"></div>
+          </div>
       </div>
       <div class="outline-resizer" id="outline-resizer"></div>
-      <div class="editor-pane" id="editor-pane">
-        <div class="pane-header">
-          <span>编辑</span>
+      <div class="editor-column">
+        <div class="tab-bar-wrapper">
+          <button id="tab-scroll-left" class="tab-scroll-arrow hidden" title="向左滚动">&#9664;</button>
+          <div class="tab-bar-scroll" id="tab-bar-scroll">
+            <div id="tab-bar" class="tab-bar" role="tablist" aria-label="标签页">
+              <div class="tab active" data-index="0">
+                <span class="tab-name">未命名1</span>
+                <span class="tab-close">&times;</span>
+              </div>
+              <button id="btn-add-tab" class="tab-add" title="新建标签页">+</button>
+            </div>
+          </div>
+          <button id="tab-scroll-right" class="tab-scroll-arrow hidden" title="向右滚动">&#9654;</button>
         </div>
-        <div id="editor-wrapper"></div>
-      </div>
-      <div class="resizer" id="resizer"></div>
-      <div class="preview-pane" id="preview-pane">
-        <div class="pane-header">
-          <span>预览</span>
+        <div class="editor-row">
+          <div class="editor-pane" id="editor-pane">
+            <div class="pane-header">
+              <span>编辑</span>
+            </div>
+            <div id="editor-wrapper"></div>
+          </div>
+          <div class="resizer" id="resizer"></div>
+          <div class="preview-pane" id="preview-pane">
+            <div class="pane-header">
+              <span>预览</span>
+            </div>
+            <div id="preview-wrapper">
+              <div id="preview" class="preview-content"></div>
+              <button id="scroll-top-btn" class="scroll-top-btn hidden" title="回到顶部">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m18 15-6-6-6 6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
-        <div id="preview-wrapper">
-          <div id="preview" class="preview-content"></div>
-          <button id="scroll-top-btn" class="scroll-top-btn hidden" title="回到顶部">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m18 15-6-6-6 6"/>
-            </svg>
-          </button>
-        </div>
+        <div id="pane-loading" class="pane-loading hidden"><div class="pane-spinner"></div></div>
       </div>
       <div class="side-btn" id="btn-side-left" title="折叠编辑器">&#9664;</div>
       <div class="side-btn" id="btn-side-right" title="折叠预览">&#9654;</div>
