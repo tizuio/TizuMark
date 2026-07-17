@@ -483,6 +483,8 @@ body {
   padding: 2px 0 0 0;
   overflow: hidden;
   position: relative;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .tab-bar-wrapper::-webkit-scrollbar { display: none; }
@@ -1049,6 +1051,52 @@ body {
   flex: 1;
   overflow: hidden;
   position: relative;
+}
+
+.editor-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.editor-row {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pane-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg-primary) 62%, transparent);
+  backdrop-filter: blur(1px);
+  pointer-events: none;
+}
+
+.pane-loading.hidden {
+  display: none;
+}
+
+.pane-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid color-mix(in srgb, var(--text-secondary) 30%, transparent);
+  border-top-color: var(--accent-color, #4a7cff);
+  border-radius: 50%;
+  animation: pane-spin 0.7s linear infinite;
+}
+
+@keyframes pane-spin {
+  to { transform: rotate(360deg); }
 }
 
 .editor-pane, .preview-pane {
@@ -1989,6 +2037,213 @@ body.is-resizing .side-btn {
   flex: 1;
   overflow: auto;
   padding: 8px 0;
+}
+
+/* ====== Sidebar tabs (大纲 / 文件) ====== */
+.sidebar-tabs {
+  display: flex;
+  align-items: stretch;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.sidebar-tab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 6px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+}
+
+.sidebar-tab:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover, rgba(128, 128, 128, 0.08));
+}
+
+.sidebar-tab.active {
+  color: var(--accent-color);
+  border-bottom-color: var(--accent-color);
+}
+
+.sidebar-panel {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.sidebar-panel.hidden {
+  display: none;
+}
+
+#outline-close.outline-close-btn {
+  flex: 0 0 auto;
+  width: 24px;
+  border-radius: 4px;
+  margin: 4px 4px 4px 0;
+}
+
+/* ====== 文件夹 / 文件树 ====== */
+.folder-content {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+}
+
+.folder-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+}
+
+.folder-header.hidden {
+  display: none;
+}
+
+.folder-path {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-all;
+}
+
+.folder-close-btn {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.folder-close-btn:hover {
+  background-color: var(--bg-hover, rgba(128, 128, 128, 0.08));
+  color: var(--text-primary);
+}
+
+.folder-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 4px 0;
+}
+
+.folder-empty {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 8px;
+  padding: 8px;
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.folder-empty:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.tree-node {
+  user-select: none;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: default;
+  white-space: nowrap;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.tree-row:hover {
+  background-color: var(--bg-hover, rgba(128, 128, 128, 0.08));
+  color: var(--text-primary);
+}
+
+.tree-row.active {
+  color: var(--accent-color);
+  background-color: var(--bg-secondary);
+}
+
+.tree-arrow {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  transition: background-color 0.15s;
+}
+
+.tree-arrow svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.15s ease;
+}
+
+.tree-folder.expanded > .tree-row > .tree-arrow svg {
+  transform: rotate(90deg);
+}
+
+.tree-row:hover .tree-arrow {
+  background-color: var(--bg-hover, rgba(128, 128, 128, 0.12));
+}
+
+.tree-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.tree-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.tree-icon.folder {
+  color: var(--folder-color, #e0a93b);
+}
+
+.tree-icon.file {
+  color: var(--text-secondary);
+}
+
+.tree-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-children.hidden {
+  display: none;
 }
 
 .outline-item-wrapper {
