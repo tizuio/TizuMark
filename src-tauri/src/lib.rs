@@ -1,4 +1,6 @@
 use std::fs;
+use std::sync::Mutex;
+use notify::{Watcher, RecursiveMode, RecommendedWatcher, Config as NotifyConfig, Event as NotifyEvent};
 use tauri::{Emitter, Manager};
 use tauri::WindowEvent;
 use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState};
@@ -332,6 +334,42 @@ fn write_binary_file(path: String, contents: Vec<u8>) -> Result<(), String> {
 #[tauri::command]
 fn ensure_dir(path: String) -> Result<(), String> {
     fs::create_dir_all(&path).map_err(|e| e.to_string())
+}
+
+// 工作区文件监听：监听整棵目录树，外部（资源管理器等）增删目录/文件时向前端广播 folder-changed 事件，
+// 前端防抖后重建文件树。监听句柄存入托管状态，重复监听或关闭文件夹时会先丢弃旧句柄。
+struct WatcherState(pub Mutex<Option<RecommendedWatcher>>);
+
+#[tauri::command]
+fn watch_folder(path: String, app: tauri::AppHandle) -> Result<(), String> {
+    if let Ok(mut state) = app.state::<WatcherState>().0.lock() {
+        *state = None;
+    }
+    let app_handle = app.clone();
+    let mut watcher = RecommendedWatcher::new(
+        move |res: notify::Result<NotifyEvent>| {
+            if res.is_ok() {
+                let _ = app_handle.emit("folder-changed", ());
+            }
+        },
+        NotifyConfig::default(),
+    )
+    .map_err(|e| e.to_string())?;
+    watcher
+        .watch(std::path::Path::new(&path), RecursiveMode::Recursive)
+        .map_err(|e| e.to_string())?;
+    if let Ok(mut state) = app.state::<WatcherState>().0.lock() {
+        *state = Some(watcher);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn stop_watch(app: tauri::AppHandle) -> Result<(), String> {
+    if let Ok(mut state) = app.state::<WatcherState>().0.lock() {
+        *state = None;
+    }
+    Ok(())
 }
 
 #[derive(serde::Serialize)]
@@ -1247,6 +1285,7 @@ pub fn run() {
                 .build(app)?;
             Ok(())
         })
+        .manage(WatcherState(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             open_devtools,
             get_cli_args,
@@ -1256,6 +1295,8 @@ pub fn run() {
             list_dir,
             write_binary_file,
             ensure_dir,
+            watch_folder,
+            stop_watch,
             app_data_dir,
             save_image_to_assets,
             fetch_image_as_base64,
