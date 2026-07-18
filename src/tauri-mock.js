@@ -15,6 +15,9 @@ window.addEventListener('unhandledrejection', function(e) {
   // In-memory file system simulation
   const vfs = new Map();
 
+  // In-memory directory tree simulation (for list_dir / file explorer tests)
+  const dirTree = new Map();
+
   // Controllable file metadata store (for external-change tests)
   const metaStore = new Map();
 
@@ -103,13 +106,62 @@ window.addEventListener('unhandledrejection', function(e) {
       }
 
       case 'fetch_image_as_base64': {
-        // Can't fetch external images in browser without CORS
-        // Return a placeholder image
-        return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="#ddd" width="100" height="100"/><text x="10" y="55" fill="#999" font-size="12">Image</text></svg>');
+        // Return a real, atob-decodable tiny PNG base64 so downstream
+        // Uint8Array.from(atob(...)) logic works in the browser harness.
+        // 1x1 transparent PNG.
+        return 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
       }
 
       case 'get_cli_args': {
         return []; // No CLI args in browser
+      }
+
+      case 'ensure_dir': {
+        // No-op: directory creation is simulated
+        return null;
+      }
+
+      case 'list_dir': {
+        const p = args.path;
+        if (dirTree.has(p)) return dirTree.get(p);
+        // Derive from VFS keys that start with path + '/'
+        const prefix = p.endsWith('/') ? p : p + '/';
+        const entries = [];
+        const seen = new Set();
+        for (const key of vfs.keys()) {
+          if (key.startsWith(prefix)) {
+            const rest = key.slice(prefix.length);
+            const slash = rest.indexOf('/');
+            if (slash === -1) {
+              if (!seen.has(rest)) { seen.add(rest); entries.push({ path: key, is_dir: false }); }
+            } else {
+              const dirName = rest.slice(0, slash);
+              if (!seen.has(dirName)) { seen.add(dirName); entries.push({ path: prefix + dirName, is_dir: true }); }
+            }
+          }
+        }
+        return entries;
+      }
+
+      case 'watch_folder': {
+        // No-op: folder watching is simulated via mockEvent.emit('folder-changed')
+        console.log('[TAURI MOCK] watch_folder:', args.path);
+        return null;
+      }
+
+      case 'stop_watch': {
+        console.log('[TAURI MOCK] stop_watch');
+        return null;
+      }
+
+      case 'save_image_to_assets': {
+        // bytes: number[] ; ext: string ; assetsDir: string
+        const ext = args.ext || 'png';
+        const assetsDir = args.assetsDir || 'assets';
+        const fileName = 'mock-img-' + (Date.now() % 100000) + '.' + ext;
+        const fullPath = assetsDir + '/' + fileName;
+        try { vfs.set(fullPath, new Uint8Array(args.bytes || [])); } catch (e) { /* ignore */ }
+        return { filename: fileName, width: 100, height: 100 };
       }
 
       // Dialog mocks
@@ -149,6 +201,14 @@ window.addEventListener('unhandledrejection', function(e) {
         return null;
     }
   };
+
+  // Mock Channel (used by updater progress callbacks)
+  function MockChannel() {
+    this.id = 'mock-channel-' + (++mockChannelSeq);
+    this.onmessage = null;
+    this._send = (data) => { if (this.onmessage) this.onmessage(data); };
+  }
+  let mockChannelSeq = 0;
 
   // Mock window API
   const mockWindow = {
@@ -208,11 +268,15 @@ window.addEventListener('unhandledrejection', function(e) {
   // Install mock
   window.__TAURI__ = {
     core: {
-      invoke: mockInvoke
+      invoke: mockInvoke,
+      Channel: MockChannel
     },
     window: mockWindow,
     event: mockEvent,
-    shell: mockShell
+    shell: mockShell,
+    app: {
+      getVersion: async function() { return '1.0.4'; }
+    }
   };
 
   // Test helpers for simulating external file changes
@@ -225,6 +289,14 @@ window.addEventListener('unhandledrejection', function(e) {
   };
   window.__mockSetContent = function(path, content) {
     vfs.set(path, content);
+  };
+  // Set a directory listing returned by list_dir (array of {path, is_dir})
+  window.__mockSetDir = function(path, entries) {
+    dirTree.set(path, entries);
+  };
+  // Clear all mock state
+  window.__mockReset = function() {
+    vfs.clear(); dirTree.clear(); metaStore.clear();
   };
 
   // Mock the dialog functions used globally

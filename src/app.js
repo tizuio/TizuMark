@@ -2285,7 +2285,11 @@ class MarkdownEditor {
       if (e.target.id === 'shortcuts-dialog') this.hideShortcutsDialog();
     });
     document.getElementById('shortcuts-reset').addEventListener('click', () => this.resetShortcuts());
-    document.getElementById('shortcuts-save-btn').addEventListener('click', () => this.hideShortcutsDialog());
+    document.getElementById('shortcuts-save-btn').addEventListener('click', () => {
+      this.saveShortcuts();
+      this.applyShortcuts();
+      this.hideShortcutsDialog();
+    });
   }
 
   showShortcutsDialog() {
