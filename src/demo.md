@@ -265,7 +265,7 @@ jobs:
 | 智能大纲 | 标题导航一键跳转 | 已支持 |
 | 流程图 | Mermaid 图表渲染 | 已支持 |
 | 数学公式 | KaTeX 渲染引擎 | 已支持 |
-| macOS 版 | 原生 macOS 适配 | 即将推出 |
+| macOS 版 | 原生 macOS 适配 | 计划中 |
 | 移动端 | iOS / Android | 计划中 |
 
 ### 对齐表格
@@ -369,7 +369,7 @@ graph TD
     D -->|是| E[使用 Mermaid 代码]
     D -->|否| F[专注文字内容]
     E --> F
-    F --> G[✨ 导出 HTML]
+    F --> G[✨ 导出 HTML / 长图 / PDF]
     G --> H[🎉 分享成果]
 ```
 
@@ -387,7 +387,7 @@ sequenceDiagram
     TizuMark->>TizuMark: 实时渲染预览
     作者->>文件系统: Ctrl+S 保存
     TizuMark->>文件系统: 写入 .md 文件
-    作者->>TizuMark: 导出 HTML
+    作者->>TizuMark: 导出 HTML / 长图 / PDF
     TizuMark->>文件系统: 生成 .html 文件
     读者->>文件系统: 打开 HTML
     Note over 作者,读者: 一次写作，多种分发
@@ -413,8 +413,8 @@ gantt
 
     section 平台扩展
     Windows 发布           :done,    plat1, 2024-08, 2024-09
-    macOS 适配             :active,  plat2, 2024-09, 2025-01
-    Linux 适配             :         plat3, 2025-01, 2025-03
+    macOS 适配             :         plat2, 2025-01, 2025-03
+    Linux 适配             :         plat3, 2025-03, 2025-05
 ```
 
 ### 类图
@@ -471,7 +471,7 @@ stateDiagram-v2
 TizuMark 支持 GitHub 风格的提示框，让文档中的注意事项更加醒目。
 
 > [!NOTE]
-> 这是一个**普通提示**。TizuMark 当前仅支持 Windows 平台，macOS 和 Linux 版本正在开发中。
+> 这是一个**普通提示**。TizuMark 当前主要面向 Windows 平台，macOS 和 Linux 版本正在规划中。
 
 > [!TIP]
 > **效率技巧**：直接拖拽 `.md` 文件到 TizuMark 窗口即可快速打开，支持多文件同时拖入。你还可以用 `Ctrl+K` 快速插入超链接。
@@ -480,7 +480,7 @@ TizuMark 支持 GitHub 风格的提示框，让文档中的注意事项更加醒
 > **重要提醒**：TizuMark 会在关闭未保存的文件时弹出提醒，防止误操作导致内容丢失。但建议养成经常按 `Ctrl+S` 的好习惯。
 
 > [!WARNING]
-> **性能警告**：导出超大文档（超过 10 万行）为长图时，可能会消耗较多内存。建议大文档分段导出，或使用 HTML 导出代替。
+> **性能警告**：导出超大文档（超过 10 万行）为长图时，可能会消耗较多内存。建议大文档分段导出，或使用 HTML / PDF 导出代替。
 
 > [!CAUTION]
 > **安全注意**：TizuMark 导出的 HTML 文件是自包含的独立网页，可以安全分享给他人。但在分享前，请检查文档中是否包含敏感信息（如密钥、密码等）。
@@ -714,14 +714,13 @@ TizuMark 支持 HTML 实体字符：
 
 ```mermaid
 graph LR
-    A[Markdown 源码] --> B[pulldown-cmark 解析]
-    B --> C[生成 AST]
-    C --> D[渲染为 HTML]
-    D --> E[注入 CSS 样式]
-    E --> F[KaTeX 公式渲染]
-    E --> G[Mermaid 图表渲染]
-    F --> H[最终预览输出]
-    G --> H
+    A[Markdown 源码] --> B[解析为 AST]
+    B --> C[渲染为 HTML]
+    C --> D[注入 CSS 样式]
+    D --> E[KaTeX 公式渲染]
+    D --> F[Mermaid 图表渲染]
+    E --> G[最终预览输出]
+    F --> G
 ```
 
 如果你在写技术文档，可以自然地插入数学公式：
