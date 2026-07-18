@@ -15,10 +15,10 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.0.4-blue" alt="Version">
+  <img src="https://img.shields.io/badge/Version-1.0.5-blue" alt="Version">
   <img src="https://img.shields.io/badge/Windows-7%2B-brightgreen" alt="Windows">
-  <img src="https://img.shields.io/badge/macOS-Coming%20Soon-lightgrey" alt="macOS">
-  <img src="https://img.shields.io/badge/Linux-Coming%20Soon-lightgrey" alt="Linux">
+  <img src="https://img.shields.io/badge/macOS-Planned-lightgrey" alt="macOS">
+  <img src="https://img.shields.io/badge/Linux-Planned-lightgrey" alt="Linux">
   <img src="https://img.shields.io/badge/Tauri-2.x-orange" alt="Tauri">
   <img src="https://img.shields.io/badge/Rust-1.77%2B-black" alt="Rust">
   <img src="https://img.shields.io/badge/License-GPL--3.0-blue" alt="License">
@@ -34,18 +34,12 @@
 
 The world isn't short of Markdown editors. But most fall into one of two camps: heavyweight monsters that hog hundreds of MB, or toys too barebones for real work. TizuMark lands right in the sweet spot.
 
-| | The Usual Way | ✨ TizuMark |
+| Pain Point | The Usual Way | ✨ TizuMark |
 |---|---|---|
-| 🚀 **Startup** | Boot up a full IDE, install plugins, wait... and wait | **Double-click. Up in under a second.** |
-| 👀 **Reading** | Source on one side, render on the other — squint and scroll | **Live preview, WYSIWYG, no mode switching needed** |
-| 📂 **Tabs** | Ten windows, taskbar chaos | **Clean multi-tab interface. Peace of mind.** |
-| 🧭 **Navigation** | Scroll endlessly, can't find that one section you need | **Auto-generated outline. One click to any heading.** |
-| ✍️ **Writing** | Format manually, inserting a table feels like surgery | **Syntax highlighting, right-click menus, auto-complete — just write** |
-| 📐 **Math** | No LaTeX installed? Sorry, you're out of luck | **Built-in KaTeX — inline, display, matrices, equation systems** |
-| 📊 **Diagrams** | Fire up another tool, draw, export, paste, repeat | **Mermaid — flowcharts, sequence diagrams, Gantt charts, in code** |
-| 💾 **Resources** | Hundreds of MB RAM, multi-GB install | **Rust engine. ~7MB installer, <50MB RAM.** |
-| 🎨 **Themes** | One stale color scheme, or config-file archaeology | **Light / Dark / System — one click, no fumbling** |
-| 🖥️ **Platforms** | Different tool for every OS, different quirks | **One codebase. Native on Windows, macOS & Linux.** |
+| 🐢 **Too heavy** | Hundreds of MB RAM, multi-GB install, slow boot | **Rust engine. ~7MB installer, <50MB RAM, up in a second** |
+| 👯 **Split views** | Source on one side, render on the other — scroll and squint | **Live preview, WYSIWYG, editor/preview scroll auto-synced** |
+| 🌀 **Long docs** | Endless scrolling, can't find that one section | **Auto-generated outline from headings, one click to any chapter** |
+| 🧩 **Math & diagrams** | Install LaTeX, switch tools, export, paste, repeat | **Built-in KaTeX & Mermaid — math and diagrams render from code** |
 
 ---
 
@@ -55,35 +49,46 @@ The world isn't short of Markdown editors. But most fall into one of two camps: 
 |---|---|---|
 | Full GFM syntax highlighting | Live scroll-synced preview | Standalone HTML (with full styling) |
 | 100+ language code highlighting | KaTeX math rendering | High-res long screenshot PNG |
-| Find & replace with regex | Mermaid flowcharts, sequences, Gantt, state | Dark / light theme preserved |
-| Auto bracket & quote pairing | Emoji shortcodes (`:rocket:` → 🚀) | 100% offline |
-| Insert menu (tables, callouts, TOC) | Adaptive image sizing | CJK Emoji support |
-| Image paste, auto-dedup (MD5 hash) | Auto width/height on image insert | Custom image asset path |
+| Find & replace with regex | Mermaid flowcharts, sequences, Gantt, state | Export PDF (`Ctrl+P` print dialog) |
+| Auto bracket & quote pairing | Emoji shortcodes (`:rocket:` → 🚀) | Dark / light theme preserved |
+| Insert menu (tables, callouts, TOC) | Adaptive image sizing | 100% offline |
+| Image paste, auto-dedup (MD5 hash) | Auto width/height on image insert | CJK Emoji support |
+| | | Custom image asset path |
 
 | ⚡ Productivity | 🎨 Style | 🔧 Power |
 |---|---|---|
 | Outline sidebar — jump anywhere | Light / Dark / Follow System themes | CLI file opening |
 | Drag & drop, batch file open | Font size, line height, max width | File association: .md, .markdown |
-| Free-drag split pane ratio | Tab width, word wrap toggle | Auto-save + dirty state markers |
+| Free-drag split pane ratio | Tab width, word wrap toggle | Unsaved-state markers + close prompt |
 | Multi-tab + right-click context menus | Fully rebindable shortcuts | Status bar word & char count |
-| Custom image asset path (relative/absolute) | Silent update check on startup | |
+| Custom image asset path (relative/absolute) | Import custom fonts (editor & preview separately) | |
+| Huge-doc sliding-window preview (no lag on 10k+ lines) | 5 color schemes + 2 font schemes | External-change detection & reload prompt |
+| Find in preview (regex) + copy as HTML | Light / Dark / Follow System + 中文/English UI | Session restore (tabs & workspace) |
+| Soft line break toggle | Frameless custom window controls | |
+| | Silent update check on startup | |
 
 ---
 
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/1.png" alt="Screenshot 1" width="45%">
-  <img src="screenshots/2.png" alt="Screenshot 2" width="45%">
+  <img src="screenshots/01-main.png" alt="Main Interface" width="45%">
+  <img src="screenshots/02-tabs.png" alt="Tabs & Scrollable Tab Bar" width="45%">
   <br>
-  <img src="screenshots/3.png" alt="Screenshot 3" width="45%">
-  <img src="screenshots/4.png" alt="Screenshot 4" width="45%">
+  <img src="screenshots/03-math.png" alt="KaTeX Math Rendering" width="45%">
+  <img src="screenshots/04-mermaid.png" alt="Mermaid Diagram Rendering" width="45%">
   <br>
-  <img src="screenshots/5.png" alt="Screenshot 5" width="45%">
-  <img src="screenshots/6.png" alt="Screenshot 6" width="45%">
+  <img src="screenshots/05-code.png" alt="Code Syntax Highlighting" width="45%">
+  <img src="screenshots/06-theme.png" alt="Dark Theme" width="45%">
   <br>
-  <img src="screenshots/7.png" alt="Screenshot 7" width="45%">
-  <img src="screenshots/8.png" alt="Screenshot 8" width="45%">
+  <img src="screenshots/07-font.png" alt="Font Scheme" width="45%">
+  <img src="screenshots/08-shortcuts.png" alt="Customizable Shortcuts" width="45%">
+  <br>
+  <img src="screenshots/09-image.png" alt="Image Insert & Settings" width="45%">
+  <img src="screenshots/10-large.png" alt="Smooth Large-Document Preview" width="45%">
+  <br>
+  <img src="screenshots/11-export.png" alt="Export Menu" width="45%">
+  <img src="screenshots/12-find.png" alt="Find & Replace" width="45%">
 </p>
 
 ---
@@ -95,8 +100,8 @@ The world isn't short of Markdown editors. But most fall into one of two camps: 
 | Platform | Status |
 |----------|--------|
 | Windows | ✅ Supported |
-| macOS | 🔜 Coming soon |
-| Linux | 🔜 Coming soon |
+| macOS | 🔜 Planned |
+| Linux | 🔜 Planned |
 
 <b>Visit the release page to download:</b>
 
@@ -105,6 +110,8 @@ The world isn't short of Markdown editors. But most fall into one of two camps: 
 <a href="https://gitee.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/⬇_Download_from_Gitee-C71D23?style=for-the-badge&logo=gitee&logoColor=white" alt="Download from Gitee"></a>
 
 > On first launch, the user guide opens automatically. You can also find it in `Help → User Guide` anytime.
+
+📖 Want to see every syntax in action? Open [demo.md](demo.md) for a full syntax showcase.
 
 ### Shortcuts
 
@@ -153,7 +160,7 @@ npm run build    # production build
         └─────────────┘
 ```
 
-> Tauri v2 uses the OS native WebView — ~7MB installer, ~1/5 the footprint of Electron-based alternatives.
+> Tauri v2 uses the OS native WebView — ~7MB installer, ~1/5 the footprint of Electron-based alternatives. **Windows is released today; macOS & Linux are planned.**
 
 ---
 

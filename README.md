@@ -15,10 +15,10 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.0.4-blue" alt="Version">
+  <img src="https://img.shields.io/badge/Version-1.0.5-blue" alt="Version">
   <img src="https://img.shields.io/badge/Windows-7%2B-brightgreen" alt="Windows">
-  <img src="https://img.shields.io/badge/macOS-Coming%20Soon-lightgrey" alt="macOS">
-  <img src="https://img.shields.io/badge/Linux-Coming%20Soon-lightgrey" alt="Linux">
+  <img src="https://img.shields.io/badge/macOS-Planned-lightgrey" alt="macOS">
+  <img src="https://img.shields.io/badge/Linux-Planned-lightgrey" alt="Linux">
   <img src="https://img.shields.io/badge/Tauri-2.x-orange" alt="Tauri">
   <img src="https://img.shields.io/badge/Rust-1.77%2B-black" alt="Rust">
   <img src="https://img.shields.io/badge/License-GPL--3.0-blue" alt="License">
@@ -32,20 +32,14 @@
 
 <p align="center"><b>打开、查看、编辑、导出——就是这么简单。</b></p>
 
-市面上不缺 Markdown 编辑器，但大多走向两个极端：要么是动辄几百 MB 的"重型武器"，要么功能简陋得无法日常使用。TizuMark 卡在中间，刚好合适。
+市面上不缺 Markdown 编辑器，但大多走向两个极端：要么是动辄几百 MB 的"重型武器"，要么功能简陋得无法日常使用。TizuMark 卡在中间，刚好合适——把写作者最在意的几件事做到极致。
 
-| | 常见方案 | ✨ TizuMark |
+| 痛点 | 常见方案 | ✨ TizuMark |
 |---|---|---|
-| 🚀 **启动** | 等 IDE 加载、装插件、切窗口——几十秒过去了 | **双击即开，一秒以内** |
-| 👀 **阅读** | 源码和渲染分两屏，看个文档眼都花了 | **实时预览，所见即所得，无需切换** |
-| 📂 **多文件** | 开十个窗口，任务栏密密麻麻 | **多标签页管理，干净利落** |
-| 🧭 **长文档** | 滚轮滚到手酸，想回头找某个段落得翻半天 | **大纲自动解析，一键跳转，永不失位** |
-| ✍️ **写作** | 格式全靠手敲，插入表格图片像做手术 | **语法高亮、右键菜单、自动补全——写得顺畅** |
-| 📐 **公式** | 没装 LaTeX？抱歉，看不了 | **内置 KaTeX，行内、独立、矩阵、方程组全支持** |
-| 📊 **图表** | 切到其他工具画图 → 导出 → 粘贴 → 再来一遍 | **Mermaid 代码即图表，流程图、时序图、甘特图** |
-| 💾 **资源** | 几百 MB 内存，几个 G 安装包 | **Rust 原生引擎，安装包 ~7MB，内存 <50MB** |
-| 🎨 **主题** | 万年不变的一个颜色，或者改半天配置文件 | **亮色/暗色/跟随系统，一键切换** |
-| 🖥️ **跨平台** | Windows 能用，换 Mac/Linux 又得找替代品 | **同一套代码，三平台原生体验** |
+| 🐢 **太重** | 几百 MB 内存、几个 G 安装包，启动等半天 | **Rust 原生引擎，安装包 ~7MB、内存 <50MB，双击一秒即开** |
+| 👯 **分屏** | 源码和渲染各一屏，看文档得来回切窗口 | **实时预览、所见即所得，编辑/预览滚动自动同步** |
+| 🌀 **长文档** | 滚轮滚到手酸，回头找段落得翻半天 | **大纲自动解析标题层级，一键跳转任意章节** |
+| 🧩 **画公式/图** | 装 LaTeX、切画图工具、导出再粘贴 | **内置 KaTeX 与 Mermaid，公式与图表代码即渲染** |
 
 ---
 
@@ -59,10 +53,13 @@
 - 📐 **内置 KaTeX 数学公式**：行内公式、独立公式块、矩阵、方程组全支持——写论文、做笔记、记公式直接搞定。
 - 📊 **内置 Mermaid 图表**：流程图、时序图、甘特图、类图、状态图……**用代码画图，自动跟随明暗主题切换配色**。
 - 🖼️ **图片粘贴即插入**：截图/拖拽直接粘贴，支持 assets 目录存储或 Base64 内联，自动去重；导出时相对路径解析与预览完全一致。
-- 📤 **多种导出**：HTML 单文件（完整样式、完全离线）、高清长图 PNG，保留暗黑/亮色主题样式。
+- 📤 **多种导出**：HTML 单文件（完整样式、完全离线）、高清长图 PNG、PDF（系统打印对话框），均保留暗黑/亮色主题样式。
 - ⌨️ **快捷键全自定义**：每一条快捷键都能在 `文件 → 快捷键设置` 中改键，贴合你的肌肉记忆。
 - 📂 **多标签页 + 工作区**：同时编辑多个文件、拖拽批量打开、文件夹工作区、`.md` 文件关联。
-- 🎨 **个性化主题**：亮色 / 暗黑 / 跟随系统一键切换，字体、行高、内容宽度自由调节。
+- 🚀 **海量文档流畅预览**：数万行超大文档采用滑动窗口 + 虚拟渲染，只渲染当前阅读区域，编辑器永不卡顿；外部磁盘变更自动检测并提示重新加载，多工具协作不丢稿。
+- 🎨 **深度个性化**：亮色 / 暗黑 / 跟随系统一键切换；内置 5 套配色方案（基准 / 暖橙 / 翠林 / 极夜 / 暮紫）、2 套字体方案（简约 / 印刷），并可在 `文件 → 设置 → 自定义字体` 导入本地 `.ttf` / `.otf` / `.woff` 字体，编辑器与预览分别指定。
+- 🌐 **中 / 英 界面语言一键切换**：内置完整双语界面，随时在设置中切换，新手与外文写作都友好。
+- 💾 **会话记忆**：重启自动恢复上次打开的标签页、文件夹工作区与展开目录，打开即回到上次状态。
 
 ---
 
@@ -72,35 +69,46 @@
 |---|---|---|
 | GFM 完整语法高亮 | 实时同步滚动 | 导出 HTML 单文件（完整样式） |
 | 代码块 100+ 语言着色 | KaTeX 数学公式渲染 | 导出高清长图 PNG |
-| 查找替换（支持正则） | Mermaid 流程图/时序图/甘特图/状态图 | 保留暗黑/亮色主题样式 |
-| 自动补全括号、引号 | Emoji 短代码 (`:rocket:` → 🚀) | 完全离线，无需联网 |
-| 插入菜单（表格/提示块/目录等） | 自适应图片尺寸 | 中英文 Emoji 完美适配 |
-| 图片粘贴插入、自动去重（MD5） | 图片自动带宽高属性 | 自定义图片存储路径 |
+| 查找替换（支持正则） | Mermaid 流程图/时序图/甘特图/状态图 | 导出 PDF（`Ctrl+P` 系统打印） |
+| 自动补全括号、引号 | Emoji 短代码 (`:rocket:` → 🚀) | 保留暗黑/亮色主题样式 |
+| 插入菜单（表格/提示块/目录等） | 自适应图片尺寸 | 完全离线，无需联网 |
+| 图片粘贴插入、自动去重（MD5） | 图片自动带宽高属性 | 中英文 Emoji 完美适配 |
+| | | 自定义图片存储路径 |
 
 | ⚡ 效率 | 🎨 个性化 | 🔧 专业 |
 |---|---|---|
 | 大纲导航一键跳转 | 亮色 / 暗黑 / 跟随系统 | CLI 命令行打开文件 |
 | 拖拽、批量打开文件 | 字体大小/行高/内容宽度可调 | 文件关联 .md / .markdown |
-| 编辑/预览分屏比例自由拖拽 | Tab 宽度 / 自动换行开关 | 自动保存 + 脏状态标记 |
+| 编辑/预览分屏比例自由拖拽 | Tab 宽度 / 自动换行开关 | 未保存状态标记 + 关闭提醒 |
 | 多标签页 + 右键快捷菜单 | 全套快捷键可自定义 | 状态栏实时字数统计 |
-| 自定义图片存储路径（相对/绝对） | 静默检查更新，有新版自动提示 | |
+| 自定义图片存储路径（相对/绝对） | 导入自定义字体（编辑器/预览分别指定） | |
+| 预览内查找（支持正则）+ 复制为 HTML | 5 套配色方案 + 2 套字体方案 | |
+| 软换行（回车即换行）开关 | 中 / 英 界面语言一键切换 | |
+| 会话记忆（重启恢复标签页/文件夹） | 自绘无边框窗口（自定义最小化/最大化/关闭） | |
+| | 静默检查更新，有新版自动提示 | |
 
 ---
 
 ## 界面预览
 
 <p align="center">
-  <img src="screenshots/1.png" alt="截图 1" width="45%">
-  <img src="screenshots/2.png" alt="截图 2" width="45%">
+  <img src="screenshots/01-main.png" alt="主界面全貌" width="45%">
+  <img src="screenshots/02-tabs.png" alt="多标签与标签栏滚动" width="45%">
   <br>
-  <img src="screenshots/3.png" alt="截图 3" width="45%">
-  <img src="screenshots/4.png" alt="截图 4" width="45%">
+  <img src="screenshots/03-math.png" alt="KaTeX 数学公式渲染" width="45%">
+  <img src="screenshots/04-mermaid.png" alt="Mermaid 图表渲染" width="45%">
   <br>
-  <img src="screenshots/5.png" alt="截图 5" width="45%">
-  <img src="screenshots/6.png" alt="截图 6" width="45%">
+  <img src="screenshots/05-code.png" alt="代码语法高亮" width="45%">
+  <img src="screenshots/06-theme.png" alt="暗色主题" width="45%">
   <br>
-  <img src="screenshots/7.png" alt="截图 7" width="45%">
-  <img src="screenshots/8.png" alt="截图 8" width="45%">
+  <img src="screenshots/07-font.png" alt="字体方案" width="45%">
+  <img src="screenshots/08-shortcuts.png" alt="快捷键自定义设置" width="45%">
+  <br>
+  <img src="screenshots/09-image.png" alt="图片插入与设置" width="45%">
+  <img src="screenshots/10-large.png" alt="超大文档流畅预览" width="45%">
+  <br>
+  <img src="screenshots/11-export.png" alt="导出菜单" width="45%">
+  <img src="screenshots/12-find.png" alt="查找替换" width="45%">
 </p>
 
 ---
@@ -112,8 +120,8 @@
 | 平台 | 状态 |
 |------|------|
 | Windows | ✅ 已支持 |
-| macOS | 🔜 即将推出 |
-| Linux | 🔜 即将推出 |
+| macOS | 🔜 计划中 |
+| Linux | 🔜 计划中 |
 
 <b>请打开产品发布页面下载：</b>
 
@@ -122,6 +130,8 @@
 <a href="https://gitee.com/tizu/tizu-mark/releases"><img src="https://img.shields.io/badge/⬇_从_Gitee_下载-C71D23?style=for-the-badge&logo=gitee&logoColor=white" alt="从 Gitee 下载"></a>
 
 > 首次打开会自动展示使用说明，也可在 `帮助 → 使用说明` 中随时查看。
+
+📖 想一眼看全所有语法效果？打开 [demo.md](demo.md) 查看完整语法演示。
 
 ### 快捷键速览
 
@@ -170,7 +180,7 @@ npm run build    # 构建发布版本
         └─────────────┘
 ```
 
-> Tauri v2 使用系统原生 WebView，安装包仅 ~7MB，内存占用不到 Electron 类应用的 1/5。
+> Tauri v2 使用系统原生 WebView，安装包仅 ~7MB，内存占用不到 Electron 类应用的 1/5。**当前已发布 Windows 版，macOS / Linux 版本规划中。**
 
 ---
 

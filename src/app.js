@@ -1189,7 +1189,7 @@ class MarkdownEditor {
       maxWidth: 0,
       themeMode: 'light',
       colorScheme: 'default',
-      fontScheme: 'classic-serif',
+      fontScheme: 'system-sans',
       defaultView: 'preview',
       scrollSync: true,
       language: 'zh',
@@ -1219,7 +1219,7 @@ class MarkdownEditor {
           forest: 'system-sans',
           nord: 'system-sans',
           dusk: 'system-sans',
-          sunset: 'classic-serif',
+          sunset: 'system-sans',
         };
         saved.fontScheme = colorSchemeFontMap[saved.colorScheme] || 'system-sans';
       }

@@ -99,7 +99,7 @@ When an open file is modified by another program outside TizuMark, a banner appe
 
 ### Large Document Protection
 
-When a document is very large (over ~5000 lines or 4MB), the preview uses a sliding window that renders only the section currently being read, keeping even huge files smooth and responsive. A notice is shown at the top of the editor.
+When a document exceeds ~5000 lines or 4MB, the preview automatically switches to sliding-window mode, rendering only the current reading region (a ~1200-line window) instead of the whole document — so files of tens of thousands of lines still open smoothly. A notice is shown at the top of the editor.
 
 ---
 
