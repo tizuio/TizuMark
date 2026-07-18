@@ -658,6 +658,10 @@ class MarkdownEditor {
     this._renderGeneration = 0;
     this._mermaidGeneration = 0;
     this.previewWindow = null;       // 大文档窗口模式：{start, end}（0-based 源码行），普通文档为 null
+    this._previewVirtual = false;    // 纯预览模式 + 大文档：虚拟滚动（spacer 撑高，可拖到任意位置）
+    this._avgLineHeight = null;      // 虚拟滚动平均行高（首次渲染后校准一次，之后恒定）
+    this._virtualRenderTimer = null; // 虚拟滚动重渲染 debounce 计时器
+    this._previewScrollDriven = false; // 虚拟滚动：滚动驱动的重渲染保留 scrollTop（不回弹贴顶）
     this._previewSliceOffset = 0;    // 窗口切片起点（0-based），用于把 data-source-line 还原为绝对行号
     this._previewFocusLine = 0;      // 窗口焦点（0-based 源码行），决定窗口中心
     this._windowLineTops = null;     // 窗口模式下 [data-source-line] 元素相对预览内容顶部的像素偏移，用于定位
@@ -746,15 +750,27 @@ class MarkdownEditor {
     el.classList.add('hidden');
   }
 
+  // 引用计数的加载层控制：多次嵌套的「开始/结束」只在实际最外层结束（count 归零）时才隐藏，
+  // 从而让大文件重渲染（可能跨多次 updatePreview 调用）期间 loading 持续可见
+  _beginPaneLoad() {
+    this._paneLoadingCount = (this._paneLoadingCount || 0) + 1;
+    this.showPaneLoading();
+  }
+
+  _endPaneLoad() {
+    this._paneLoadingCount = Math.max(0, (this._paneLoadingCount || 0) - 1);
+    if (this._paneLoadingCount === 0) this.hidePaneLoading();
+  }
+
   showLargeFileNotice(key, totalLines, totalChars) {
-    // 暂时移除「文档过大」提示横幅（性能优化仍保留），直接返回不显示。
-    return;
+    // 纯预览模式使用虚拟滚动，可拖到任意位置查看全文，无需提示横幅
+    if (this.viewMode === 'preview') { this.hideLargeFileNotice(); return; }
     if (this._largeFileNoticeDismissed && this._largeFileNoticeKey === key) return;
     const banner = document.getElementById('large-file-banner');
     const textEl = document.getElementById('large-file-banner-text');
     if (!banner || !textEl) return;
     const sizeMB = (totalChars / 1048576).toFixed(1);
-    textEl.textContent = `⚠ 文档过大（约 ${totalLines} 行 / ${sizeMB} MB），预览按当前位置动态渲染局部内容（约 ${PREVIEW_WINDOW_LINES} 行），完整内容请查看编辑区。`;
+    textEl.textContent = `⚠ 文档过大（约 ${totalLines} 行 / ${sizeMB} MB），预览仅显示当前位置附近内容，滚动编辑区可逐步查看全文。`;
     banner.classList.remove('hidden');
     this._largeFileNoticeKey = key;
   }
@@ -1604,6 +1620,7 @@ class MarkdownEditor {
         this.preview.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
       } else if (this.previewWindow) {
         // 大文档窗口模式：目标标题尚未渲染在预览中，以该行为焦点重渲染预览窗口，使其落点
+        this._previewScrollDriven = false;
         this._previewFocusLine = line;
         this.updatePreview();
       }
@@ -2432,9 +2449,14 @@ class MarkdownEditor {
 
     // 预览滚动 → 同步编辑器（demo 的 onScroll 思路，方向相反）
     this.preview.addEventListener('scroll', () => {
-      if (!this.settings.scrollSync || !this._canScroll.preview) return;
       const container = document.querySelector('.editor-container');
-      if (container.classList.contains('preview-collapsed') || container.classList.contains('preview-mode')) return;
+      // 纯预览模式 + 大文档虚拟滚动：驱动预览自身懒加载（拖到任意位置查看全文）
+      if (container.classList.contains('preview-mode') && this._previewVirtual && this.previewWindow) {
+        this._syncPreviewVirtualScroll();
+        return;
+      }
+      if (!this.settings.scrollSync || !this._canScroll.preview) return;
+      if (container.classList.contains('preview-collapsed')) return;
 
       this._canScroll.editor = false;
       this._throttleScroll(() => this._syncPreviewToEditor(), 50);
@@ -2463,7 +2485,7 @@ class MarkdownEditor {
     this._largeFileNoticeDismissed = false;
     this._previewFocusLine = 0;
     this.previewWindow = null;
-    this.showPaneLoading();
+    this._beginPaneLoad();
     try {
       const oldTab = this.activeTab;
       oldTab.content = this.cm.getValue();
@@ -2483,17 +2505,17 @@ class MarkdownEditor {
       this.cm.clearHistory();
 
       this.updateTabDisplay();
-      this.updatePreview();
+      await this.updatePreview();
       this.updateWordCount();
       this.updateOutline();
       this.updateExternalChangeBanner();
       this.highlightTreeActiveFile();
     } finally {
-      this.hidePaneLoading();
+      this._endPaneLoad();
     }
   }
 
-  addTab(name = '', content = '', filePath = null) {
+  async addTab(name = '', content = '', filePath = null) {
     const defaultName = this.t('untitled');
     if (!name || name === defaultName) {
       name = `${defaultName}${this.untitledCounter++}`;
@@ -2502,7 +2524,7 @@ class MarkdownEditor {
     const tab = new Tab(name, content, filePath);
     this.tabs.push(tab);
     this.refreshFileMeta(tab);
-    this.switchTab(this.tabs.length - 1);
+    await this.switchTab(this.tabs.length - 1);
     this.updateTabBar();
     this.saveSession();
   }
@@ -4066,6 +4088,7 @@ class MarkdownEditor {
       await this.renderFolderTree();
       this.setSidebarTab('files');
       this.saveSession();
+      this.startFolderWatch();
     }
     return true;
   }
@@ -4074,7 +4097,7 @@ class MarkdownEditor {
     this._largeFileNoticeDismissed = false;
     this._previewFocusLine = 0;
     this.previewWindow = null;
-    this.showPaneLoading();
+    this._beginPaneLoad();
     try {
       const existingIndex = this.tabs.findIndex(t => t.filePath === filePath);
       if (existingIndex !== -1) {
@@ -4084,7 +4107,7 @@ class MarkdownEditor {
       }
       const content = (await invoke('read_file', { path: filePath })).replace(/\r\n/g, '\n');
       const name = filePath.split(/[/\\]/).pop();
-      this.addTab(name, content, filePath);
+      await this.addTab(name, content, filePath);
       this.viewMode = 'preview';
       this.applyViewMode();
       this.updateWordCount();
@@ -4093,7 +4116,7 @@ class MarkdownEditor {
     } catch (e) {
       this.setStatus(this.t('openFailed') + ': ' + e);
     } finally {
-      this.hidePaneLoading();
+      this._endPaneLoad();
     }
   }
 
@@ -4108,6 +4131,7 @@ class MarkdownEditor {
       this.expandedFolders = new Set();
       await this.renderFolderTree();
       this.showSidebarTab('files');
+      this.startFolderWatch();
       this.saveSession();
       this.setStatus(this.t('folderOpened', { path: folderPath }));
     } catch (e) {
@@ -4122,6 +4146,24 @@ class MarkdownEditor {
     this.expandedFolders = new Set();
     this.saveSession();
     this.renderFolderTree();
+    try { invoke('stop_watch'); } catch (e) { /* ignore */ }
+  }
+
+  // 开始监听工作区目录树变化（先停掉旧的，避免重复监听）。外部增删目录/文件时会收到 folder-changed 事件
+  async startFolderWatch() {
+    if (!this.workspaceFolder) return;
+    try { await invoke('stop_watch'); } catch (e) { /* ignore */ }
+    try { await invoke('watch_folder', { path: this.workspaceFolder }); }
+    catch (e) { console.warn('[folder-watch] failed:', e); }
+  }
+
+  // 收到 folder-changed 后防抖重建文件树（保留已展开目录），避免单次操作触发多次重渲染
+  _scheduleTreeRefresh() {
+    if (this._treeRefreshTimer) clearTimeout(this._treeRefreshTimer);
+    this._treeRefreshTimer = setTimeout(() => {
+      this._treeRefreshTimer = null;
+      if (this.workspaceFolder) this.renderFolderTree();
+    }, 400);
   }
 
   async renderFolderTree() {
@@ -4668,7 +4710,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
   debounceUpdatePreview() {
     clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => {
-      this.updatePreview();
+      this.updatePreview(true);
       this.updateWordCount();
       this.updateOutline();
     }, 300);
@@ -5230,12 +5272,76 @@ input[type="checkbox"]:checked::after { display: none !important; }
     this.preview.scrollTop = Math.max(0, Math.min(bestTop - 24, maxScroll));
   }
 
-    async updatePreview() {
+  // 纯预览模式大文档：把窗口片段渲染到「撑满全文高度的占位 + 绝对定位块」中，
+  // 使原生滚动条代表整篇文档，用户可平滑滚动 / 拖到任意位置查看全文（虚拟滚动）。
+  // 平均行高恒定（首次渲染后校准一次），故 scrollTop ↔ 源码行比例精确，与 avg 估算无关。
+  _renderPreviewWindowBlock(finalHtml, win, content) {
+    const totalLines = content.split('\n').length;
+    const avg = this._avgLineHeight || 22;
+    const estTotal = totalLines * avg;
+    const blockTop = win.start * avg;
+    this.preview.style.position = 'relative';
+    this.preview.style.padding = '0';
+    this.preview.innerHTML =
+      `<div class="pv-spacer" style="position:absolute;top:0;left:0;width:100%;height:${estTotal}px;"></div>` +
+      `<div class="pv-block" style="position:absolute;top:${blockTop}px;left:0;right:0;padding:16px 24px;box-sizing:border-box;">${finalHtml}</div>`;
+  }
+
+  // 首次渲染后根据已渲染窗口的真实行高校准平均行高（仅一次，之后恒定），
+  // 并据此重设占位高度（此时通常位于头部，scrollTop≈0，无视觉跳动）。
+  _updateVirtualScrollMetrics() {
+    if (!this._previewVirtual || !this.previewWindow) return;
+    if (this._avgLineHeight == null) {
+      const arr = this._windowLineTops;
+      if (arr && arr.length >= 2) {
+        const first = arr[0], last = arr[arr.length - 1];
+        const dh = last[1] - first[1];
+        const dl = last[0] - first[0];
+        if (dl > 0) {
+          const avg = dh / dl;
+          if (avg > 1 && avg < 500) this._avgLineHeight = avg;
+        }
+      }
+      if (this._avgLineHeight == null) this._avgLineHeight = 22;
+      const spacer = this.preview.querySelector('.pv-spacer');
+      if (spacer) spacer.style.height = (this.cm.lineCount() * this._avgLineHeight) + 'px';
+    }
+  }
+
+  // 纯预览模式虚拟滚动：预览滚动时按 scrollTop 估算当前视口顶行（锚定行），
+  // 若超出当前窗口缓冲区则 debounce 重渲染相邻窗口（拖到任意位置均渲染对应内容）。
+  // 重渲染使用最新 scrollTop 反推锚定行，避免滚动期间位置过期导致抖动。
+  _syncPreviewVirtualScroll() {
+    if (!this._previewVirtual || !this.previewWindow) return;
+    const win = this.previewWindow;
+    const avg = this._avgLineHeight || 22;
+    const total = this.cm.lineCount();
+    const anchor = Math.max(0, Math.min(total - 1, Math.round(this.preview.scrollTop / avg)));
+    if (anchor >= win.start + PREVIEW_WINDOW_LEAD && anchor <= win.end - PREVIEW_WINDOW_LEAD) return;
+    if (this._virtualRenderTimer) return;
+    this._virtualRenderTimer = setTimeout(() => {
+      this._virtualRenderTimer = null;
+      const avg2 = this._avgLineHeight || 22;
+      const a2 = Math.max(0, Math.min(this.cm.lineCount() - 1, Math.round(this.preview.scrollTop / avg2)));
+      this._previewFocusLine = a2;
+      this._previewScrollDriven = true; // 滚动驱动：重渲染后保留当前 scrollTop，避免回弹
+      this.updatePreview();
+    }, 120);
+  }
+
+    async updatePreview(suppressLoading = false) {
       const gen = ++this._renderGeneration;
+      let needLoad = false;
       try {
         const content = this.cm.getValue();
         const totalLines = content.split('\n').length;
         const isLarge = content.length > MAX_PREVIEW_CHARS || totalLines > MAX_PREVIEW_LINES;
+
+        // 大文档重渲染耗时明显：在加载层可见时由本函数接管其生命周期（引用计数），
+        // 仅在「显式打开/切换/视图切换/大纲跳转」等非滚动、非打字触发的重渲染时显示 loading；
+        // 滚动驱动（_previewScrollDriven）与打字（suppressLoading）不显示，避免闪烁
+        needLoad = isLarge && !suppressLoading && !this._previewScrollDriven;
+        if (needLoad) this._beginPaneLoad();
 
         // 超大文档：预览只渲染「围绕焦点的一段源码」（滑动窗口），避免整篇同步解析/渲染卡死主线程，
         // 同时保证任意位置（大纲跳转 / 滚动）都可在预览中落点。
@@ -5246,13 +5352,16 @@ input[type="checkbox"]:checked::after { display: none !important; }
           const win = this._computePreviewWindow(content, focus);
           this.previewWindow = win;
           this._previewSliceOffset = win.start;
+          this._previewVirtual = (this.viewMode === 'preview');
           const slice = content.split('\n').slice(win.start, win.end).join('\n');
           renderContent = slice.length > HEAD_RENDER_CHAR_CAP ? slice.slice(0, HEAD_RENDER_CHAR_CAP) : slice;
           this._previewTruncated = true;
         } else {
           this.previewWindow = null;
           this._previewSliceOffset = 0;
+          this._previewVirtual = false;
         }
+
 
       const hasToc = content.includes('[TOC]') || content.includes('[toc]');
       let tocHtml = '';
@@ -5287,7 +5396,13 @@ input[type="checkbox"]:checked::after { display: none !important; }
 
       this._canScroll.editor = false;
       this._canScroll.preview = false;
-      this.preview.innerHTML = finalHtml;
+      if (this._previewVirtual && this.previewWindow) {
+        this._renderPreviewWindowBlock(finalHtml, this.previewWindow, content);
+      } else {
+        this.preview.style.position = '';
+        this.preview.style.padding = '';
+        this.preview.innerHTML = finalHtml;
+      }
 
       // 超大文档：顶部全局横幅提示（不塞进预览内容，避免随滚动/重渲染消失）
       if (this._previewTruncated) {
@@ -5367,7 +5482,11 @@ input[type="checkbox"]:checked::after { display: none !important; }
       // 不走整篇滚动同步（预览只含窗口片段，1:1 映射无意义）
       if (this.previewWindow) {
         this._buildWindowLineTops();
-        this._focusPreviewToLine(this._previewFocusLine);
+        if (this._previewVirtual) this._updateVirtualScrollMetrics();
+        // 滚动驱动的重渲染保留当前 scrollTop（内容按 ℓ*avg 线性连续，无需回弹）；
+        // 仅大纲跳转 / 打开文件等显式跳转才贴顶定位
+        if (!this._previewScrollDriven) this._focusPreviewToLine(this._previewFocusLine);
+        this._previewScrollDriven = false;
         requestAnimationFrame(() => {
           if (gen === this._renderGeneration) this._resumeScroll();
         });
@@ -5418,6 +5537,8 @@ input[type="checkbox"]:checked::after { display: none !important; }
       this._resumeScroll();
       const msg = String(error).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       this.preview.innerHTML = `<p style="color: red;">预览错误: ${msg}</p>`;
+    } finally {
+      if (needLoad) this._endPaneLoad();
     }
   }
 
@@ -6009,6 +6130,10 @@ input[type="checkbox"]:checked::after { display: none !important; }
     setTimeout(() => {
       this.cm.refresh();
       this.updateSideButtons();
+      // 切换视图模式后，若虚拟滚动状态与新模式不一致则按新模式重建预览
+      if (this.previewWindow && this._previewVirtual !== (this.viewMode === 'preview')) {
+        this.updatePreview();
+      }
     }, 50);
   }
 
@@ -6920,6 +7045,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateLoadingProgress(60, '正在注册事件监听…');
     await window.__TAURI__.event.listen('close-requested', async () => {
       await window.editor.handleAppClose();
+    });
+
+    // 工作区目录树随外部文件增删自动刷新（由 Rust watch_folder 广播 folder-changed 事件）
+    await window.__TAURI__.event.listen('folder-changed', () => {
+      if (window.editor) window.editor._scheduleTreeRefresh();
     });
 
     await window.__TAURI__.event.listen('file-open', async (event) => {
