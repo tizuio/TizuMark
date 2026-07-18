@@ -329,6 +329,7 @@ const I18N = {
     updateReady: '更新已就绪，是否现在安装？',
     updateNoUpdate: '已是最新版本',
     updateFailed: '检查更新失败',
+    updateConfirm: '确认',
     updateProgress: '下载中 {pct}%',
     noUpdateNotes: '暂无更新说明',
     unsafeRegex: '正则表达式不安全或过长',
@@ -635,6 +636,7 @@ const I18N = {
     updateReady: 'Update ready. Install now?',
     updateNoUpdate: 'You\'re up to date',
     updateFailed: 'Check for updates failed',
+    updateConfirm: 'OK',
     updateProgress: 'Downloading {pct}%',
     noUpdateNotes: 'No release notes',
     unsafeRegex: 'Unsafe or too long regex pattern',
@@ -6409,7 +6411,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
     document.getElementById('update-dialog').classList.add('hidden');
   }
 
-  showUpdateState(state) {
+  showUpdateState(state, checkId) {
     ['checking', 'available', 'latest'].forEach(s => {
       document.getElementById('update-state-' + s).classList.toggle('hidden', s !== state);
     });
@@ -6417,11 +6419,33 @@ input[type="checkbox"]:checked::after { display: none !important; }
     const titleEl = document.getElementById('update-title');
     if (titleEl) titleEl.textContent = titles[state] || '发现新版本';
     const btn = document.getElementById('update-action');
+    const skipBtn = document.getElementById('update-skip');
     if (state === 'checking') {
       btn.disabled = true;
       btn.textContent = this.t('updateChecking');
       document.getElementById('update-progress-wrap').classList.add('hidden');
+      if (skipBtn) skipBtn.classList.remove('hidden');
+    } else if (state === 'available') {
+      if (skipBtn) skipBtn.classList.remove('hidden');
+    } else if (state === 'latest') {
+      // 已是最新：弹框保持打开，不弹 toast，下方按钮变为单个蓝色「确认」
+      if (skipBtn) skipBtn.classList.add('hidden');
+      btn.disabled = false;
+      btn.dataset.state = 'confirm';
+      btn.textContent = this.t('updateConfirm');
+      document.getElementById('update-progress-wrap').classList.add('hidden');
+      this._fillLatestVersion(checkId);
     }
+  }
+
+  async _fillLatestVersion(checkId) {
+    const el = document.getElementById('update-latest-version');
+    if (!el) return;
+    try {
+      const ver = await window.__TAURI__.app.getVersion();
+      if (checkId !== undefined && this._updateCheckId !== checkId) return;
+      el.textContent = 'v' + ver;
+    } catch (_) {}
   }
 
   async checkUpdate(showUpToDate = false) {
@@ -6430,7 +6454,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
     this._updateDismissed = false;
     if (showUpToDate) {
       this.showUpdateDialog();
-      this.showUpdateState('checking');
+      this.showUpdateState('checking', checkId);
     }
     try {
       const { invoke } = window.__TAURI__.core;
@@ -6438,11 +6462,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
       if (this._updateCheckId !== checkId || this._updateDismissed) return;
       if (!result) {
         if (showUpToDate) {
-          this.showUpdateState('latest');
-          setTimeout(() => {
-            this.hideUpdateDialog();
-            this.showToast(this.t('updateNoUpdate'), 'success');
-          }, 1200);
+          this.showUpdateState('latest', checkId);
         }
         return;
       }
@@ -6464,7 +6484,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
       } else {
         notesEl.textContent = this.t('noUpdateNotes');
       }
-      this.showUpdateState('available');
+      this.showUpdateState('available', checkId);
       this.pendingUpdate = update;
       this.pendingUpdateRid = update.rid;
       this.setUpdateAction('download');
@@ -6492,6 +6512,10 @@ input[type="checkbox"]:checked::after { display: none !important; }
 
   async handleUpdateAction() {
     const state = document.getElementById('update-action').dataset.state;
+    if (state === 'confirm') {
+      this.hideUpdateDialog();
+      return;
+    }
     if (state === 'download') {
       this.setUpdateAction('downloading');
       document.getElementById('update-progress-wrap').classList.remove('hidden');

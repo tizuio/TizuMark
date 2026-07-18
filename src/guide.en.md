@@ -265,8 +265,8 @@ TizuMark silently checks for updates on startup:
 |----------|----------|
 | Startup check | Silent — no dialog, no toast |
 | New version found | Update dialog appears automatically with version, release notes, and download button |
-| Already up-to-date | Nothing happens |
-| Manual check | `Help → Check for Updates` — shows dialog if update found, toasts otherwise |
+| Already up-to-date | On manual check, the dialog shows "You're up to date" with a single "OK" button to close (no toast); startup check remains silent |
+| Manual check | `Help → Check for Updates` — shows dialog if update found, otherwise shows "You're up to date" |
 | Check failed | Toast notification "Check for updates failed" |
 
 Update dialog:
@@ -274,6 +274,7 @@ Update dialog:
 - Shows current and new version
 - Renders release notes (Markdown)
 - Click "Download" → progress bar → "Install Now" → install & restart
+- When up to date: dialog stays open showing "You're up to date", with a single blue "OK" button to close it
 
 ---
 
