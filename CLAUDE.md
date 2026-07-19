@@ -296,6 +296,19 @@ git push
 
 Token：`REDACTED_GITEE_TOKEN`
 
+### GitHub API
+
+基础路径：`https://api.github.com/repos/tizuio/TizuMark`
+
+| 操作 | 方法 | 路径 | 备注 |
+|------|------|------|------|
+| 创建 release | POST | `/releases` | body 含 `tag_name`, `name`, `body`（JSON） |
+| 上传附件 | POST | `/releases/{release_id}/assets?name={filename}` | uploads.github.com, Content-Type: application/octet-stream |
+
+Token：`REDACTED_GITHUB_TOKEN`
+
+GitHub Release 需上传与 Gitee Release 相同的 4 个文件（NSIS + MSI + 绿色版 + update JSON），release body 用英文。
+
 ### 已知 Release ID
 
 | 版本 | Release ID |

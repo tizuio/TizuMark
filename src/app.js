@@ -2019,8 +2019,10 @@ class MarkdownEditor {
     if (!confirmed) return;
 
     const defaults = this.defaultSettings();
-    this.settings = defaults;
-    localStorage.removeItem('tizumark-settings');
+    // 恢复默认：保留已导入的自定义字体，仅把编辑器/预览字体选择重置为「跟随方案」
+    const savedCustomFonts = this.settings.customFonts || [];
+    this.settings = { ...defaults, customFonts: savedCustomFonts };
+    this.saveSettings();
 
     document.getElementById('set-font-size').value = defaults.fontSize;
     document.getElementById('font-size-label').textContent = defaults.fontSize + 'px';
