@@ -26,4 +26,15 @@ function loadHljs(window) {
 // 反引号构造助手，避免 shell/字符串转义问题
 const B = '`';
 
-module.exports = { createPreviewDom, loadHljs, B };
+// 把 jsdom window 的全局（document / NodeFilter / navigator 等）挂到 Node 全局，
+// 供直接引用全局 document/NodeFilter 的浏览器模块（如 preview-post.js）在测试中使用。
+function installGlobals(window) {
+  global.window = window;
+  global.document = window.document;
+  global.NodeFilter = window.NodeFilter;
+  global.navigator = window.navigator;
+  global.getComputedStyle = window.getComputedStyle.bind(window);
+  return window;
+}
+
+module.exports = { createPreviewDom, loadHljs, installGlobals, B };
