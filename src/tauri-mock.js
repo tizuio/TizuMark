@@ -275,7 +275,7 @@ window.addEventListener('unhandledrejection', function(e) {
     event: mockEvent,
     shell: mockShell,
     app: {
-      getVersion: async function() { return '1.0.4'; }
+      getVersion: async function() { return '1.0.6'; }
     }
   };
 
