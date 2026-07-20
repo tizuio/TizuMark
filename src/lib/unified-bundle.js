@@ -23827,8 +23827,8 @@ var UnifiedRenderer = (() => {
           if (content3[i] === "$" && i + 1 < len && content3[i + 1] === "$") {
             const atLineStart = i === 0 || content3[i - 1] === "\n" || content3[i - 1] === "\r";
             if (!atLineStart) {
-              result += content3[i];
-              i++;
+              result += "$$";
+              i += 2;
               continue;
             }
             const start = i;
@@ -23853,26 +23853,31 @@ var UnifiedRenderer = (() => {
               i++;
             }
             if (!foundEnd) {
-              result += content3.substring(start, i);
+              result += "$$";
+              i = start + 2;
             }
-          } else if (!inBacktick && content3[i] === "$" && i + 1 < len && content3[i + 1] !== " " && content3[i + 1] !== "\n" && content3[i + 1] !== "$") {
+          } else if (!inBacktick && content3[i] === "$" && i + 1 < len && content3[i + 1] !== " " && content3[i + 1] !== "\n" && content3[i + 1] !== "\r" && content3[i + 1] !== "$") {
             const start = i;
             i += 1;
             let foundEnd = false;
             while (i < len) {
               if (content3[i] === "$" && (i === start + 1 || content3[i - 1] !== " ")) {
-                i += 1;
-                const mathBlock = content3.substring(start, i);
-                const idx = placeholders.length;
-                placeholders.push({ text: mathBlock, display: false });
-                result += "<!--MATHBLOCK_" + idx + "-->";
-                foundEnd = true;
-                break;
+                const inner = content3.substring(start + 1, i);
+                if (!/[\n\r|>\uFF5C]/.test(inner)) {
+                  i += 1;
+                  const mathBlock = content3.substring(start, i);
+                  const idx = placeholders.length;
+                  placeholders.push({ text: mathBlock, display: false });
+                  result += "<!--MATHBLOCK_" + idx + "-->";
+                  foundEnd = true;
+                  break;
+                }
               }
               i++;
             }
             if (!foundEnd) {
-              result += content3.substring(start, i);
+              result += "$";
+              i = start + 1;
             }
           } else {
             result += content3[i];
@@ -24182,8 +24187,8 @@ var UnifiedRenderer = (() => {
                 continue;
               }
             }
-            result += html7[i];
-            i++;
+            result += "==";
+            i += 2;
           } else {
             result += html7[i];
             i++;

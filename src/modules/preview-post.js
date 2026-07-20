@@ -66,12 +66,97 @@ function processEmojiShortcodes(preview) {
   });
 }
 
+// 将文本中"不成对"的 $ / $$ 包进 <span class="katex-ignore">，让 KaTeX 跳过后处理、
+// 原样显示 $，同时避免 KaTeX 把孤 $ 跨段配对吞掉内容。
+// 规则：成对 $...$ / $$...$$ 保持原样（交给 KaTeX 渲染）；不成对的 $ 包忽略 span。
+function isLineBoundary(ch) {
+  return ch === undefined || ch === '\n' || ch === '\r' || ch === ' ' || ch === '\t';
+}
+
+function protectUnpairedDollar(text) {
+  let out = '';
+  let i = 0;
+  const n = text.length;
+  while (i < n) {
+    if (text[i] === '$' && i + 1 < n && text[i + 1] === '$') {
+      // 仅当 $$ 处于"块级"边界（前后为行首/行尾/空白）时才视为显示公式 $$...$$
+      const openOk = isLineBoundary(text[i - 1]);
+      const close = text.indexOf('$$', i + 2);
+      const closeOk = close !== -1 &&
+        (close + 2 === n || isLineBoundary(text[close + 2])) &&
+        (text[close - 1] !== '$') &&
+        !/[\n\r|>\uFF5C]/.test(text.substring(i + 2, close));
+      if (openOk && closeOk) {
+        out += text.substring(i, close + 2);
+        i = close + 2;
+        continue;
+      }
+      // 不成对的 $$：包忽略 span（两个独立 $）
+      out += '<span class="katex-ignore">$$</span>';
+      i += 2;
+    } else if (text[i] === '$') {
+      if (i + 1 < n && text[i + 1] !== ' ' && text[i + 1] !== '\n' && text[i + 1] !== '\r') {
+        const close = text.indexOf('$', i + 1);
+        if (close !== -1 &&
+            text[close - 1] !== ' ' && text[close - 1] !== '\n' && text[close - 1] !== '\r' &&
+            !/[\n\r|>\uFF5C]/.test(text.substring(i + 1, close)) &&
+            (close + 1 >= n || text[close + 1] !== '$')) {
+          out += text.substring(i, close + 1);
+          i = close + 1;
+          continue;
+        }
+      }
+      out += '<span class="katex-ignore">$</span>';
+      i += 1;
+    } else {
+      out += text[i];
+      i += 1;
+    }
+  }
+  return out;
+}
 function processMath(preview) {
   if (typeof renderMathInElement === 'undefined') {
     if (typeof console !== 'undefined') console.warn('[math] renderMathInElement not loaded');
     return;
   }
   try {
+    // 先把不成对的 $ / $$ 包进 <span class="katex-ignore">，让 KaTeX 跳过、原样显示 $，
+    // 避免孤 $ 跨段配对吞掉正文/表格。
+    const skipTags = ['CODE', 'PRE', 'SCRIPT', 'STYLE', 'TEXTAREA'];
+    const walker = document.createTreeWalker(
+      preview,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: (node) => {
+          let p = node.parentElement;
+          while (p) {
+            if (skipTags.includes(p.tagName)) return NodeFilter.FILTER_REJECT;
+            if (p.classList && p.classList.contains('katex')) return NodeFilter.FILTER_REJECT;
+            p = p.parentElement;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      },
+      false
+    );
+    const toProtect = [];
+    let node;
+    while (node = walker.nextNode()) {
+      if (node.textContent.includes('$')) toProtect.push(node);
+    }
+    for (const t of toProtect) {
+      const protectedHTML = protectUnpairedDollar(t.textContent);
+      if (protectedHTML !== t.textContent) {
+        // 用临时容器把含 span 的 HTML 解析为节点片段，替换原文本节点
+        const tmp = document.createElement('div');
+        tmp.innerHTML = protectedHTML;
+        const frag = document.createDocumentFragment();
+        while (tmp.firstChild) frag.appendChild(tmp.firstChild);
+        t.parentNode.replaceChild(frag, t);
+      }
+    }
+
     renderMathInElement(preview, {
       delimiters: [
         { left: '$$', right: '$$', display: true },
@@ -79,7 +164,8 @@ function processMath(preview) {
         { left: '\\(', right: '\\)', display: false }
       ],
       throwOnError: false,
-      ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+      ignoredClasses: ['katex-ignore']
     });
   } catch (e) {
     if (typeof console !== 'undefined') console.warn('[math] auto-render error:', e);
@@ -252,5 +338,6 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     processEmojiShortcodes, processMath, processAbbreviations,
     processHeadings, processMermaid, addCopyButtons, EMOJI_MAP,
+    protectUnpairedDollar,
   };
 }

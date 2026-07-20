@@ -119,15 +119,14 @@ function guardMathBlocks(content) {
     }
 
     if (content[i] === '$' && i + 1 < len && content[i + 1] === '$') {
-      // Display math: $$...$$ — 用行首检测，不依赖脆弱的反引号状态机
+      // Display math: $$...$$ — 仅在行首（块级上下文）触发；行内 $$ 一律当字面量，避免跨段配对
       const atLineStart = i === 0 || content[i - 1] === '\n' || content[i - 1] === '\r';
       if (!atLineStart) {
-        result += content[i];
-        i++;
+        result += '$$';
+        i += 2;
         continue;
       }
       const start = i;
-      // 计算起始行号（\n 数量 + 1）
       const lineNum = content.substring(0, start).split('\n').length;
       i += 2;
       let foundEnd = false;
@@ -137,8 +136,6 @@ function guardMathBlocks(content) {
           const mathBlock = content.substring(start, i);
           const idx = placeholders.length;
           placeholders.push({ text: mathBlock, line: lineNum, display: true });
-          // 用块级 div 作为占位符，避免被 unified 包裹进 <p>
-          // 保留原始行数：占位符后补上数学块内的换行符
           const mathContent = content.substring(start, i);
           const newlineCount = (mathContent.match(/\n/g) || []).length;
           result += '<div class="math-placeholder" data-math-idx="' + idx + '" data-source-line="' + lineNum + '"></div>';
@@ -149,27 +146,33 @@ function guardMathBlocks(content) {
         i++;
       }
       if (!foundEnd) {
-        result += content.substring(start, i);
+        result += '$$';
+        i = start + 2;
       }
-    } else if (!inBacktick && content[i] === '$' && i + 1 < len && content[i + 1] !== ' ' && content[i + 1] !== '\n' && content[i + 1] !== '$') {
-      // Inline math: $...$
+    } else if (!inBacktick && content[i] === '$' && i + 1 < len && content[i + 1] !== ' ' && content[i + 1] !== '\n' && content[i + 1] !== '\r' && content[i + 1] !== '$') {
+      // Inline math: $...$ — 必须成对且中间不得跨越换行/表格列/块引用，否则当字面量
       const start = i;
       i += 1;
       let foundEnd = false;
       while (i < len) {
         if (content[i] === '$' && (i === start + 1 || content[i - 1] !== ' ')) {
-          i += 1;
-          const mathBlock = content.substring(start, i);
-          const idx = placeholders.length;
-          placeholders.push({ text: mathBlock, display: false });
-          result += '<!--MATHBLOCK_' + idx + '-->';
-          foundEnd = true;
-          break;
+          const inner = content.substring(start + 1, i);
+          // 不成对/跨边界（换行、表格列分隔、块引用）一律不当公式
+          if (!/[\n\r|>\uFF5C]/.test(inner)) {
+            i += 1;
+            const mathBlock = content.substring(start, i);
+            const idx = placeholders.length;
+            placeholders.push({ text: mathBlock, display: false });
+            result += '<!--MATHBLOCK_' + idx + '-->';
+            foundEnd = true;
+            break;
+          }
         }
         i++;
       }
       if (!foundEnd) {
-        result += content.substring(start, i);
+        result += '$';
+        i = start + 1;
       }
     } else {
       result += content[i];
@@ -507,15 +510,15 @@ function convertHighlights(html) {
           continue;
         }
       }
-      result += html[i];
-      i++;
-    } else {
-      result += html[i];
-      i++;
-    }
-  }
-  return result;
-}
+            result += '==';
+            i += 2;
+          } else {
+            result += html[i];
+            i++;
+          }
+        }
+        return result;
+      }
 
 // ---- remark plugin: convert soft breaks & hard breaks to <br> ----
 // When softBreaks is enabled, both single newlines (softbreak) and
