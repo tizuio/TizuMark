@@ -3643,97 +3643,19 @@ class MarkdownEditor {
   }
 
   showSaveDialog(title, message, saveLabel, discardLabel, cancelLabel) {
-    return new Promise((resolve) => {
-      const dialog = document.getElementById('save-dialog');
-      const titleEl = document.getElementById('save-dialog-title');
-      const msgEl = document.getElementById('save-dialog-message');
-      const saveBtn = document.getElementById('save-dialog-save');
-      const discardBtn = document.getElementById('save-dialog-discard');
-      const cancelBtn = document.getElementById('save-dialog-cancel');
-
-      const origTitle = titleEl.textContent;
-      const origMsg = msgEl.textContent;
-      const origSave = saveBtn.textContent;
-      const origDiscard = discardBtn.textContent;
-      const origCancel = cancelBtn.textContent;
-
-      if (title !== undefined) titleEl.textContent = title;
-      if (message !== undefined) msgEl.textContent = message;
-      if (saveLabel) saveBtn.textContent = saveLabel;
-      if (discardLabel) discardBtn.textContent = discardLabel;
-      if (cancelLabel) cancelBtn.textContent = cancelLabel;
-      dialog.classList.remove('hidden');
-
-      const onSave = () => {
-        cleanup();
-        resolve('save');
-      };
-      const onDiscard = () => {
-        cleanup();
-        resolve('discard');
-      };
-      const onCancel = () => {
-        cleanup();
-        resolve('cancel');
-      };
-      const cleanup = () => {
-        dialog.classList.add('hidden');
-        titleEl.textContent = origTitle;
-        msgEl.textContent = origMsg;
-        saveBtn.textContent = origSave;
-        discardBtn.textContent = origDiscard;
-        cancelBtn.textContent = origCancel;
-        saveBtn.removeEventListener('click', onSave);
-        discardBtn.removeEventListener('click', onDiscard);
-        cancelBtn.removeEventListener('click', onCancel);
-      };
-
-      saveBtn.addEventListener('click', onSave);
-      discardBtn.addEventListener('click', onDiscard);
-      cancelBtn.addEventListener('click', onCancel);
+    return Dialogs.showSaveDialog({
+      title, message, saveLabel, discardLabel, cancelLabel,
+      t: (k, p) => this.t(k, p),
+      doc: document,
     });
   }
 
   showConfirmDialog(title, message, action = null) {
-    return new Promise((resolve) => {
-      const dialog = document.getElementById('confirm-dialog');
-      const confirmBtn = document.getElementById('confirm-dialog-confirm');
-      const cancelBtn = document.getElementById('confirm-dialog-cancel');
-      document.getElementById('confirm-dialog-title').textContent = title || this.t('confirm');
-      document.getElementById('confirm-dialog-message').innerHTML = message || '';
-      dialog.classList.remove('hidden');
-
-      const onConfirm = async () => {
-        if (action) {
-          confirmBtn.disabled = true;
-          cancelBtn.disabled = true;
-          const originalHTML = confirmBtn.innerHTML;
-          confirmBtn.innerHTML = `<span class="btn-spinner"></span>` + this.t('processing');
-          try {
-            await action();
-          } catch (e) {
-            this.showToast(this.t('deleteFont') + ' ' + this.t('failed') + ': ' + e, 'danger');
-          } finally {
-            confirmBtn.disabled = false;
-            cancelBtn.disabled = false;
-            confirmBtn.innerHTML = originalHTML;
-          }
-        }
-        cleanup();
-        resolve(true);
-      };
-      const onCancel = () => {
-        cleanup();
-        resolve(false);
-      };
-      const cleanup = () => {
-        dialog.classList.add('hidden');
-        confirmBtn.removeEventListener('click', onConfirm);
-        cancelBtn.removeEventListener('click', onCancel);
-      };
-
-      confirmBtn.addEventListener('click', onConfirm);
-      cancelBtn.addEventListener('click', onCancel);
+    return Dialogs.showConfirmDialog({
+      title, message, action,
+      t: (k, p) => this.t(k, p),
+      showToast: (msg, type) => this.showToast(msg, type),
+      doc: document,
     });
   }
 
