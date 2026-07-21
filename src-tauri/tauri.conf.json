@@ -17,7 +17,8 @@
         "minHeight": 600,
         "center": true,
         "decorations": false,
-        "devtools": true,
+        "devtools": false,
+        "visible": false,
         "backgroundColor": "#f5f5f5"
       }
     ],
