@@ -66,6 +66,16 @@ window.addEventListener('unhandledrejection', function(e) {
         return null;
       }
 
+      case 'set_window_behavior': {
+        console.log('[TAURI MOCK] set_window_behavior', args);
+        return null;
+      }
+
+      case 'quit_app': {
+        console.log('[TAURI MOCK] quit_app');
+        return null;
+      }
+
       case 'app_data_dir': {
         return 'C:/mock-app-data';
       }

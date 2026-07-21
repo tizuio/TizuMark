@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use notify::{Watcher, RecursiveMode, RecommendedWatcher, Config as NotifyConfig, Event as NotifyEvent};
 use tauri::{Emitter, Manager};
 use tauri::WindowEvent;
-use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState};
+use tauri::tray::{TrayIcon, TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState};
 use tauri::menu::{Menu, MenuItem};
 use md5::{Md5, Digest};
 
@@ -231,6 +231,26 @@ fn get_cli_args() -> Vec<String> {
     std::env::args().skip(1).collect()
 }
 
+// 前端同步窗口行为偏好：更新内存状态，并按需切换托盘图标可见性。
+#[tauri::command]
+fn set_window_behavior(show_tray: bool, app: tauri::AppHandle) {
+    let behavior = app.state::<WindowBehavior>();
+    if let Ok(mut s) = behavior.show_tray.lock() {
+        *s = show_tray;
+    }
+    if let Ok(tray_guard) = app.state::<TrayState>().0.lock() {
+        if let Some(tray) = tray_guard.as_ref() {
+            let _ = tray.set_visible(show_tray);
+        }
+    }
+}
+
+// 前端调此命令真正退出应用（关窗弹框选"退出"时调用）。
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
 // 路径安全校验：拒绝写入/创建到系统关键目录或越界路径。
 // 编辑器需读写用户任意选中的文件，故不做全盘 scope 限制，
 // 仅在此拦截危险目标（启动目录、系统目录等持久化/RCE 向量）。
@@ -269,6 +289,61 @@ fn safe_write_target(path: &str) -> Result<std::path::PathBuf, String> {
 #[tauri::command]
 fn read_file(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| e.to_string())
+}
+
+// 托盘可见性状态，由前端设置同步。
+// 关闭窗口时若无托盘则强制退出（否则窗口无法恢复）。
+struct WindowBehavior {
+    show_tray: Mutex<bool>,
+}
+
+impl Default for WindowBehavior {
+    fn default() -> Self {
+        Self {
+            show_tray: Mutex::new(true),
+        }
+    }
+}
+
+struct TrayState(Mutex<Option<TrayIcon>>);
+
+fn build_tray(app: &tauri::AppHandle) -> tauri::Result<TrayIcon> {
+    let show = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show, &quit])?;
+    TrayIconBuilder::new()
+        .tooltip("TizuMark")
+        .icon(app.default_window_icon().unwrap().clone())
+        .menu(&menu)
+        .on_menu_event(|app, event| {
+            match event.id().as_ref() {
+                "show" => {
+                    if let Some(window) = app.get_webview_window("main") {
+                        show_window(&window);
+                    }
+                }
+                "quit" => {
+                    app.exit(0);
+                }
+                _ => {}
+            }
+        })
+        .on_tray_icon_event(|tray, event| {
+            match event {
+                TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Up,
+                    ..
+                }
+                | TrayIconEvent::DoubleClick { .. } => {
+                    if let Some(window) = tray.app_handle().get_webview_window("main") {
+                        show_window(&window);
+                    }
+                }
+                _ => {}
+            }
+        })
+        .build(app)
 }
 
 #[derive(serde::Serialize, Clone, Copy)]
@@ -1282,53 +1357,29 @@ pub fn run() {
         }))
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let _ = window.emit("close-requested", ());
+                let app = window.app_handle();
+                let show_tray = *app.state::<WindowBehavior>().show_tray.lock().unwrap();
+                // 无托盘时直接退出（否则窗口将无法恢复）
+                if !show_tray {
+                    app.exit(0);
+                } else {
+                    api.prevent_close();
+                    let _ = window.emit("close-requested", ());
+                }
             }
         })
         .setup(|app| {
-            let show = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show, &quit])?;
-            TrayIconBuilder::new()
-                .tooltip("TizuMark")
-                .icon(app.default_window_icon().unwrap().clone())
-                .menu(&menu)
-                .on_menu_event(|app, event| {
-                    match event.id().as_ref() {
-                        "show" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                show_window(&window);
-                            }
-                        }
-                        "quit" => {
-                            app.exit(0);
-                        }
-                        _ => {}
-                    }
-                })
-                .on_tray_icon_event(|tray, event| {
-                    match event {
-                        TrayIconEvent::Click {
-                            button: MouseButton::Left,
-                            button_state: MouseButtonState::Up,
-                            ..
-                        }
-                        | TrayIconEvent::DoubleClick { .. } => {
-                            if let Some(window) = tray.app_handle().get_webview_window("main") {
-                                show_window(&window);
-                            }
-                        }
-                        _ => {}
-                    }
-                })
-                .build(app)?;
+            let tray = build_tray(app.handle())?;
+            app.manage(TrayState(Mutex::new(Some(tray))));
+            app.manage(WindowBehavior::default());
             Ok(())
         })
         .manage(WatcherState(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             open_devtools,
             get_cli_args,
+            set_window_behavior,
+            quit_app,
             read_file,
             write_file,
             file_meta,

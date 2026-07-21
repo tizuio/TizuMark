@@ -585,6 +585,26 @@
     </div>
   </div>
 
+  <!-- 关闭窗口确认对话框 -->
+  <div id="close-confirm-dialog" class="dialog-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="close-dialog-title">
+    <div class="dialog close-confirm-dialog">
+      <div class="dialog-header">
+        <h2 id="close-dialog-title">关闭应用</h2>
+      </div>
+      <div class="dialog-content">
+        <p>请选择关闭应用时的操作：</p>
+        <label class="close-dialog-remember-label">
+          <input type="checkbox" id="close-dialog-remember">
+          <span>记住选择，不再询问</span>
+        </label>
+      </div>
+      <div class="dialog-footer">
+        <button id="close-dialog-minimize" class="dialog-btn">最小化到托盘</button>
+        <button id="close-dialog-quit" class="dialog-btn dialog-btn-primary">退出应用</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 插入链接对话框 -->
   <div id="insert-link-dialog" class="dialog-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="insert-link-title">
     <div class="dialog insert-link-dialog">
@@ -795,6 +815,22 @@
             <p class="form-hint" id="setting-soft-breaks-hint">
               <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
               <span class="hint-text">开启后，段落内单个回车直接换行（与「空格+空格+回车」一致），更符合日常写作习惯，也便于从其他笔记软件迁移。关闭则恢复 CommonMark 标准（回车视为空格）。</span>
+            </p>
+          </div>
+          <div class="settings-row">
+            <label>关闭窗口时</label>
+            <select id="set-close-action">
+              <option value="ask">每次询问</option>
+              <option value="quit">退出应用</option>
+              <option value="minimize">最小化到托盘</option>
+            </select>
+          </div>
+          <div class="settings-row settings-row-stacked">
+            <label>显示托盘图标</label>
+            <label class="toggle"><input type="checkbox" id="set-show-tray-icon" checked><span class="toggle-slider"></span></label>
+            <p class="form-hint" id="setting-show-tray-icon-hint">
+              <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <span class="hint-text">关闭后隐藏系统托盘图标；此时点击窗口关闭按钮会直接退出应用（否则将无法通过托盘恢复窗口）。</span>
             </p>
           </div>
           <div class="settings-row settings-row-stacked">

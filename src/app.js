@@ -161,6 +161,12 @@ const I18N = {
     scrollSync: '滚动同步',
     softBreaks: '软换行（回车即换行）',
     softBreaksHint: '开启后，段落内单个回车直接换行（与「空格+空格+回车」一致），更符合日常写作习惯，也便于从其他笔记软件迁移。关闭则恢复 CommonMark 标准（回车视为空格）。',
+    showTrayIcon: '显示托盘图标',
+    showTrayIconHint: '关闭后隐藏系统托盘图标；此时关闭窗口会直接退出应用（否则无法通过托盘恢复窗口）。',
+    closeAction: '关闭窗口时',
+    closeActionAsk: '每次询问',
+    closeActionQuit: '退出应用',
+    closeActionMinimize: '最小化到托盘',
     followSystem: '跟随系统',
     resetDefault: '恢复默认',
     done: '完成',
@@ -467,6 +473,12 @@ const I18N = {
     scrollSync: 'Scroll Sync',
     softBreaks: 'Soft Line Break (Enter = newline)',
     softBreaksHint: 'When enabled, a single Enter inside a paragraph creates a line break (same as "two spaces + Enter"), matching everyday writing and easing migration from other note apps. When disabled, CommonMark standard applies (Enter is treated as a space).',
+    showTrayIcon: 'Show tray icon',
+    showTrayIconHint: 'When disabled, the system tray icon is hidden; closing the window then quits the app directly (otherwise the window could not be restored via the tray).',
+    closeAction: 'On window close',
+    closeActionAsk: 'Ask every time',
+    closeActionQuit: 'Quit app',
+    closeActionMinimize: 'Minimize to tray',
     followSystem: 'Follow System',
     resetDefault: 'Reset Default',
     done: 'Done',
@@ -702,6 +714,7 @@ class MarkdownEditor {
     this.initExternalLinks();
     this.initDragDrop();
     this.initSettings();
+    this.applyWindowBehavior();
     this.initShortcutsDialog();
     this.initOutline();
     this.initOutlineResizer();
@@ -1200,6 +1213,8 @@ class MarkdownEditor {
       codeLineNumbers: false,
       codeWrap: false,
       softBreaks: true,
+      showTrayIcon: true,
+      closeAction: 'ask',
       toolbarCollapsed: false,
       sidebarHidden: false,
       customFonts: [],
@@ -1364,6 +1379,17 @@ class MarkdownEditor {
       this.settings.softBreaks = e.target.checked;
       this.saveSettings();
       this.updatePreview();
+    });
+    document.getElementById('set-show-tray-icon').checked = s.showTrayIcon !== false;
+    document.getElementById('set-show-tray-icon').addEventListener('change', (e) => {
+      this.settings.showTrayIcon = e.target.checked;
+      this.saveSettings();
+      this.applyWindowBehavior();
+    });
+    document.getElementById('set-close-action').value = s.closeAction || 'ask';
+    document.getElementById('set-close-action').addEventListener('change', (e) => {
+      this.settings.closeAction = e.target.value;
+      this.saveSettings();
     });
     document.getElementById('set-code-line-numbers').addEventListener('change', (e) => {
       this.settings.codeLineNumbers = e.target.checked;
@@ -1651,6 +1677,18 @@ class MarkdownEditor {
     // 更新 mermaid 字体
     if (typeof mermaid !== 'undefined') {
       this.rerenderMermaid();
+    }
+  }
+
+  // 同步托盘显隐状态到 Rust 后端
+  async applyWindowBehavior() {
+    const showTray = this.settings.showTrayIcon !== false;
+    try {
+      if (typeof invoke === 'function') {
+        await invoke('set_window_behavior', { showTray });
+      }
+    } catch (err) {
+      console.warn('applyWindowBehavior failed', err);
     }
   }
 
@@ -6611,42 +6649,48 @@ input[type="checkbox"]:checked::after { display: none !important; }
   async handleAppClose() {
     try {
       const { getCurrentWindow } = window.__TAURI__.window;
+      // 1. 处理未保存文档
       const modified = this.tabs.filter(t => t.isModified);
-      if (modified.length === 0) {
-        this.saveSession();
-        await getCurrentWindow().hide();
-        return;
-      }
-      const result = await this.showSaveDialog(
-        this.t('saveChanges'),
-        this.t('filesModifiedConfirm', { n: modified.length }),
-        this.t('saveAll'), this.t('discardAll'), this.t('cancel')
-      );
-      if (result === 'cancel') return;
-      if (result === 'save') {
-        const ok = await this.batchSaveTabs(modified);
-        if (!ok) return;
-      } else {
-        for (const tab of modified) {
-          tab.content = tab.savedContent;
-        }
-        const remaining = this.tabs.filter(t => t.filePath || t.content !== '');
-        if (remaining.length === 0) {
-          this.tabs.length = 0;
-          this.tabs.push(new Tab(`${this.t('untitled')}${this.untitledCounter++}`));
-          this.activeTabIndex = 0;
+      if (modified.length > 0) {
+        const result = await this.showSaveDialog(
+          this.t('saveChanges'),
+          this.t('filesModifiedConfirm', { n: modified.length }),
+          this.t('saveAll'), this.t('discardAll'), this.t('cancel')
+        );
+        if (result === 'cancel') return;
+        if (result === 'save') {
+          const ok = await this.batchSaveTabs(modified);
+          if (!ok) return;
         } else {
-          this.tabs = remaining;
-          if (this.activeTabIndex >= this.tabs.length) {
-            this.activeTabIndex = this.tabs.length - 1;
+          for (const tab of modified) {
+            tab.content = tab.savedContent;
           }
+          const remaining = this.tabs.filter(t => t.filePath || t.content !== '');
+          if (remaining.length === 0) {
+            this.tabs.length = 0;
+            this.tabs.push(new Tab(`${this.t('untitled')}${this.untitledCounter++}`));
+            this.activeTabIndex = 0;
+          } else {
+            this.tabs = remaining;
+            if (this.activeTabIndex >= this.tabs.length) {
+              this.activeTabIndex = this.tabs.length - 1;
+            }
+          }
+          this.cm.setValue(this.activeTab.content);
+          this.updateTabBar();
+          this.updatePreview();
         }
-        this.cm.setValue(this.activeTab.content);
-        this.updateTabBar();
-        this.updatePreview();
       }
+      // 2. 保存会话
       this.saveSession();
-      await getCurrentWindow().hide();
+      // 3. 按用户偏好执行关闭行为
+      const action = await this._resolveCloseAction();
+      if (!action) return; // 用户在弹框点了取消
+      if (action === 'quit') {
+        await invoke('quit_app');
+      } else {
+        await getCurrentWindow().hide();
+      }
     } catch (error) {
       console.error('handleAppClose error:', error);
       try {
@@ -6656,6 +6700,23 @@ input[type="checkbox"]:checked::after { display: none !important; }
         }
       } catch { /* 浏览器环境下降级 */ }
     }
+  }
+
+  async _resolveCloseAction() {
+    const action = this.settings.closeAction || 'ask';
+    if (action === 'quit') return 'quit';
+    if (action === 'minimize') return 'minimize';
+    // ask — 弹出确认对话框
+    const result = await Dialogs.showCloseDialog({
+      t: (k, p) => this.t(k, p),
+      doc: document,
+    });
+    if (!result) return null; // cancelled
+    if (result.remember) {
+      this.settings.closeAction = result.action;
+      this.saveSettings();
+    }
+    return result.action;
   }
 
   initFormatToolbar() {

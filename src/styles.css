@@ -1022,8 +1022,39 @@ body {
   color: var(--text-secondary);
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   cursor: pointer;
+}
+.find-option input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--text-secondary);
+  border-radius: 2px;
+  background: var(--bg-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.find-option input[type="checkbox"]:checked {
+  border-color: var(--accent-color);
+  background: var(--accent-color);
+}
+.find-option input[type="checkbox"]:checked::after {
+  content: '';
+  width: 3px;
+  height: 6px;
+  border-right: 1.5px solid var(--accent-text);
+  border-bottom: 1.5px solid var(--accent-text);
+  transform: rotate(45deg);
+  margin-bottom: 1px;
+}
+.find-option input[type="checkbox"]:hover {
+  border-color: var(--accent-color);
 }
 
 .find-btn {
@@ -2445,7 +2476,8 @@ body.is-resizing .side-btn {
 
 /* 顶层对话框（保存确认、设置恢复确认等）必须在其他对话框之上 */
 #save-dialog.dialog-overlay,
-#confirm-dialog.dialog-overlay {
+#confirm-dialog.dialog-overlay,
+#close-confirm-dialog.dialog-overlay {
   z-index: 1001;
 }
 
@@ -2559,6 +2591,56 @@ body.is-resizing .side-btn {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* 关闭窗口确认对话框 */
+.close-confirm-dialog {
+  max-width: 380px;
+}
+.close-confirm-dialog .dialog-content p {
+  margin-bottom: 8px;
+}
+.close-confirm-dialog label {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.close-confirm-dialog input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--text-secondary);
+  border-radius: 3px;
+  background: var(--bg-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.close-confirm-dialog input[type="checkbox"]:checked {
+  border-color: var(--accent-color);
+  background: var(--accent-color);
+}
+.close-confirm-dialog input[type="checkbox"]:checked::after {
+  content: '';
+  width: 5px;
+  height: 9px;
+  border-right: 2px solid var(--accent-text);
+  border-bottom: 2px solid var(--accent-text);
+  transform: rotate(45deg);
+  margin-bottom: 1px;
+}
+.close-confirm-dialog input[type="checkbox"]:hover {
+  border-color: var(--accent-color);
+}
+.close-dialog-remember-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  cursor: pointer;
 }
 
 /* EULA 对话框 */
@@ -2974,13 +3056,16 @@ body.is-resizing .side-btn {
 }
 
 .settings-row select {
-  padding: 4px 8px;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 4px 24px 4px 8px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background: var(--bg-primary);
+  background: var(--bg-primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='%23666'%3E%3Cpath d='M0 0l5 6 5-6z'/%3E%3C/svg%3E") no-repeat right 8px center;
   color: var(--text-primary);
   font-size: 12px;
   min-width: 100px;
+  cursor: pointer;
 }
 
 .settings-text-input {
@@ -3397,15 +3482,18 @@ body.is-resizing .side-btn {
 }
 .form-field input[type="text"],
 .form-field select {
+  appearance: none;
+  -webkit-appearance: none;
   width: 100%;
-  padding: 6px 10px;
+  padding: 6px 28px 6px 10px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background: var(--bg-primary);
+  background: var(--bg-primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='%23666'%3E%3Cpath d='M0 0l5 6 5-6z'/%3E%3C/svg%3E") no-repeat right 10px center;
   color: var(--text-primary);
   font-size: 13px;
   box-sizing: border-box;
   margin-bottom: 4px;
+  cursor: pointer;
 }
 .form-field input[type="text"]:focus {
   outline: none;
@@ -3437,7 +3525,34 @@ body.is-resizing .side-btn {
   cursor: pointer;
 }
 .radio-group input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
   margin: 0;
+  border: 1.5px solid var(--text-secondary);
+  border-radius: 50%;
+  background: var(--bg-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.radio-group input[type="radio"]:checked {
+  border-color: var(--accent-color);
+  background: var(--bg-primary);
+}
+.radio-group input[type="radio"]:checked::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-color);
+}
+.radio-group input[type="radio"]:hover {
+  border-color: var(--accent-color);
 }
 .form-hint {
   display: flex;
