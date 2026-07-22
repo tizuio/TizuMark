@@ -24319,6 +24319,119 @@ var UnifiedRenderer = (() => {
         }
         return result;
       }
+      function extractFootnotes(content4) {
+        const lines = content4.split("\n");
+        const cleaned = [];
+        const definitions = [];
+        let inCodeBlock2 = false;
+        let codeFence = "";
+        for (let i2 = 0; i2 < lines.length; i2++) {
+          const line = lines[i2];
+          const trimmed = line.trim();
+          if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+            if (!inCodeBlock2) {
+              inCodeBlock2 = true;
+              codeFence = trimmed.substring(0, 3);
+            } else if (trimmed.startsWith(codeFence)) {
+              inCodeBlock2 = false;
+            }
+            cleaned.push(line);
+            continue;
+          }
+          if (inCodeBlock2) {
+            cleaned.push(line);
+            continue;
+          }
+          const defMatch = line.match(/^\[\^([^\]]+)\]\s*:\s*(.*)/);
+          if (defMatch) {
+            const id = defMatch[1];
+            let defBody = defMatch[2];
+            let j = i2 + 1;
+            while (j < lines.length) {
+              const next = lines[j];
+              if (next === "" || next.startsWith("  ") || next.startsWith("\t")) {
+                if (next === "") {
+                  defBody += "\n";
+                } else {
+                  defBody += "\n" + next.replace(/^\s{2}|\t/, "");
+                }
+                j++;
+              } else {
+                break;
+              }
+            }
+            definitions.push({ id, definition: defBody.trim(), line: i2 + 1 });
+            for (let k = i2; k < j; k++) cleaned.push("");
+            i2 = j - 1;
+            continue;
+          }
+          cleaned.push(line);
+        }
+        return { content: cleaned.join("\n"), definitions };
+      }
+      function renderFootnotes(html8, definitions) {
+        if (definitions.length === 0) return html8;
+        const usedIds = new Map();
+        const fnIds = [];
+        for (const def of definitions) {
+          let baseId = def.id.toLowerCase().replace(/[\s"'<>&#]/g, "-").replace(/--+/g, "-").replace(/^-|-$/g, "");
+          if (!baseId) baseId = "fn";
+          const count = usedIds.get(baseId) || 0;
+          const elementId = count === 0 ? baseId : baseId + "-" + count;
+          usedIds.set(baseId, count + 1);
+          fnIds.push({ id: def.id, displayId: def.id, elementId, definition: def.definition });
+        }
+        let result2 = "";
+        let i3 = 0;
+        const skipTags2 = ["code", "pre", "a", "katex"];
+        const skipStack2 = [];
+        while (i3 < html8.length) {
+          if (html8[i3] === "<") {
+            const end = html8.indexOf(">", i3);
+            if (end === -1) { result2 += html8[i3]; i3++; continue; }
+            const inner = html8.substring(i3 + 1, end);
+            const tagName = inner.split(/\s/)[0].toLowerCase();
+            if (tagName.startsWith("/")) {
+              const closing = tagName.substring(1);
+              const idx = skipStack2.lastIndexOf(closing);
+              if (idx !== -1) skipStack2.splice(idx, 1);
+            } else if (skipTags2.includes(tagName)) {
+              skipStack2.push(tagName);
+            }
+            result2 += html8.substring(i3, end + 1);
+            i3 = end + 1;
+          } else if (skipStack2.length === 0) {
+            const refMatch = html8.substring(i3).match(/\[\^([^\]]+)\]/);
+            if (refMatch && refMatch.index === 0) {
+              const refId = refMatch[1];
+              const fn = fnIds.find((f) => f.id === refId);
+              if (fn) {
+                result2 += '<sup class="footnote-ref" id="fnref-' + fn.elementId + '">';
+                result2 += '<a href="#fn-' + fn.elementId + '">[' + fn.displayId + ']</a>';
+                result2 += '</sup>';
+              } else {
+                result2 += '[^' + refId + ']';
+              }
+              i3 += refMatch[0].length;
+            } else {
+              result2 += html8[i3];
+              i3++;
+            }
+          } else {
+            result2 += html8[i3];
+            i3++;
+          }
+        }
+        let section = '\n<hr class="footnotes-sep">\n<section class="footnotes">\n<ol>\n';
+        for (const fn of fnIds) {
+          section += '<li id="fn-' + fn.elementId + '" class="footnote-definition">\n';
+          section += '<p>' + fn.definition;
+          section += ' <a href="#fnref-' + fn.elementId + '" class="footnote-backref" title="返回文中">↩</a>';
+          section += '</p>\n</li>\n';
+        }
+        section += '</ol>\n</section>';
+        return result2 + section;
+      }
       function remarkSoftBreaks() {
         return (tree) => {
           const toBr = () => ({ type: "html", value: "<br>" });
@@ -24358,6 +24471,9 @@ var UnifiedRenderer = (() => {
         const alertBlocks = alertResult.alertBlocks;
         let processed = convertDefLists(alertResult.content);
         processed = convertContainerTables(processed);
+        const footnoteResult = extractFootnotes(processed);
+        processed = footnoteResult.content;
+        const footnoteDefs = footnoteResult.definitions;
         let html7;
         try {
           const processor = unified2().use(remarkParse2).use(remarkGfm2, { singleTilde: false }).use(remarkSourceLine).use(remarkBreaks);
@@ -24374,6 +24490,7 @@ var UnifiedRenderer = (() => {
         html7 = restoreAlerts(html7, alertBlocks);
         html7 = sanitizeHTML(html7);
         html7 = convertHighlights(html7);
+        html7 = renderFootnotes(html7, footnoteDefs);
         html7 = embedAbbrData(html7, abbreviations);
         return html7;
       }
