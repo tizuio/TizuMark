@@ -3,6 +3,7 @@ const remarkParse = require('remark-parse').default || require('remark-parse');
 const remarkGfm = require('remark-gfm').default || require('remark-gfm');
 const remarkRehype = require('remark-rehype').default || require('remark-rehype');
 const rehypeRaw = require('rehype-raw').default || require('rehype-raw');
+const rehypeSanitize = require('rehype-sanitize').default || require('rehype-sanitize');
 const rehypeStringify = require('rehype-stringify').default || require('rehype-stringify');
 const { visit } = require('unist-util-visit');
 
@@ -734,7 +735,8 @@ function renderMarkdown(content, options) {
     processor
       .use(remarkRehype, { allowDangerousHtml: true })
       .use(rehypeRaw)
-      .use(rehypeStringify, { allowDangerousHtml: true });
+      .use(rehypeSanitize)
+      .use(rehypeStringify);
     html = processor.processSync(processed).toString();
   } catch (e) {
     // Fallback: return raw content wrapped in <pre>
