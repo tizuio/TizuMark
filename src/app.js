@@ -29,6 +29,7 @@ class Tab {
     this.fileMeta = null;
     this.pendingExternalChange = false;
     this._loaded = true;
+    this.previewScrollTop = 0;
   }
 
   get isModified() {
@@ -2497,6 +2498,7 @@ class MarkdownEditor {
       oldTab.content = this.cm.getValue();
       oldTab.cursorPos = this.cm.getCursor();
       oldTab.scrollPos = { top: this.cm.getScrollInfo().top, left: this.cm.getScrollInfo().left };
+      oldTab.previewScrollTop = this.preview.scrollTop;
 
       this.activeTabIndex = index;
       const newTab = this.activeTab;
@@ -2506,12 +2508,22 @@ class MarkdownEditor {
       }
 
       this.cm.setValue(newTab.content || '');
+      clearTimeout(this.debounceTimer);
       this.cm.setCursor(newTab.cursorPos || { line: 0, ch: 0 });
       this.cm.scrollTo((newTab.scrollPos && newTab.scrollPos.left) || 0, (newTab.scrollPos && newTab.scrollPos.top) || 0);
       this.cm.clearHistory();
 
       this.updateTabDisplay();
       await this.updatePreview();
+      if (!this.settings.scrollSync) {
+        const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+        this.preview.scrollTop = Math.min(newTab.previewScrollTop, maxScroll);
+      } else if (document.querySelector('.editor-container').classList.contains('preview-mode')) {
+        setTimeout(() => {
+          const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+          this.preview.scrollTop = Math.min(newTab.previewScrollTop, maxScroll);
+        }, 0);
+      }
       this.updateWordCount();
       this.updateOutline();
       this.updateExternalChangeBanner();
@@ -2733,6 +2745,11 @@ class MarkdownEditor {
       document.getElementById('file-menu').classList.add('hidden');
       this.saveAsFile();
     });
+    document.getElementById('btn-reload').addEventListener('click', () => this.reloadFile());
+    document.getElementById('btn-reload-menu').addEventListener('click', () => {
+      document.getElementById('file-menu').classList.add('hidden');
+      this.reloadFile();
+    });
     document.getElementById('btn-export-html').addEventListener('click', () => {
       document.getElementById('file-menu').classList.add('hidden');
       this.exportHTML();
@@ -2762,7 +2779,14 @@ class MarkdownEditor {
       document.getElementById('help-menu').classList.add('hidden');
       this.checkUpdate(true);
     });
-    document.getElementById('btn-add-tab').addEventListener('click', () => this.newFile());
+    document.getElementById('btn-devtools').addEventListener('click', () => {
+      document.getElementById('help-menu').classList.add('hidden');
+      try {
+        window.__TAURI__.core.invoke('plugin:webview|internal_toggle_devtools');
+      } catch (e) {
+        this.setStatus('无法打开开发者工具');
+      }
+    });
     document.querySelector('.tab-bar-wrapper').addEventListener('dblclick', (e) => {
       if (!e.target.closest('.tab') && !e.target.closest('.tab-add')) {
         this.newFile();
@@ -3929,6 +3953,51 @@ class MarkdownEditor {
     this.setViewMode('edit');
     this.addTab(this.t('untitled'), '', null);
     this.setStatus(this.t('newFileCreated'));
+  }
+
+  async reloadFile() {
+    const tab = this.activeTab;
+    if (!tab || !tab.filePath) {
+      this.setStatus(this.t('noFileToReload') || '当前文件无关联路径，无法重新加载');
+      return;
+    }
+    this.showLoading();
+    try {
+      const scrollInfo = this.cm.getScrollInfo();
+      const cursorPos = this.cm.getCursor();
+      const previewScrollTop = this.preview.scrollTop;
+      const content = await invoke('read_file', { path: tab.filePath });
+      tab.content = content;
+      tab.savedContent = content;
+      this.cm.setValue(content);
+      // 取消 change 事件调度的 debounced 预览更新，后续显式调用 updatePreview 替代
+      clearTimeout(this.debounceTimer);
+      this.cm.setCursor(cursorPos);
+      this.cm.scrollTo(scrollInfo.left, scrollInfo.top);
+      this.cm.clearHistory();
+      this.updatePreview();
+      // 恢复预览滚动位置：
+      // - 非 scrollSync：立即独立恢复
+      // - 预览模式 + scrollSync：延迟恢复，等滚动同步完成后覆盖
+      // - split 模式 + scrollSync：由滚动同步自动处理
+      if (!this.settings.scrollSync) {
+        const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+        this.preview.scrollTop = Math.min(previewScrollTop, maxScroll);
+      } else if (document.querySelector('.editor-container').classList.contains('preview-mode')) {
+        setTimeout(() => {
+          const maxScroll = Math.max(this.preview.scrollHeight - this.preview.clientHeight, 0);
+          this.preview.scrollTop = Math.min(previewScrollTop, maxScroll);
+        }, 0);
+      }
+      this.updateWordCount();
+      this.updateOutline();
+      this.updateTabDisplay();
+      this.setStatus(`${this.t('reloaded') || '已重新加载'}: ${tab.name}`);
+    } catch (err) {
+      this.setStatus(`${this.t('reloadFailed') || '重新加载失败'}: ${err}`);
+    } finally {
+      this.hideLoading();
+    }
   }
 
   async openFile() {

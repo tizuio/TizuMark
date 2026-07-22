@@ -664,6 +664,27 @@ function convertHighlights(html) {
 // separate softbreak nodes, so we split text nodes on "\n" and insert
 // <br> between the fragments. Inline code / fenced code are untouched
 // because their content lives in `.value`, not in `.children`.
+// remarkBreaks: convert \n inside paragraphs/headings to <br>
+// Always active — handles single-line breaks within block-level text.
+function remarkBreaks() {
+  return (tree) => {
+    visit(tree, 'text', (node, index, parent) => {
+      if (parent && (parent.type === 'paragraph' || parent.type === 'heading')) {
+        const parts = node.value.split('\n');
+        if (parts.length > 1) {
+          const children = [];
+          for (let i = 0; i < parts.length; i++) {
+            if (i > 0) children.push({ type: 'break' });
+            if (parts[i] !== '') children.push({ type: 'text', value: parts[i] });
+          }
+          parent.children.splice(index, 1, ...children);
+          return index + children.length;
+        }
+      }
+    });
+  };
+}
+
 function remarkSoftBreaks() {
   return (tree) => {
     const toBr = () => ({ type: 'html', value: '<br>' });
@@ -878,7 +899,8 @@ function renderMarkdown(content, options) {
     const processor = unified()
       .use(remarkParse)
       .use(remarkGfm, { singleTilde: false })
-      .use(remarkSourceLine);
+      .use(remarkSourceLine)
+      .use(remarkBreaks);
     if (softBreaks) {
       processor.use(remarkSoftBreaks);
     }

@@ -23753,6 +23753,24 @@ var UnifiedRenderer = (() => {
           });
         };
       }
+      function remarkBreaks() {
+        return (tree) => {
+          visit2(tree, "text", (node, index, parent) => {
+            if (parent && (parent.type === "paragraph" || parent.type === "heading")) {
+              const parts = node.value.split("\n");
+              if (parts.length > 1) {
+                const children = [];
+                for (let i = 0; i < parts.length; i++) {
+                  if (i > 0) children.push({ type: "break" });
+                  if (parts[i] !== "") children.push({ type: "text", value: parts[i] });
+                }
+                parent.children.splice(index, 1, ...children);
+                return index + children.length;
+              }
+            }
+          });
+        };
+      }
       function guardMathBlocks(content3) {
         const placeholders = [];
         let result = "";
@@ -24342,7 +24360,7 @@ var UnifiedRenderer = (() => {
         processed = convertContainerTables(processed);
         let html7;
         try {
-          const processor = unified2().use(remarkParse2).use(remarkGfm2, { singleTilde: false }).use(remarkSourceLine);
+          const processor = unified2().use(remarkParse2).use(remarkGfm2, { singleTilde: false }).use(remarkSourceLine).use(remarkBreaks);
           if (softBreaks) {
             processor.use(remarkSoftBreaks);
           }
