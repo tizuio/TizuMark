@@ -696,6 +696,152 @@ function remarkSoftBreaks() {
 
 // ---- main pipeline ----
 
+// --- Footnote extraction (pre-processing) ---
+// Extracts [^id]: definition lines, supports multi-paragraph definitions
+// (continuation lines indented by at least 2 spaces or a tab).
+function extractFootnotes(content) {
+  const lines = content.split('\n');
+  const cleaned = [];
+  const definitions = [];
+  let inCodeBlock = false;
+  let codeFence = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Track fenced code blocks
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        codeFence = trimmed.substring(0, 3);
+      } else if (trimmed.startsWith(codeFence)) {
+        inCodeBlock = false;
+      }
+      cleaned.push(line);
+      continue;
+    }
+
+    if (inCodeBlock) {
+      cleaned.push(line);
+      continue;
+    }
+
+    // Check for footnote definition: [^id]: text
+    const defMatch = line.match(/^\[\^([^\]]+)\]\s*:\s*(.*)/);
+    if (defMatch) {
+      const id = defMatch[1];
+      let defBody = defMatch[2];
+
+      // Collect continuation lines (indented by 2+ spaces or tab)
+      let j = i + 1;
+      while (j < lines.length) {
+        const next = lines[j];
+        if (next === '' || next.startsWith('  ') || next.startsWith('\t')) {
+          if (next === '') {
+            defBody += '\n';
+          } else {
+            defBody += '\n' + next.replace(/^\s{2}|\t/, '');
+          }
+          j++;
+        } else {
+          break;
+        }
+      }
+
+      definitions.push({ id, definition: defBody.trim(), line: i + 1 });
+      // Replace definition lines with empty lines to preserve line numbering
+      for (let k = i; k < j; k++) cleaned.push('');
+      i = j - 1;
+      continue;
+    }
+
+    cleaned.push(line);
+  }
+
+  return { content: cleaned.join('\n'), definitions };
+}
+
+// --- Footnote rendering (post-processing) ---
+// Replaces [^id] references with superscript links and appends footnote section.
+function renderFootnotes(html, definitions) {
+  if (definitions.length === 0) return html;
+
+  // Build ID map with collision avoidance
+  const usedIds = new Map(); // id → count
+  const fnIds = []; // [{ id, elementId }]
+
+  for (const def of definitions) {
+    let baseId = def.id.toLowerCase().replace(/[\s"'<>&#]/g, '-').replace(/--+/g, '-').replace(/^-|-$/g, '');
+    if (!baseId) baseId = 'fn';
+    const count = usedIds.get(baseId) || 0;
+    const elementId = count === 0 ? baseId : baseId + '-' + count;
+    usedIds.set(baseId, count + 1);
+    fnIds.push({ id: def.id, displayId: def.id, elementId, definition: def.definition });
+  }
+
+  // Replace [^id] references with linked superscripts
+  // Guard: skip inside <code>, <pre>, <a>, <katex> tags
+  let result = '';
+  let i = 0;
+  const skipTags = ['code', 'pre', 'a', 'katex'];
+  const skipStack = [];
+
+  while (i < html.length) {
+    if (html[i] === '<') {
+      const end = html.indexOf('>', i);
+      if (end === -1) { result += html[i]; i++; continue; }
+      const inner = html.substring(i + 1, end);
+      const tagName = inner.split(/\s/)[0].toLowerCase();
+
+      if (tagName.startsWith('/')) {
+        const closing = tagName.substring(1);
+        const idx = skipStack.lastIndexOf(closing);
+        if (idx !== -1) skipStack.splice(idx, 1);
+      } else if (skipTags.includes(tagName)) {
+        skipStack.push(tagName);
+      }
+
+      result += html.substring(i, end + 1);
+      i = end + 1;
+    } else if (skipStack.length === 0) {
+      // Look for [^id]
+      const refMatch = html.substring(i).match(/\[\^([^\]]+)\]/);
+      if (refMatch && refMatch.index === 0) {
+        const refId = refMatch[1];
+        const fn = fnIds.find(f => f.id === refId);
+        if (fn) {
+          result += '<sup class="footnote-ref" id="fnref-' + fn.elementId + '">';
+          result += '<a href="#fn-' + fn.elementId + '">[' + fn.displayId + ']</a>';
+          result += '</sup>';
+        } else {
+          // Undefined reference: keep as plain text
+          result += '[^' + refId + ']';
+        }
+        i += refMatch[0].length;
+      } else {
+        result += html[i];
+        i++;
+      }
+    } else {
+      result += html[i];
+      i++;
+    }
+  }
+
+  // Build footnote section
+  let section = '\n<hr class="footnotes-sep">\n<section class="footnotes">\n<ol>\n';
+  for (const fn of fnIds) {
+    section += '<li id="fn-' + fn.elementId + '" class="footnote-definition">\n';
+    section += '<p>' + fn.definition;
+    section += ' <a href="#fnref-' + fn.elementId + '" class="footnote-backref" title="返回文中">↩</a>';
+    section += '</p>\n</li>\n';
+  }
+  section += '</ol>\n</section>';
+
+  return result + section;
+}
+
 function renderMarkdown(content, options) {
   const opts = options || {};
   const softBreaks = opts.softBreaks === true;
@@ -721,6 +867,11 @@ function renderMarkdown(content, options) {
   // 4.5. Convert container-embedded tables (lazy continuation)
   processed = convertContainerTables(processed);
 
+  // 4.6. Extract footnotes (before unified pipeline to avoid parsing issues)
+  const footnoteResult = extractFootnotes(processed);
+  processed = footnoteResult.content;
+  const footnoteDefs = footnoteResult.definitions;
+
   // 5. Unified pipeline
   let html;
   try {
@@ -742,19 +893,22 @@ function renderMarkdown(content, options) {
     return '<pre>' + escapeHTML(content) + '</pre>';
   }
 
-  // 6. Restore math blocks
+  // 7. Restore math blocks
   html = restoreMathBlocks(html, placeholders);
 
-  // 7. Restore alert blocks
+  // 8. Restore alert blocks
   html = restoreAlerts(html, alertBlocks);
 
-  // 8. Sanitize
+  // 9. Sanitize
   html = sanitizeHTML(html);
 
-  // 8.5. Convert ==highlight== to <mark>
+  // 10. Convert ==highlight== to <mark>
   html = convertHighlights(html);
 
-  // 9. Embed abbreviation data
+  // 11. Render footnotes (references + definition section)
+  html = renderFootnotes(html, footnoteDefs);
+
+  // 12. Embed abbreviation data
   html = embedAbbrData(html, abbreviations);
 
   return html;
