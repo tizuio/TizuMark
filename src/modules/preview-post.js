@@ -254,24 +254,41 @@ function processHeadings(preview, opts) {
 }
 
 async function processMermaid(preview, opts) {
-  const { isDark } = opts;
+  const { isDark, mermaidCache } = opts;
   if (typeof mermaid === 'undefined') return;
 
-  preview.querySelectorAll('code.language-mermaid').forEach((block, index) => {
+  const blocks = Array.from(preview.querySelectorAll('code.language-mermaid'));
+  if (blocks.length === 0) return;
+
+  const themeKey = isDark ? 'dark' : 'light';
+  const toRender = []; // cache miss：需调 mermaid.run 的容器
+
+  blocks.forEach((block, index) => {
     const pre = block.parentElement;
     const sourceLine = block.dataset.sourceLine;
+    const code = block.textContent;
+    const cacheKey = themeKey + '::' + code;
+
     const container = document.createElement('div');
     container.className = 'mermaid-container';
-    const id = 'mermaid-' + Date.now() + '-' + index;
-    container.id = id;
-    container.setAttribute('data-code', block.textContent);
+    container.id = 'mermaid-' + Date.now() + '-' + index;
+    container.setAttribute('data-code', code);
     if (sourceLine) container.setAttribute('data-source-line', sourceLine);
-    container.textContent = block.textContent;
+
+    const cached = mermaidCache ? mermaidCache.get(cacheKey) : null;
+    if (cached) {
+      // 命中缓存：直接复用上次的 SVG，不进 mermaid.run
+      container.innerHTML = cached;
+    } else {
+      // 未命中：放入待渲染队列（textContent 必须是原始 code，mermaid.run 才能解析）
+      container.textContent = code;
+      toRender.push({ container, cacheKey });
+    }
     pre.replaceWith(container);
   });
 
-  const containers = preview.querySelectorAll('.mermaid-container');
-  if (containers.length === 0) return;
+  // 只渲染未命中的（命中复用的不再跑 mermaid.run，避免 "already rendered" 报错）
+  if (toRender.length === 0) return;
 
   try {
     mermaid.initialize({
@@ -280,7 +297,15 @@ async function processMermaid(preview, opts) {
       securityLevel: 'loose',
       fontFamily: getComputedStyle(document.documentElement).getPropertyValue('--font-preview').trim() || '-apple-system, sans-serif',
     });
-    await mermaid.run({ nodes: Array.from(containers) });
+    await mermaid.run({ nodes: toRender.map(x => x.container) });
+    // 渲染成功后存入缓存（仅缓存含 SVG 的成功结果，错误信息不缓存）
+    if (mermaidCache) {
+      for (const { container, cacheKey } of toRender) {
+        if (container.querySelector('svg')) {
+          mermaidCache.set(cacheKey, container.innerHTML);
+        }
+      }
+    }
   } catch (e) {
     if (typeof console !== 'undefined') console.error('Mermaid rendering error:', e);
   }

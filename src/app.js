@@ -675,7 +675,9 @@ class MarkdownEditor {
     this.expandedFolders = new Set();
     this.debounceTimer = null;
     this._imageURLCache = new Map();
+    this._imageBase64Cache = new Map(); // key: 绝对路径 → value: base64 data URI，省去每次打字跨 IPC 读磁盘
     this._hljsCache = new Map();
+    this._mermaidCache = new Map(); // key: themeKey+'::'+code → 渲染后的 SVG innerHTML，避免打字时全量重渲染 mermaid
     this._renderGeneration = 0;
     this._mermaidGeneration = 0;
     this.previewWindow = null;       // 大文档窗口模式：{start, end}（0-based 源码行），普通文档为 null
@@ -1936,6 +1938,8 @@ class MarkdownEditor {
 
   async rerenderMermaid() {
     if (typeof mermaid === 'undefined') return;
+    // 主题切换：旧主题的 SVG 缓存失效，清空后让下次 updatePreview / 本函数按新主题重渲染
+    this._mermaidCache.clear();
     const gen = ++this._mermaidGeneration;
     const containers = this.preview.querySelectorAll('.mermaid-container');
     if (containers.length === 0) return;
@@ -3969,6 +3973,8 @@ class MarkdownEditor {
       const content = await invoke('read_file', { path: tab.filePath });
       tab.content = content;
       tab.savedContent = content;
+      // 重新加载：markdown 和图片都可能在外部被改动，清图片 base64 缓存强制重读
+      this._imageBase64Cache.clear();
       this.cm.setValue(content);
       // 取消 change 事件调度的 debounced 预览更新，后续显式调用 updatePreview 替代
       clearTimeout(this.debounceTimer);
@@ -5489,6 +5495,7 @@ input[type="checkbox"]:checked::after { display: none !important; }
         escapeHtml: (s) => this.escapeHtml(s),
         escapeAttr: (s) => this.escapeAttr(s),
         headingToId: (s) => this.headingToId(s),
+        mermaidCache: this._mermaidCache,
       };
       try { PreviewPost.processEmojiShortcodes(this.preview); } catch (e) { console.warn('[preview] Emoji error:', e); }
       try { PreviewPost.processMath(this.preview); } catch (e) { console.warn('[preview] Math error:', e); }
@@ -5594,6 +5601,17 @@ input[type="checkbox"]:checked::after { display: none !important; }
       img.style.opacity = '0.4';
       img.alt = (img.alt || '') + ' [加载失败]';
     };
+    // 按「绝对路径」缓存 base64 data URI：innerHTML 每次重渲染会把 img.src 重置为原始路径，
+    // 无缓存时每次打字都要 invoke 跨 IPC 读磁盘。命中缓存后零磁盘 IO（实测省 ~100ms）。
+    // reloadFile / 文件外部变更时由调用方清缓存。
+    const loadBase64 = async (loadUrl, mime) => {
+      let dataUri = this._imageBase64Cache.get(loadUrl);
+      if (dataUri) return dataUri;
+      const base64 = await invoke('fetch_image_as_base64', { url: loadUrl });
+      dataUri = `data:${mime};base64,${base64}`;
+      this._imageBase64Cache.set(loadUrl, dataUri);
+      return dataUri;
+    };
     const images = this.preview.querySelectorAll('img');
     const promises = Array.from(images).map(async (img) => {
       let src = img.getAttribute('src');
@@ -5606,9 +5624,9 @@ input[type="checkbox"]:checked::after { display: none !important; }
       // 绝对路径（Unix /... 或 Windows D:/...）：直接走 Rust 读磁盘
       if (rawSrc.startsWith('/') || /^[a-zA-Z]:[/\\]/.test(rawSrc)) {
         try {
-          const base64 = await invoke('fetch_image_as_base64', { url: rawSrc });
+          const dataUri = await loadBase64(rawSrc, mimeOf(rawSrc));
           if (gen !== this._renderGeneration) return;
-          img.src = this.getCachedImageURL(`data:${mimeOf(rawSrc)};base64,${base64}`);
+          img.src = this.getCachedImageURL(dataUri);
         } catch (e) {
           console.warn('[preview] Failed to load image:', rawSrc, e);
           fail(img);
@@ -5620,9 +5638,9 @@ input[type="checkbox"]:checked::after { display: none !important; }
         // 普通文件：相对当前 .md 所在目录补全
         const absPath = dir + '/' + rawSrc;
         try {
-          const base64 = await invoke('fetch_image_as_base64', { url: absPath });
+          const dataUri = await loadBase64(absPath, mimeOf(rawSrc));
           if (gen !== this._renderGeneration) return;
-          img.src = this.getCachedImageURL(`data:${mimeOf(rawSrc)};base64,${base64}`);
+          img.src = this.getCachedImageURL(dataUri);
         } catch (e) {
           console.warn('[preview] Failed to load image:', absPath, e);
           fail(img);
@@ -6083,7 +6101,11 @@ input[type="checkbox"]:checked::after { display: none !important; }
 
   async _openBundledFile(href, content, filePath = null) {
     const name = filePath ? filePath.split(/[/\\]/).pop() : href.split(/[/\\]/).pop();
-    const existingIndex = filePath ? this.tabs.findIndex(t => t.filePath === filePath) : -1;
+    // 去重：有真实路径按路径，无路径（打包资源，如从「使用说明」打开的 demo.md）按名称，
+    // 避免同一资源重复打开多个标签页
+    const existingIndex = filePath
+      ? this.tabs.findIndex(t => t.filePath === filePath)
+      : this.tabs.findIndex(t => t.name === name);
     if (existingIndex !== -1) {
       this.switchTab(existingIndex);
       return;
