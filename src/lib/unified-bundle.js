@@ -24274,6 +24274,58 @@ var UnifiedRenderer = (() => {
           });
         };
       }
+      function getTextContent(node2) {
+        if (node2.type === "text") return node2.value;
+        if (node2.children) return node2.children.map(getTextContent).join("");
+        return "";
+      }
+      function slugifyHeading(text10) {
+        let id = "";
+        for (const ch of text10) {
+          if (/[\p{L}\p{N}]/u.test(ch)) {
+            id += ch.toLowerCase();
+          } else if (ch === " " || ch === "-" || ch === "_") {
+            id += "-";
+          }
+        }
+        return id.replace(/-+/g, "-").replace(/^-|-$/g, "");
+      }
+      function rehypeHeadingIds() {
+        return (tree) => {
+          const used = /* @__PURE__ */ new Map();
+          visit2(tree, "element", (node2) => {
+            if (!/^h[1-6]$/.test(node2.tagName)) return;
+            const text10 = getTextContent(node2);
+            if (!text10) return;
+            let slug = slugifyHeading(text10) || "section";
+            if (used.has(slug)) {
+              const n = used.get(slug) + 1;
+              used.set(slug, n);
+              slug = slug + "-" + n;
+            } else {
+              used.set(slug, 1);
+            }
+            node2.properties = node2.properties || {};
+            node2.properties.id = slug;
+          });
+        };
+      }
+      function rehypeInlineBacktickMath() {
+        return (tree) => {
+          visit2(tree, "element", (node2, _index, parent) => {
+            if (node2.tagName !== "code") return;
+            if (parent && parent.tagName === "pre") return;
+            if (!node2.children || node2.children.length !== 1 || node2.children[0].type !== "text") return;
+            const text10 = node2.children[0].value;
+            if (!/^\$+[^\n]+\$+$/.test(text10)) return;
+            node2.type = "text";
+            node2.value = text10;
+            delete node2.tagName;
+            delete node2.children;
+            delete node2.properties;
+          });
+        };
+      }
       function guardMathBlocks(content3) {
         const placeholders = [];
         let result = "";
@@ -24406,6 +24458,50 @@ var UnifiedRenderer = (() => {
           }
         }
         return { content: result, placeholders };
+      }
+      function convertMathFences(content3) {
+        const lines = content3.split("\n");
+        const out = [];
+        let i = 0;
+        let inFence = false;
+        let fenceChar = "";
+        let fenceLen = 0;
+        const body3 = [];
+        while (i < lines.length) {
+          const line = lines[i];
+          const trimmed = line.trim();
+          if (!inFence) {
+            const open = trimmed.match(/^(`{3,}|~{3,})\s*(math|latex|tex)\s*$/i);
+            if (open) {
+              inFence = true;
+              fenceChar = open[1][0];
+              fenceLen = open[1].length;
+              body3.length = 0;
+              i++;
+              continue;
+            }
+            out.push(line);
+            i++;
+            continue;
+          }
+          const close = trimmed.match(/^(`{3,}|~{3,})\s*$/);
+          if (close && close[1][0] === fenceChar && close[1].length >= fenceLen) {
+            out.push("$$");
+            for (const b of body3) out.push(b);
+            out.push("$$");
+            inFence = false;
+            i++;
+            continue;
+          }
+          body3.push(line);
+          i++;
+        }
+        if (inFence) {
+          out.push("$$");
+          for (const b of body3) out.push(b);
+          out.push("$$");
+        }
+        return out.join("\n");
       }
       function getAlertType(line) {
         const lower = line.toLowerCase();
@@ -25032,6 +25128,7 @@ var UnifiedRenderer = (() => {
         const opts = options || {};
         const softBreaks = opts.softBreaks === true;
         content3 = content3.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+        content3 = convertMathFences(content3);
         const abbrResult = extractAbbreviations(content3);
         const abbreviations = abbrResult.abbreviations;
         const mathResult = guardMathBlocks(abbrResult.content);
@@ -25065,6 +25162,8 @@ var UnifiedRenderer = (() => {
             };
             processor.use(rehypeSanitize2, schema);
           }
+          processor.use(rehypeHeadingIds);
+          processor.use(rehypeInlineBacktickMath);
           processor.use(rehypeStringify2, { allowDangerousHtml: true });
           html7 = processor.processSync(processed).toString();
         } catch (e) {

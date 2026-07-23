@@ -73,6 +73,89 @@ function rehypeHeadingIds() {
   };
 }
 
+// ---- rehype plugin: GitHub 兼容的行内反引号数学 `` `$...$` `` ----
+// GitHub 允许用反引号包裹 `$...$`（或 `$$...$$`）写行内数学，用于表达式含与 Markdown
+// 冲突的字符（如 `_` `*`）。unified 会把 `` `$...$` `` 解析成 <code>$...$</code>，
+// 而 KaTeX（processMath）默认跳过 <code>，于是显示成代码而非公式。
+// 此处把「行内 code（父非 pre）且内容恰好是 $...$ / $$...$$」的元素解包为纯文本 $...$，
+// 交给现有 KaTeX 管线渲染，与 GitHub 行为一致。
+// 排除项：块级代码（pre > code，如 ``` 围栏）即使内容是 $...$ 也保持为代码（GitHub 同理）。
+function rehypeInlineBacktickMath() {
+  return (tree) => {
+    visit(tree, 'element', (node, _index, parent) => {
+      if (node.tagName !== 'code') return;
+      if (parent && parent.tagName === 'pre') return; // 块级代码保留
+      if (!node.children || node.children.length !== 1 || node.children[0].type !== 'text') return;
+      const text = node.children[0].value;
+      // 单行、以 $ 开头且以 $ 结尾（至少一个 $）；避免误伤普通代码（如 `$ npm install $`）
+      if (!/^\$+[^\n]+\$+$/.test(text)) return;
+      // 反引号包裹的数学语义上是"行内"，但 $$...$$ 会被 KaTeX 视为 display math（导致换行）。
+      // 因此把反引号内的 $$...$$ 归一化为 $...$，保持行内渲染；GitHub 官方写法 $`...`$ 同理。
+      const normalized = text.replace(/^\$\$(.*?)\$\$$/, (_, inner) => `$${inner}$`);
+      node.type = 'text';
+      node.value = normalized;
+      delete node.tagName;
+      delete node.children;
+      delete node.properties;
+    });
+  };
+}
+
+// GitHub 官方行内反引号数学：`$`...`$`（美元在外、反引号在内）。
+// Markdown 解析为 text("$") + code(...) + text("$")，需把三者合并为 $...$ 文本交给 KaTeX。
+function rehypeInlineDollarBacktickMath() {
+  // GitHub 官方行内反引号数学：$`...`$ （美元在外、反引号在内）。
+  // Markdown 解析为 text("$") + code(...) + text("$")，需把三者合并为 $...$ 文本交给 KaTeX。
+  // 前导 $ 有两种形态：① 文本以 $ 结尾（如 "uses $`x`$" → 文本 "uses $"）；
+  //                     ② `` `$` `` 代码跨度（如 "a `$`x`$ b" → code "$"）。
+  const transform = (nodes) => {
+    const out = [];
+    let i = 0;
+    while (i < nodes.length) {
+      const n = nodes[i];
+      if (n.type === 'element' && n.tagName !== 'code') {
+        n.children = transform(n.children || []);
+      }
+      const prev = out.length ? out[out.length - 1] : null;
+      const next = nodes[i + 1];
+      if (
+        n.type === 'element' && n.tagName === 'code' &&
+        n.children && n.children.length === 1 && n.children[0].type === 'text' &&
+        next && next.type === 'text' && next.value.startsWith('$')
+      ) {
+        const codeText = n.children[0].value;
+        // 代码内容不得含换行；`\$`（转义）允许，KaTeX 按字面量渲染
+        if (!/[\n\r]/.test(codeText)) {
+          let removedOpener = false;
+          if (prev && prev.type === 'text' && prev.value.endsWith('$')) {
+            prev.value = prev.value.slice(0, -1);
+            removedOpener = true;
+          } else if (
+            prev && prev.type === 'element' && prev.tagName === 'code' &&
+            prev.children && prev.children.length === 1 && prev.children[0].type === 'text' &&
+            prev.children[0].value === '$'
+          ) {
+            out.pop();
+            removedOpener = true;
+          }
+          if (removedOpener) {
+            out.push({ type: 'text', value: '$' + codeText + '$' });
+            const rest = next.value.slice(1);
+            if (rest.length) out.push({ type: 'text', value: rest });
+            i += 2;
+            continue;
+          }
+        }
+      }
+      out.push(n);
+      i++;
+    }
+    return out;
+  };
+  return (tree) => { transform(tree.children); };
+}
+
+
 // ---- pre-processing ----
 
 function countBacktickPrefix(s) {
@@ -201,7 +284,7 @@ function guardMathBlocks(content) {
         result += '$$';
         i = start + 2;
       }
-    } else if (!inBacktick && content[i] === '$' && i + 1 < len && content[i + 1] !== ' ' && content[i + 1] !== '\n' && content[i + 1] !== '\r' && content[i + 1] !== '$') {
+    } else if (!inBacktick && content[i] === '$' && i + 1 < len && content[i + 1] !== ' ' && content[i + 1] !== '\n' && content[i + 1] !== '\r' && content[i + 1] !== '$' && content[i + 1] !== '`') {
       // Inline math: $...$ — 必须成对且中间不得跨越换行/表格列/块引用，否则当字面量
       const start = i;
       i += 1;
@@ -232,6 +315,56 @@ function guardMathBlocks(content) {
     }
   }
   return { content: result, placeholders };
+}
+
+// Convert GitHub-style math fences (```math / ```latex / ```tex) into $$...$$ blocks
+// so they flow through the existing KaTeX (processMath) pipeline. This keeps TizuMark
+// behavior aligned with GitHub/Gitee: the fence body is rendered as block math without
+// requiring $$ delimiters inside (matches GitHub's ```math documentation).
+function convertMathFences(content) {
+  const lines = content.split('\n');
+  const out = [];
+  let i = 0;
+  let inFence = false;
+  let fenceChar = '';
+  let fenceLen = 0;
+  const body = [];
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (!inFence) {
+      const open = trimmed.match(/^(`{3,}|~{3,})\s*(math|latex|tex)\s*$/i);
+      if (open) {
+        inFence = true;
+        fenceChar = open[1][0];
+        fenceLen = open[1].length;
+        body.length = 0;
+        i++;
+        continue;
+      }
+      out.push(line);
+      i++;
+      continue;
+    }
+    const close = trimmed.match(/^(`{3,}|~{3,})\s*$/);
+    if (close && close[1][0] === fenceChar && close[1].length >= fenceLen) {
+      out.push('$$');
+      for (const b of body) out.push(b);
+      out.push('$$');
+      inFence = false;
+      i++;
+      continue;
+    }
+    body.push(line);
+    i++;
+  }
+  // Unterminated fence: emit as $$ block anyway so it still renders (not raw code)
+  if (inFence) {
+    out.push('$$');
+    for (const b of body) out.push(b);
+    out.push('$$');
+  }
+  return out.join('\n');
 }
 
 // Convert > [!TYPE] alerts to placeholders, let unified handle markdown inside
@@ -984,6 +1117,9 @@ function renderMarkdown(content, options) {
   // 0. 统一换行符为 LF，避免 CRLF 的 \r 污染后续行数统计
   content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
+  // 0. Convert GitHub-style math fences (```math/```latex/```tex) → $$...$$ blocks
+  content = convertMathFences(content);
+
   // 1. Extract abbreviations
   const abbrResult = extractAbbreviations(content);
   const abbreviations = abbrResult.abbreviations;
@@ -1040,6 +1176,8 @@ function renderMarkdown(content, options) {
       processor.use(rehypeSanitize, schema);
     }
     processor.use(rehypeHeadingIds);
+    processor.use(rehypeInlineBacktickMath);
+    processor.use(rehypeInlineDollarBacktickMath);
     processor.use(rehypeStringify, { allowDangerousHtml: true });
     html = processor.processSync(processed).toString();
   } catch (e) {
