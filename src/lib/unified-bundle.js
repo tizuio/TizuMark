@@ -24533,10 +24533,14 @@ var UnifiedRenderer = (() => {
         const result = [];
         let i = 0;
         let inCodeBlock = false;
+        let inContainer = false;
+        let curContainerPrefix = "";
         while (i < lines.length) {
           const line = lines[i];
           if (/^ {0,3}(```|~~~)/.test(line)) {
             inCodeBlock = !inCodeBlock;
+            inContainer = false;
+            curContainerPrefix = "";
             result.push(line);
             i++;
             continue;
@@ -24547,12 +24551,20 @@ var UnifiedRenderer = (() => {
             continue;
           }
           const sp = stripContainerPrefix(line);
+          if (line.trim() === "") {
+            inContainer = false;
+            curContainerPrefix = "";
+          } else if (sp.prefix.trim() !== "") {
+            inContainer = true;
+            curContainerPrefix = sp.prefix;
+          }
           if (i + 1 < lines.length) {
             const spNext = stripContainerPrefix(lines[i + 1]);
             if (isTableRow(sp.body) && isTableSep(spNext.body)) {
               const prevIdx = prevNonBlankLine(lines, i - 1);
-              const prevIsContainerAdj = prevIdx !== -1 && prevIdx === i - 1 && isContainerLine(lines[prevIdx]);
-              if (prevIsContainerAdj || sp.prefix.trim() !== "") {
+              const inContainerCtx = inContainer || sp.prefix.trim() !== "";
+              const adjacentNoBlank = prevIdx !== -1 && prevIdx === i - 1;
+              if (inContainerCtx || adjacentNoBlank) {
                 const tableLines = [sp.body, spNext.body];
                 let j = i + 2;
                 while (j < lines.length) {
@@ -24565,8 +24577,8 @@ var UnifiedRenderer = (() => {
                   }
                 }
                 const tableHtml = gfmTableToHtml(tableLines);
-                const prefix = sp.prefix.trim() !== "" ? sp.prefix : prevIdx !== -1 && lines[prevIdx].trimStart().startsWith(">") ? "> " : "  ";
-                const prefixedHtml = tableHtml.split("\n").map((l) => l === "" ? l : prefix + l).join("\n");
+                const prefix = sp.prefix.trim() !== "" ? sp.prefix : inContainer ? curContainerPrefix : "";
+                const prefixedHtml = prefix ? tableHtml.split("\n").map((l) => l === "" ? l : prefix + l).join("\n") : tableHtml;
                 result.push(prefixedHtml);
                 i = j;
                 continue;
@@ -24577,10 +24589,6 @@ var UnifiedRenderer = (() => {
           i++;
         }
         return result.join("\n");
-      }
-      function isContainerLine(line) {
-        const t = line.trimStart();
-        return /^>/.test(t) || /^[-*+]\s/.test(t) || /^\d+[.)]\s/.test(t);
       }
       function isTableRow(line) {
         return /^\|.+\|$/.test(line.trim());

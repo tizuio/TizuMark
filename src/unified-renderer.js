@@ -29,6 +29,50 @@ function remarkSourceLine() {
   };
 }
 
+// ---- rehype plugin: assign stable slug ids to headings (for in-doc anchor links) ----
+function getTextContent(node) {
+  if (node.type === 'text') return node.value;
+  if (node.children) return node.children.map(getTextContent).join('');
+  return '';
+}
+
+// 必须与 app.js 的 headingToId() 保持完全一致：同一套 slug 规则，
+// 否则渲染出的 heading id 与大纲/锚点点击定位用的 id 对不上（已有测试守卫）。
+// 规则：字母/数字保留并转小写；空格/_/- 统一转连字符；其余字符（标点、中文标点等）跳过；
+// 最后合并连续连字符、去掉首尾连字符。
+function slugifyHeading(text) {
+  let id = '';
+  for (const ch of text) {
+    if (/[\p{L}\p{N}]/u.test(ch)) {
+      id += ch.toLowerCase();
+    } else if (ch === ' ' || ch === '-' || ch === '_') {
+      id += '-';
+    }
+  }
+  return id.replace(/-+/g, '-').replace(/^-|-$/g, '');
+}
+
+function rehypeHeadingIds() {
+  return (tree) => {
+    const used = new Map();
+    visit(tree, 'element', (node) => {
+      if (!/^h[1-6]$/.test(node.tagName)) return;
+      const text = getTextContent(node);
+      if (!text) return;
+      let slug = slugifyHeading(text) || 'section';
+      if (used.has(slug)) {
+        const n = used.get(slug) + 1;
+        used.set(slug, n);
+        slug = slug + '-' + n;
+      } else {
+        used.set(slug, 1);
+      }
+      node.properties = node.properties || {};
+      node.properties.id = slug;
+    });
+  };
+}
+
 // ---- pre-processing ----
 
 function countBacktickPrefix(s) {
@@ -342,12 +386,17 @@ function convertContainerTables(content) {
   const result = [];
   let i = 0;
   let inCodeBlock = false;
+  // 容器上下文（块引用 / 列表）懒续状态：遇到显式带前缀的行进入，空行退出
+  let inContainer = false;
+  let curContainerPrefix = '';
 
   while (i < lines.length) {
     const line = lines[i];
 
     if (/^ {0,3}(```|~~~)/.test(line)) {
       inCodeBlock = !inCodeBlock;
+      inContainer = false;
+      curContainerPrefix = '';
       result.push(line);
       i++;
       continue;
@@ -359,14 +408,28 @@ function convertContainerTables(content) {
     }
 
     const sp = stripContainerPrefix(line);
+    // 更新容器状态：空行打破懒续；显式带容器前缀的行刷新前缀并进入容器；
+    // 其余情况（非空、无容器前缀 → 懒续）保持容器状态不变
+    if (line.trim() === '') {
+      inContainer = false;
+      curContainerPrefix = '';
+    } else if (sp.prefix.trim() !== '') {
+      inContainer = true;
+      curContainerPrefix = sp.prefix;
+    }
+
     if (i + 1 < lines.length) {
       const spNext = stripContainerPrefix(lines[i + 1]);
       if (isTableRow(sp.body) && isTableSep(spNext.body)) {
         const prevIdx = prevNonBlankLine(lines, i - 1);
-        // 紧邻的上一行是容器行（lazy continuation，保留原紧邻约束避免误伤顶层表格）
-        const prevIsContainerAdj = prevIdx !== -1 && prevIdx === i - 1 && isContainerLine(lines[prevIdx]);
-        // 容器内表格：紧邻的上一行是容器行，或本行本身带容器前缀（> / 缩进 / 列表符）
-        if (prevIsContainerAdj || sp.prefix.trim() !== '') {
+        // 触发条件（任一满足即转换）：
+        //  1) 当前处于容器上下文（块引用/列表懒续，或本行本身带容器前缀）→ 表格在容器内
+        //  2) 紧邻上一行非空（无空行分隔）→ 修复"文字段 + 表格紧挨"不渲染表格。
+        //  说明：GFM 表格需与上文用空行分隔，remark-gfm 对"无空行紧接的表格"不会识别，
+        //  此处统一转为 HTML；有空行分隔的表格由 remark-gfm 正常处理，不重复转换。
+        const inContainerCtx = inContainer || sp.prefix.trim() !== '';
+        const adjacentNoBlank = prevIdx !== -1 && prevIdx === i - 1;
+        if (inContainerCtx || adjacentNoBlank) {
           const tableLines = [sp.body, spNext.body];
           let j = i + 2;
           while (j < lines.length) {
@@ -379,9 +442,12 @@ function convertContainerTables(content) {
             }
           }
           const tableHtml = gfmTableToHtml(tableLines);
-          // 重新加回容器前缀，确保 <table> 仍位于容器内（否则会"逃出" blockquote/列表）
-          const prefix = sp.prefix.trim() !== '' ? sp.prefix : (prevIdx !== -1 && lines[prevIdx].trimStart().startsWith('>') ? '> ' : '  ');
-          const prefixedHtml = tableHtml.split('\n').map(l => l === '' ? l : prefix + l).join('\n');
+          // 容器内表格加回前缀（> / 列表符），确保 <table> 仍位于容器内；
+          // 顶层段落紧随的表格则不加前缀，直接作为顶层表格渲染。
+          const prefix = sp.prefix.trim() !== '' ? sp.prefix : (inContainer ? curContainerPrefix : '');
+          const prefixedHtml = prefix
+            ? tableHtml.split('\n').map(l => l === '' ? l : prefix + l).join('\n')
+            : tableHtml;
           result.push(prefixedHtml);
           i = j;
           continue;
@@ -973,6 +1039,7 @@ function renderMarkdown(content, options) {
       };
       processor.use(rehypeSanitize, schema);
     }
+    processor.use(rehypeHeadingIds);
     processor.use(rehypeStringify, { allowDangerousHtml: true });
     html = processor.processSync(processed).toString();
   } catch (e) {

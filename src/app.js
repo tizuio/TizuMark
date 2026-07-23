@@ -3364,7 +3364,9 @@ class MarkdownEditor {
       if (!href) return;
 
       if (href.startsWith('#')) {
-        const id = href.substring(1);
+        // href 经 rehype-stringify 后非 ASCII 会被 URL 编码（如 #数学公式 → #%E6%95%B0...），
+        // 需 decode 才能匹配 heading 的字面 id（id="数学公式"）。
+        const id = decodeURIComponent(href.substring(1));
         const target = this.preview.querySelector(`#${CSS.escape(id)}`);
         if (target) {
           const previewHeight = this.preview.clientHeight;
@@ -3376,6 +3378,13 @@ class MarkdownEditor {
           target.classList.add('footnote-flash');
           setTimeout(() => target.classList.remove('footnote-flash'), 1300);
         }
+        return;
+      }
+
+      // 外部 http(s) 链接：即便以 .md 结尾也是 gitee/github 等网页，
+      // 一律用系统浏览器打开；不要在 app 内 fetch 渲染（webview 跨域 fetch 必失败且无意义）。
+      if (href.startsWith('http://') || href.startsWith('https://')) {
+        this.openExternal(href);
         return;
       }
 
