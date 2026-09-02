@@ -16,6 +16,7 @@
     "core:window:allow-hide",
     "core:window:allow-show",
     "core:window:allow-unminimize",
+    "core:window:allow-start-dragging",
     "window-state:default",
     "dialog:default",
     "dialog:allow-open",

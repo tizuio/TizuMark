@@ -100,8 +100,8 @@
   <div id="app">
     <div id="drag-overlay" class="hidden"></div>
     <div id="toast-container"></div>
-    <header class="header">
-      <div class="toolbar">
+    <header class="header" data-tauri-drag-region>
+      <div class="toolbar" data-tauri-drag-region>
         <div class="toolbar-left">
           <img id="app-icon" class="app-icon" src="app-icon.png" alt="TizuMark" draggable="false">
           <div class="dropdown">
@@ -221,7 +221,7 @@
             </div>
           </div>
         </div>
-        <div class="toolbar-center">
+        <div class="toolbar-center" data-tauri-drag-region>
           <div class="view-mode-tabs">
             <button id="btn-view-preview" class="view-mode-tab active" title="预览模式">
               <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>

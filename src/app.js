@@ -5543,6 +5543,29 @@ class MarkdownEditor {
     document.getElementById('btn-maximize').addEventListener('click', () => this.toggleMaximize());
     document.getElementById('btn-close').addEventListener('click', () => this.closeWindow());
 
+    const header = document.querySelector('.header');
+    if (header) {
+      header.addEventListener('mousedown', async (e) => {
+        if (e.target.closest('button, input, select, textarea, .dropdown-menu, .app-icon, .view-mode-tab, .window-controls')) {
+          return;
+        }
+        if (e.button === 0) {
+          if (e.detail === 2) {
+            this.toggleMaximize();
+            return;
+          }
+          try {
+            const appWindow = TauriApi.currentWindow();
+            if (appWindow && typeof appWindow.startDragging === 'function') {
+              await appWindow.startDragging();
+            }
+          } catch (err) {
+            console.warn('startDragging failed:', err);
+          }
+        }
+      });
+    }
+
     window.addEventListener('resize', () => {
       this.updateMaximizeIcon();
       this.updateSideButtons();
